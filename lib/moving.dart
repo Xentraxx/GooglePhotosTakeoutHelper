@@ -32,6 +32,7 @@ Future<File> createShortcut(Directory location, File target) async {
   // this must be relative to not break when user moves whole folder around:
   // https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/issues/232
   final targetRelativePath = p.relative(target.path, from: link.parent.path);
+  final targetPath = target.absolute.path;
   if (Platform.isWindows) {
     final res = await Process.run(
       'powershell.exe',
@@ -44,7 +45,7 @@ Future<File> createShortcut(Directory location, File target) async {
         '-Command',
         '\$ws = New-Object -ComObject WScript.Shell; '
             '\$s = \$ws.CreateShortcut(\'${link.path}\'); '
-            '\$s.TargetPath = \'$targetRelativePath\'; '
+            '\$s.TargetPath = \'$targetPath\'; '
             '\$s.Save()',
       ],
     );
