@@ -699,7 +699,7 @@ Future<void> main(final List<String> arguments) async {
   final outputDirs = output.listSync().whereType<Directory>();
   final FillingBar barEmojiEncode = FillingBar(
     total: outputDirs.length,
-    desc: '[Step 8/8] Looking for folders with emojis and renaming them back.',
+    desc: '[Step 8/8] Encoding hex to emojis in album names again.',
     width: barWidth,
   );
   for (final dir in outputDirs) {
