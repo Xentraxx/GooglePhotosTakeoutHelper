@@ -1,8 +1,19 @@
+## 4.0.2-xentraxx
+
+### Fork/Alternate version
+
+#### Bug fixes
+
+- Removed some dysfunctional progress bars
+- resolved typo in release notes
+
 ## 4.0.1-xentraxx
 
 ### Fork/Alternate version 
 
-- Fixed CloudMigrator integration by finding exiftool in more locations.
+#### Bug fixes
+
+- Fixed [PhotoMigrator](https://github.com/jaimetur/PhotoMigrator) integration by finding exiftool in more locations.
 - Fixed some typos
 - Fixed emoji to hex encoding and decoding and added support for BMP emojis in addition to surrowgate.
 - Fixed some tests

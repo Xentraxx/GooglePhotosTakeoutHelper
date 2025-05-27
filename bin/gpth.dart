@@ -599,12 +599,8 @@ Future<void> main(final List<String> arguments) async {
   // be broken in shithole of big-ass year folders
   final Stopwatch sw6 = Stopwatch()
     ..start(); //Creation of our debugging stopwatch for each step.
-  final FillingBar barFindAlbums = FillingBar(
-    total: outputFileCount(media, args['albums']),
-    desc: '[Step 6/8] Finding albums',
-    width: barWidth,
-  );
-  findAlbums(media, barFindAlbums);
+  print('[Step 6/8] Finding albums (this may take a while)');
+  findAlbums(media);
 
   /// ##############################################################
 
@@ -708,7 +704,6 @@ Future<void> main(final List<String> arguments) async {
   );
   for (final dir in outputDirs) {
     final String decodedPath = decodeAndRestoreAlbumEmoji(dir.path);
-    barEmojiEncode.increment();
     if (decodedPath != dir.path) {
       dir.renameSync(decodedPath);
     }

@@ -1,5 +1,6 @@
 name: Build and publish new release on version tag
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -70,12 +71,9 @@ jobs:
         uses: softprops/action-gh-release@v2.2.2
         with:
           files: |
-            ./gpth-v${{ steps.version.outputs.version }}-release-linux-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-release-linux-${{ matrix.arch }}.exe
-            ./gpth-v${{ steps.version.outputs.version }}-release-macos-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-release-macos-${{ matrix.arch }}.exe
-            ./gpth-v${{ steps.version.outputs.version }}-release-windows-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-release-windows-${{ matrix.arch }}.exe
+            ${{ runner.os == 'Linux' && format('./gpth-v{0}-release-linux-{1}', steps.version.outputs.version, matrix.arch) || '' }}
+            ${{ runner.os == 'macOS' && format('./gpth-v{0}-release-macos-{1}', steps.version.outputs.version, matrix.arch) || '' }}
+            ${{ runner.os == 'Windows' && format('./gpth-v{0}-release-windows-{1}.exe', steps.version.outputs.version, matrix.arch) || '' }}
           fail_on_unmatched_files: true
       # if linux, upload to aur
       #- name: Generate PKGBUILD

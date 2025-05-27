@@ -12,8 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        arch: [x86_64, arm64]
+        os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-24.04-arm, windows-11-arm, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4.2.2
@@ -34,29 +33,28 @@ jobs:
         run: |
           version=${{ steps.version.outputs.version }}
           osname=${{ matrix.os }}
-          archname=${{ matrix.arch }}
-          # Normalize osname for output file
+          # Normalize osname and append arch for output file
           if [[ "$osname" == "ubuntu-latest" ]]; then
-            osname=linux
+            osname=linux-x86_64
+          elif [[ "$osname" == "ubuntu-24.04-arm" ]]; then
+            osname=linux-arm64
           elif [[ "$osname" == "macos-latest" ]]; then
-            osname=macos
+            osname=macos-arm64
+          elif [[ "$osname" == "macos-13" ]]; then
+            osname=macos-x86_64
           elif [[ "$osname" == "windows-latest" ]]; then
-            osname=windows
+            osname=windows-x86_64
+          elif [[ "$osname" == "windows-11-arm" ]]; then
+            osname=windows-arm64
           fi
-          outname=gpth-v$version-nightly-$osname-$archname
-          if [[ "$osname" == "windows" ]]; then
+          outname=gpth-v$version-nightly-$osname
+          if [[ "$osname" == windows-* ]]; then
             outname="$outname.exe"
           fi
           dart compile exe bin/gpth.dart -o ./$outname
       - name: Upload exe as artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: gpth-v${{ steps.version.outputs.version }}-nightly-${{ matrix.os == 'ubuntu-latest' && 'linux' || matrix.os == 'macos-latest' && 'macos' || matrix.os == 'windows-latest' && 'windows' }}-${{ matrix.arch }}
-          path: |
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-linux-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-linux-${{ matrix.arch }}.exe
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-macos-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-macos-${{ matrix.arch }}.exe
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-windows-${{ matrix.arch }}
-            ./gpth-v${{ steps.version.outputs.version }}-nightly-windows-${{ matrix.arch }}.exe
+          name: gpth-v${{ steps.version.outputs.version }}-nightly-${{ matrix.os }}
+          path: ./gpth-v${{ steps.version.outputs.version }}-nightly-${{ matrix.os }}${{ contains(matrix.os, 'windows') && '.exe' || '' }}
           if-no-files-found: error

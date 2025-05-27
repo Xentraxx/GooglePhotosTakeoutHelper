@@ -8,7 +8,7 @@ import 'interactive.dart' as interactive;
 import 'media.dart';
 
 // remember to bump this
-const String version = '4.0.1';
+const String version = '4.0.2';
 
 /// max file size to read for exif/hash/anything
 const int maxFileSize = 64 * 1024 * 1024;

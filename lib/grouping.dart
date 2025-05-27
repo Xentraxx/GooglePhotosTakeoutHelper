@@ -5,7 +5,6 @@ library;
 
 import 'dart:io';
 import 'package:collection/collection.dart';
-import 'package:console_bars/console_bars.dart';
 import 'package:path/path.dart' as p;
 import 'media.dart' show Media;
 import 'media.dart';
@@ -97,12 +96,8 @@ String albumName(final Directory albumDir) =>
 
 /// This will analyze [allMedia], find which files are hash-same, and merge
 /// all of them into single [Media] object with all album names they had
-void findAlbums(final List<Media> allMedia, [final FillingBar? barFindAlbums]) {
+void findAlbums(final List<Media> allMedia) {
   for (final List<Media> group in allMedia.groupIdentical().values) {
-    if (barFindAlbums != null) {
-      barFindAlbums.increment();
-    }
-
     if (group.length <= 1) continue; // then this isn't a group
     // now, we have [group] list that contains actual sauce:
 
