@@ -4,6 +4,7 @@ import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:proper_filesize/proper_filesize.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
+import 'extras.dart';
 import 'interactive.dart' as interactive;
 import 'media.dart';
 
@@ -267,34 +268,43 @@ Future<void> fixIncorrectExtensions(final Directory directory) async {
 
         final String newFilePath = '${file.path}.$newExtension';
         final File newFile = File(newFilePath);
-        final File newJSONFile = File('$newFilePath.json');
         final File jsonFile = File('${file.path}.json');
 
-        if (!jsonFile.existsSync()) {
+        if (!jsonFile.existsSync() && !isExtra(file.path)) {
           log(
             '[Step 1.5/8] Skipped fixing extension - unable to find matching json: ${jsonFile.path}',
+            level: 'warning',
+            forcePrint: true
           );
+          continue;
         }
 
         // Verify if the file renamed already exists
-        if (await newFile.exists() || await newJSONFile.exists()) {
+        if (await newFile.exists()) {
           log(
             '[Step 1.5/8] Skipped fixing extension because it already exists: $newFilePath',
+              level: 'warning',
+              forcePrint: true
           );
-        } else {
-          try {
-            await file.rename(newFilePath);
-            await jsonFile.rename('$newFilePath.json');
-            fixedCount++;
-            log('[Step 1.5/8] Fixed: ${file.path} -> $newFilePath');
-          } on FileSystemException catch (e) {
-            log(
-              '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
-              level: 'error',
-            );
-          }
+          continue;
         }
 
+        try {
+          if (!isExtra(file.path)) {
+            // There is only one .json file for both original and any edited files
+            await jsonFile.rename('$newFilePath.json');
+            log('[Step 1.5/8] Fixed: ${jsonFile.path} -> $newFilePath.json');
+          }
+          await file.rename(newFilePath);
+          log('[Step 1.5/8] Fixed: ${file.path} -> $newFilePath');
+          fixedCount++;
+        } on FileSystemException catch (e) {
+          log(
+              '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
+              level: 'error',
+              forcePrint: true
+          );
+        }
       }
     }
   }
