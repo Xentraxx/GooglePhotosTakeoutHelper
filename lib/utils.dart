@@ -238,6 +238,71 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
   );
 }
 
+/// Fixes incorrectly named files by changin their extensions to what mimeType suggests
+///
+/// Searches recursively for non-.json files
+///
+/// [directory] Root directory to search recursively
+Future<void> fixIncorrectExtensions(final Directory directory) async {
+  int fixedCount = 0;
+  await for (final FileSystemEntity file in directory.list(recursive: true)) {
+    if (file is File && p.extension(file.path) != '.json') {
+
+      final List<int> headerBytes = await File(file.path).openRead(0, 128).first;
+      final String? mimeTypeFromHeader = lookupMimeType(
+        file.path,
+        headerBytes: headerBytes,
+      );
+      final String? mimeTypeFromExtension = lookupMimeType(file.path);
+
+      if (mimeTypeFromHeader != null && mimeTypeFromHeader != mimeTypeFromExtension) {
+        final String? newExtension = extensionFromMime(mimeTypeFromHeader);
+
+        if (newExtension == null) {
+          log('Could not determine new extension',
+              level: 'warning',
+              forcePrint: true);
+          continue;
+        }
+
+        final String newFilePath = '${file.path}.$newExtension';
+        final File newFile = File(newFilePath);
+        final File newJSONFile = File('$newFilePath.json');
+        final File jsonFile = File('${file.path}.json');
+
+        if (!jsonFile.existsSync()) {
+          log(
+            '[Step 1.5/8] Skipped fixing extension - unable to find matching json: ${jsonFile.path}',
+          );
+        }
+
+        // Verify if the file renamed already exists
+        if (await newFile.exists() || await newJSONFile.exists()) {
+          log(
+            '[Step 1.5/8] Skipped fixing extension because it already exists: $newFilePath',
+          );
+        } else {
+          try {
+            await file.rename(newFilePath);
+            await jsonFile.rename('$newFilePath.json');
+            fixedCount++;
+            log('[Step 1.5/8] Fixed: ${file.path} -> $newFilePath');
+          } on FileSystemException catch (e) {
+            log(
+              '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
+              level: 'error',
+            );
+          }
+        }
+
+      }
+    }
+  }
+  print(
+    '[Step 1.5/8] Successfully fixed extensions: $fixedCount',
+  );
+}
+
 /// Changes file extensions from .MP/.MV to specified extension (usually .mp4)
 ///
 /// Updates Media objects in-place to reflect the new file paths

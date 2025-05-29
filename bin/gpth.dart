@@ -142,6 +142,13 @@ Future<void> main(final List<String> arguments) async {
       defaultsTo: true,
     )
     ..addFlag(
+      'fix-extensions',
+      help:
+          'Renames files by changing invalid extensions based \n'
+          'on file signature, without this exiftool will \n'
+          ' fail on such occasions\n',
+    )
+    ..addFlag(
       'transform-pixel-mp',
       help: 'Transform Pixel .MP or .MV extensions to ".mp4"\n',
     )
@@ -396,6 +403,22 @@ Future<void> main(final List<String> arguments) async {
   sw1.stop();
   print(
     '[Step 1/8] Step 1 took ${sw1.elapsed.inMinutes} minutes or ${sw1.elapsed.inSeconds} seconds to complete.',
+  );
+
+  /// ################# STEP 1.5 #####################################
+  /// ##### Fixing files (if needed) ##########################
+  final Stopwatch sw1_5 = Stopwatch()
+    ..start(); //Creation of our debugging stopwatch for each step.
+  if (args['fix-extensions']) {
+    print(
+      '[Step 1.5'
+          '/8] Fixing file extensions... (this may take some time)',
+    );
+    await fixIncorrectExtensions(input);
+  }
+  sw1_5.stop();
+  print(
+    '[Step 1.5/8] Step took ${sw1_5.elapsed.inMinutes} minutes or ${sw1_5.elapsed.inSeconds} seconds to complete.',
   );
 
   /// ##############################################################

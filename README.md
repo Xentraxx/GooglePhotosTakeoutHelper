@@ -178,14 +178,15 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 ### Metadata & Processing
 
-| Argument | Description |
-|----------|-------------|
-| `--write-exif` | Write GPS coordinates and dates to EXIF metadata |
-| `--modify-json` | Fix JSON files with "supplemental-metadata" suffix |
-| `--transform-pixel-mp` | Convert Pixel Motion Photos (.MP/.MV) to .mp4 |
-| `--guess-from-name` | Extract dates from filenames (enabled by default) |
+| Argument                 | Description                                          |
+|--------------------------|------------------------------------------------------|
+| `--write-exif`           | Write GPS coordinates and dates to EXIF metadata     |
+| `--modify-json`          | Fix JSON files with "supplemental-metadata" suffix   |
+| `--fix-extensions`       | Fix files with wrong extensions                      |
+| `--transform-pixel-mp`   | Convert Pixel Motion Photos (.MP/.MV) to .mp4        |
+| `--guess-from-name`      | Extract dates from filenames (enabled by default)    |
 | `--update-creation-time` | Sync creation time with modified time (Windows only) |
-| `--limit-filesize` | Skip files larger than 64MB (for low-RAM systems) |
+| `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)    |
 
 ### Other Options
 
