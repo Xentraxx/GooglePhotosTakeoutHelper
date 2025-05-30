@@ -247,7 +247,7 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
 /// [directory] Root directory to search recursively
 /// [nonJpeg] only processes files that do not container JPEG header
 Future<void> fixIncorrectExtensions(final Directory directory,
-    final bool nonJpeg) async {
+    final bool? nonJpeg) async {
   int fixedCount = 0;
   await for (final FileSystemEntity file in directory
       .list(recursive: true)
@@ -266,7 +266,9 @@ Future<void> fixIncorrectExtensions(final Directory directory,
 
     final String? mimeTypeFromExtension = lookupMimeType(file.path);
 
-    if (mimeTypeFromHeader != null &&
+    // Since for ex. CR2 is based on TIFF and mime lib does not support RAW
+    // lets skip everything that has TIFF header
+    if (mimeTypeFromHeader != null && mimeTypeFromHeader != 'image/tiff' &&
         mimeTypeFromHeader != mimeTypeFromExtension) {
       final String? newExtension = extensionFromMime(mimeTypeFromHeader);
 
