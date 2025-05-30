@@ -40,6 +40,7 @@ Never quit([final int code = 1]) {
 }
 
 //Support raw formats (dng, cr2) and Pixel motion photos (mp, mv)
+//CR2: https://github.com/dart-lang/tools/pull/2105
 const List<String> _moreExtensions = <String>['.mp', '.mv', '.dng', '.cr2'];
 
 extension X on Iterable<FileSystemEntity> {
@@ -244,67 +245,77 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
 /// Searches recursively for non-.json files
 ///
 /// [directory] Root directory to search recursively
-Future<void> fixIncorrectExtensions(final Directory directory) async {
+/// [nonJpeg] only processes files that do not container JPEG header
+Future<void> fixIncorrectExtensions(final Directory directory,
+    final bool nonJpeg) async {
   int fixedCount = 0;
-  await for (final FileSystemEntity file in directory.list(recursive: true)) {
-    if (file is File && p.extension(file.path) != '.json') {
+  await for (final FileSystemEntity file in directory
+      .list(recursive: true)
+      .wherePhotoVideo()) {
+    final List<int> headerBytes = await File(file.path)
+        .openRead(0, 128)
+        .first;
+    final String? mimeTypeFromHeader = lookupMimeType(
+      file.path,
+      headerBytes: headerBytes,
+    );
 
-      final List<int> headerBytes = await File(file.path).openRead(0, 128).first;
-      final String? mimeTypeFromHeader = lookupMimeType(
-        file.path,
-        headerBytes: headerBytes,
-      );
-      final String? mimeTypeFromExtension = lookupMimeType(file.path);
+    if (nonJpeg == true && mimeTypeFromHeader == 'image/jpeg') {
+      continue; // Skip 'actual' JPEGs in non-jpeg mode
+    }
 
-      if (mimeTypeFromHeader != null && mimeTypeFromHeader != mimeTypeFromExtension) {
-        final String? newExtension = extensionFromMime(mimeTypeFromHeader);
+    final String? mimeTypeFromExtension = lookupMimeType(file.path);
 
-        if (newExtension == null) {
-          log('Could not determine new extension',
-              level: 'warning',
-              forcePrint: true);
-          continue;
-        }
+    if (mimeTypeFromHeader != null &&
+        mimeTypeFromHeader != mimeTypeFromExtension) {
+      final String? newExtension = extensionFromMime(mimeTypeFromHeader);
 
-        final String newFilePath = '${file.path}.$newExtension';
-        final File newFile = File(newFilePath);
-        final File jsonFile = File('${file.path}.json');
+      if (newExtension == null) {
+        log('Could not determine new extension',
+            level: 'warning',
+            forcePrint: true);
+        continue;
+      }
 
-        if (!jsonFile.existsSync() && !isExtra(file.path)) {
-          log(
-            '[Step 1.5/8] Skipped fixing extension - unable to find matching json: ${jsonFile.path}',
+      final String newFilePath = '${file.path}.$newExtension';
+      final File newFile = File(newFilePath);
+      final File jsonFile = File('${file.path}.json');
+
+      if (!jsonFile.existsSync() && !isExtra(file.path)) {
+        log(
+            '[Step 1.5/8] Skipped fixing extension - unable to find matching json: ${jsonFile
+                .path}',
             level: 'warning',
             forcePrint: true
-          );
-          continue;
-        }
+        );
+        continue;
+      }
 
-        // Verify if the file renamed already exists
-        if (await newFile.exists()) {
-          log(
+      // Verify if the file renamed already exists
+      if (await newFile.exists()) {
+        log(
             '[Step 1.5/8] Skipped fixing extension because it already exists: $newFilePath',
-              level: 'warning',
-              forcePrint: true
-          );
-          continue;
-        }
+            level: 'warning',
+            forcePrint: true
+        );
+        continue;
+      }
 
-        try {
-          if (!isExtra(file.path)) {
-            // There is only one .json file for both original and any edited files
-            await jsonFile.rename('$newFilePath.json');
-            log('[Step 1.5/8] Fixed: ${jsonFile.path} -> $newFilePath.json');
-          }
-          await file.rename(newFilePath);
-          log('[Step 1.5/8] Fixed: ${file.path} -> $newFilePath');
-          fixedCount++;
-        } on FileSystemException catch (e) {
-          log(
-              '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
-              level: 'error',
-              forcePrint: true
-          );
+      try {
+        if (!isExtra(file.path)) {
+          // There is only one .json file for both original and any edited files
+          await jsonFile.rename('$newFilePath.json');
+          log('[Step 1.5/8] Fixed: ${jsonFile.path} -> $newFilePath.json');
         }
+        await file.rename(newFilePath);
+        log('[Step 1.5/8] Fixed: ${file.path} -> $newFilePath');
+        fixedCount++;
+      } on FileSystemException catch (e) {
+        log(
+            '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
+            level: 'error',
+            forcePrint: true
+        );
       }
     }
   }
