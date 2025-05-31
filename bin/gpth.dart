@@ -142,6 +142,25 @@ Future<void> main(final List<String> arguments) async {
       defaultsTo: true,
     )
     ..addFlag(
+      'fix-extensions',
+      help:
+          'Renames files by changing invalid extensions based \n'
+          'on file signature, without this writing exif \n'
+          ' will fail on non-jpeg "actual" files\n',
+    )
+    ..addFlag(
+      'fix-extensions-non-json',
+      help:
+          'Renames files by changing invalid extensions based \n'
+          'on file signature. This mode processes only non-jpeg files\n',
+    )
+    ..addFlag(
+      'fix-extensions-solo-mode',
+      help:
+          'Renames files by changing invalid extensions based \n'
+          'on file signature. This mode stops further processing.\n',
+    )
+    ..addFlag(
       'transform-pixel-mp',
       help: 'Transform Pixel .MP or .MV extensions to ".mp4"\n',
     )
@@ -397,6 +416,28 @@ Future<void> main(final List<String> arguments) async {
   print(
     '[Step 1/8] Step 1 took ${sw1.elapsed.inMinutes} minutes or ${sw1.elapsed.inSeconds} seconds to complete.',
   );
+
+  /// ################# STEP 1.5 #####################################
+  /// ##### Fixing files (if needed) ##########################
+  final Stopwatch sw1_5 = Stopwatch()
+    ..start(); //Creation of our debugging stopwatch for each step.
+  if (args['fix-extensions'] ||
+      args['fix-extensions-non-jpeg'] ||
+      args['fix-extensions-solo-mode']) {
+    print(
+      '[Step 1.5'
+      '/8] Fixing file extensions... (this may take some time)',
+    );
+    await fixIncorrectExtensions(input, args['fix-extensions-non-jpeg']);
+  }
+  sw1_5.stop();
+  print(
+    '[Step 1.5/8] Step took ${sw1_5.elapsed.inMinutes} minutes or ${sw1_5.elapsed.inSeconds} seconds to complete.',
+  );
+
+  if (args['fix-extensions-solo-mode']) {
+    return; // Quit further processing after this mode
+  }
 
   /// ##############################################################
   /// ################# STEP 2 #####################################
