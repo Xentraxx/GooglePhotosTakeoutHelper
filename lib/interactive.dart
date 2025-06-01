@@ -32,13 +32,14 @@ const Map<String, String> albumOptions = <String, String>{
       'Album folders with photos copied into them. \n'
       'This will work across all systems, but may take wayyy more space!!\n',
   'json':
-      'Put ALL photos (including Archive and Trash) in one folder and \n'
+      'Put ALL photos in one folder and \n'
       'make a .json file with info about albums. \n'
       "Use if you're a programmer, or just want to get everything, \n"
       'ignoring lack of year-folders etc.\n',
   'nothing':
-      'Just ignore them and put year-photos into one folder. \n'
-      'WARNING: This ignores Archive/Trash !!!\n',
+      'Ignore album associations and put all unique photos into one folder. \n'
+      'All photos including album-only photos are processed. \n'
+      'NOTE: Special folders (Archive/Trash) are handled separately.\n',
   'reverse-shortcut':
       'Album folders with ORIGINAL photos. "ALL_PHOTOS" folder \n'
       'with shortcuts/symlinks to albums. If a photo is not in an album, \n'
@@ -295,10 +296,12 @@ Future<bool> askModifyJson() async {
 /// - **json**: Creates a single ALL_PHOTOS folder with all files, plus an albums-info.json
 ///   file that contains metadata about which albums each file belonged to.
 ///   Most space-efficient option with programmatic album information.
+///   Note: Special folder handling is controlled separately.
 ///
-/// - **nothing**: Ignores albums entirely. Only creates ALL_PHOTOS folder with files
-///   from year folders. Album-only files are skipped unless they have null keys assigned.
+/// - **nothing**: Ignores album associations entirely. Creates only ALL_PHOTOS folder with all
+///   unique photos including album-only photos. Album metadata is discarded.
 ///   Simplest option for users who don't care about album organization.
+///   Note: Special folders (Archive, Trash, etc.) are handled separately.
 Future<String> askAlbums() async {
   print('What should be done with albums?');
   int i = 0;
@@ -313,6 +316,46 @@ Future<String> askAlbums() async {
   final String choice = albumOptions.keys.elementAt(answer);
   print('Okay, doing: $choice');
   return choice;
+}
+
+/// Prompts user to choose special folder handling behavior
+///
+/// Returns one of: 'auto', 'skip', 'include', 'albums'
+///
+/// Available special folder modes:
+///
+/// - **auto**: Automatic handling based on album mode (default behavior)
+/// - **skip**: Skip special folders entirely (Archive, Trash, etc. are ignored)
+/// - **include**: Include special folder files in ALL_PHOTOS (no album structure)
+/// - **albums**: Treat special folders as album folders (maintains folder structure)
+Future<String> askSpecialFolders() async {
+  print(
+    '\nHow should special folders (Archive, Trash, Screenshots, Camera) be handled?',
+  );
+  print('[0] auto: Automatic handling based on album mode (default)');
+  print('[1] skip: Skip special folders entirely');
+  print('[2] include: Include special folder files in ALL_PHOTOS');
+  print('[3] albums: Treat special folders as album folders');
+  print('(Type a number or press enter for default):');
+  final String answer = await askForInt();
+  switch (answer) {
+    case '0':
+    case '':
+      print('Selected automatic handling');
+      return 'auto';
+    case '1':
+      print('Will skip special folders');
+      return 'skip';
+    case '2':
+      print('Will include special folders in ALL_PHOTOS');
+      return 'include';
+    case '3':
+      print('Will treat special folders as albums');
+      return 'albums';
+    default:
+      error('Invalid answer - try again');
+      return askSpecialFolders();
+  }
 }
 
 // this is used in cli mode as well

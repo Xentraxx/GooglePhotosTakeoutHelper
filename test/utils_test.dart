@@ -192,11 +192,14 @@ void main() {
             final targetFile = fixture.createFile('target.txt', [1, 2, 3]);
             final shortcutPath = '${fixture.basePath}/shortcut.lnk';
 
-            // Should not throw (actual creation might fail in test environment)
-            expect(
-              () => createShortcutWin(shortcutPath, targetFile.path),
-              returnsNormally,
-            );
+            // Ensure target file exists before creating shortcut
+            expect(targetFile.existsSync(), isTrue);
+
+            // Should not throw and should complete successfully
+            await createShortcutWin(shortcutPath, targetFile.path);
+
+            // Verify shortcut was created
+            expect(File(shortcutPath).existsSync(), isTrue);
           }
         },
         skip: !Platform.isWindows ? 'Windows only test' : null,

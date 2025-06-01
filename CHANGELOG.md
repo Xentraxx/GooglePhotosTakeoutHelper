@@ -1,3 +1,40 @@
+## 4.0.6-xentraxx
+
+### Fork/Alternate version
+
+#### New Features
+
+- **Enhanced Special Folder Processing**: Added comprehensive handling for Google Photos special folders (Archive, Trash, Screenshots, Camera)
+  - New `--special-folders` command-line flag with options: 'auto', 'skip', 'include', 'albums'
+  - Interactive mode now includes special folder handling question
+  - Mode-specific processing based on album behavior and special folder settings
+  - Automatic detection of special folders by name
+  - Detailed documentation in README with usage examples
+
+#### Bug fixes
+
+- Fixed documentation and interactive mode to accurately reflect behaviour in "nothing" album mode.
+
+## 4.0.5-xentraxx
+
+### Fork/Alternate version
+
+#### Bug fixes
+
+- Fixed multiple serious race conditions
+- Fixed serious problem where (1) was appended more than once
+- Fixed serious bug where reverse-shortcut album mode was not creating albums
+- Fixed serious bug where on windows .lnk was appended to a shortcut more than once
+- Fixed bug where mimeType needs to be identified by file header for various RAW formats which are based on TIFF (Thank you @IreunN)
+
+#### General improvements
+
+- Added more than 200 unit and functional tests with documentation
+- Documented every function comprehensively
+- Improved general documentation in code
+- Improved README to be more comprehensive
+- Added CONTRIBUTING.md
+
 ## 4.0.4-xentraxx
 
 ### Fork/Alternate version

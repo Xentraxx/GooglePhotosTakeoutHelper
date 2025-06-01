@@ -79,12 +79,12 @@ void main() {
         }
       });
 
-      /// Tests recognition of alternative year folder naming patterns that
-      /// might appear in different Google Photos exports or user modifications.
-      /// This ensures robust classification even with non-standard naming
-      /// conventions that still clearly indicate a year-based organization.
+      /// Tests that non-standard year folder naming patterns are correctly
+      /// rejected, since the function only works with exact Google Photos format.
+      /// The function is restricted to only match "Photos from YYYY" pattern
+      /// as this is the exact format used in Google Photos takeout exports.
       test('identifies alternative year folder patterns', () {
-        final yearDirs = [
+        final nonYearDirs = [
           fixture.createDirectory('2023'),
           fixture.createDirectory('2022 Photos'),
           fixture.createDirectory('Year 2021'),
@@ -92,8 +92,8 @@ void main() {
           fixture.createDirectory('Images from 2019'),
         ];
 
-        for (final dir in yearDirs) {
-          expect(isYearFolder(dir), isTrue, reason: 'Failed for ${dir.path}');
+        for (final dir in nonYearDirs) {
+          expect(isYearFolder(dir), isFalse, reason: 'Failed for ${dir.path}');
         }
       });
 
@@ -127,21 +127,24 @@ void main() {
           fixture.createDirectory('20th Century'), // Not a year
           fixture.createDirectory(
             'Photos from 2023 backup',
-          ), // Year with suffix
+          ), // Year with suffix - should fail with exact matching
         ];
 
         expect(isYearFolder(edgeCases[0]), isTrue); // 1900
         expect(isYearFolder(edgeCases[1]), isTrue); // 2024
         expect(isYearFolder(edgeCases[2]), isFalse); // 2000s
         expect(isYearFolder(edgeCases[3]), isFalse); // 20th Century
-        expect(isYearFolder(edgeCases[4]), isTrue); // 2023 with suffix
+        expect(
+          isYearFolder(edgeCases[4]),
+          isFalse,
+        ); // 2023 with suffix - should fail
       });
 
       /// Should extract year from year folders correctly.
       test('extracts year from year folders correctly', () {
         final yearDir2023 = fixture.createDirectory('Photos from 2023');
-        final yearDir1995 = fixture.createDirectory('1995');
-        final yearDirComplex = fixture.createDirectory('Year 2010 Archive');
+        final yearDir1995 = fixture.createDirectory('Photos from 1995');
+        final yearDirComplex = fixture.createDirectory('Photos from 2010');
 
         // Test the internal year extraction logic
         expect(isYearFolder(yearDir2023), isTrue);
@@ -247,37 +250,44 @@ void main() {
 
     group('Folder Name Analysis - Pattern Recognition', () {
       /// Tests extraction of year information from various folder naming
-      /// patterns to ensure robust year detection across different formats.
+      /// patterns to ensure robust year detection only works with exact format.
       test('extracts year from various folder name patterns', () {
         final testCases = [
-          ['Photos from 2023', 2023],
-          ['2022 Vacation', 2022],
-          ['Family Photos 2021', 2021],
-          ['Christmas_2020_Photos', 2020],
-          ['2019-Summer-Trip', 2019],
-          ['backup_2018_imgs', 2018],
+          ['Photos from 2023', true],
+          ['Photos from 2022', true],
+          ['Photos from 2021', true],
+          ['Photos from 2020', true],
+          ['Photos from 2019', true],
+          ['Photos from 1980', true],
+          // These should fail with the restricted pattern
+          ['2022 Vacation', false],
+          ['Family Photos 2021', false],
+          ['Christmas_2020_Photos', false],
+          ['2019-Summer-Trip', false],
+          ['backup_2018_imgs', false],
         ];
 
         for (final testCase in testCases) {
           final folderName = testCase[0] as String;
+          final expectedResult = testCase[1] as bool;
           final dir = fixture.createDirectory(folderName);
 
-          if (isYearFolder(dir)) {
-            // Would need access to internal year extraction function
-            // For now, we'll test through isYearFolder behavior
-            expect(
-              isYearFolder(dir),
-              isTrue,
-              reason: 'Failed to identify year in: $folderName',
-            );
-          }
+          expect(
+            isYearFolder(dir),
+            expectedResult,
+            reason: 'Failed for: $folderName',
+          );
         }
       });
 
-      /// Validates handling of special characters in folder names that
-      /// might appear in Google Photos exports or user-modified folders.
+      /// Validates that only exact Google Photos format matches as year folders.
+      /// Special characters and additional text should cause rejection.
       test('handles special characters in folder names', () {
         final specialDirs = [
+          fixture.createDirectory('Photos from 2023'), // Should match
+          fixture.createDirectory('Photos from 2022'), // Should match
+          fixture.createDirectory('Photos from 2021'), // Should match
+          // These should fail with the exact pattern matching
           fixture.createDirectory('Photos from 2023 (Backup)'),
           fixture.createDirectory('2022 - Family Vacation'),
           fixture.createDirectory('Photos_from_2021'),
@@ -285,15 +295,40 @@ void main() {
           fixture.createDirectory('Photos@2018'),
         ];
 
-        for (final dir in specialDirs) {
-          expect(isYearFolder(dir), isTrue, reason: 'Failed for ${dir.path}');
+        // Only the first 3 should match
+        expect(
+          isYearFolder(specialDirs[0]),
+          isTrue,
+          reason: 'Failed for ${specialDirs[0].path}',
+        );
+        expect(
+          isYearFolder(specialDirs[1]),
+          isTrue,
+          reason: 'Failed for ${specialDirs[1].path}',
+        );
+        expect(
+          isYearFolder(specialDirs[2]),
+          isTrue,
+          reason: 'Failed for ${specialDirs[2].path}',
+        );
+
+        // The rest should fail
+        for (int i = 3; i < specialDirs.length; i++) {
+          expect(
+            isYearFolder(specialDirs[i]),
+            isFalse,
+            reason: 'Failed for ${specialDirs[i].path}',
+          );
         }
       });
 
-      /// Tests Unicode character support in folder names, which is important
-      /// for international users who might have non-ASCII album names.
+      /// Tests that only exact Google Photos format works, not Unicode variations.
+      /// Unicode characters should cause rejection from year folder classification.
       test('handles Unicode characters in folder names', () {
         final unicodeDirs = [
+          fixture.createDirectory('Photos from 2023'), // Should match
+          fixture.createDirectory('Photos from 2022'), // Should match
+          // These should fail due to extra characters
           fixture.createDirectory('Photos from 2023 📸'),
           fixture.createDirectory('2022 家族写真'),
           fixture.createDirectory('Fotos de 2021'),
@@ -301,8 +336,25 @@ void main() {
           fixture.createDirectory('2019 фотографии'),
         ];
 
-        for (final dir in unicodeDirs) {
-          expect(isYearFolder(dir), isTrue, reason: 'Failed for ${dir.path}');
+        // Only the first 2 should match
+        expect(
+          isYearFolder(unicodeDirs[0]),
+          isTrue,
+          reason: 'Failed for ${unicodeDirs[0].path}',
+        );
+        expect(
+          isYearFolder(unicodeDirs[1]),
+          isTrue,
+          reason: 'Failed for ${unicodeDirs[1].path}',
+        );
+
+        // The rest should fail
+        for (int i = 2; i < unicodeDirs.length; i++) {
+          expect(
+            isYearFolder(unicodeDirs[i]),
+            isFalse,
+            reason: 'Failed for ${unicodeDirs[i].path}',
+          );
         }
       });
     });
@@ -315,7 +367,12 @@ void main() {
         final longName = '${'A' * 50} Photos from 2023 ${'B' * 50}';
         final longDir = fixture.createDirectory(longName);
 
-        expect(isYearFolder(longDir), isTrue);
+        // With exact pattern matching, this should fail due to extra characters
+        expect(isYearFolder(longDir), isFalse);
+
+        // Test a long folder name that matches the exact pattern
+        final validLongDir = fixture.createDirectory('Photos from 2023');
+        expect(isYearFolder(validLongDir), isTrue);
       });
 
       /// Validates graceful handling of non-existent directories to
@@ -341,6 +398,78 @@ void main() {
         final results = await Future.wait(futures);
 
         expect(results.every((final result) => result == true), isTrue);
+      });
+    });
+
+    group('Special Folder Detection Tests', () {
+      test('isSpecialFolder correctly identifies all special folders', () {
+        // Create temporary directories for testing
+        final Directory archiveDir = Directory(
+          p.join(fixture.basePath, 'Archive'),
+        );
+        final Directory trashDir = Directory(p.join(fixture.basePath, 'Trash'));
+        final Directory screenshotsDir = Directory(
+          p.join(fixture.basePath, 'Screenshots'),
+        );
+        final Directory cameraDir = Directory(
+          p.join(fixture.basePath, 'Camera'),
+        );
+        final Directory allPhotosDir = Directory(
+          p.join(fixture.basePath, 'ALL_PHOTOS'),
+        );
+        final Directory normalDir = Directory(
+          p.join(fixture.basePath, 'Normal_Folder'),
+        );
+        final Directory albumDir = Directory(
+          p.join(fixture.basePath, 'Vacation Photos'),
+        );
+
+        // Create all the test directories
+        archiveDir.createSync();
+        trashDir.createSync();
+        screenshotsDir.createSync();
+        cameraDir.createSync();
+        allPhotosDir.createSync();
+        normalDir.createSync();
+        albumDir.createSync();
+
+        // Test each folder. ALL_PHOTOS should not be detected as special folder.
+        expect(isSpecialFolder(archiveDir), isTrue);
+        expect(isSpecialFolder(trashDir), isTrue);
+        expect(isSpecialFolder(screenshotsDir), isTrue);
+        expect(isSpecialFolder(cameraDir), isTrue);
+        expect(isSpecialFolder(allPhotosDir), isFalse);
+
+        // Test non-special folders
+        expect(isSpecialFolder(normalDir), isFalse);
+        expect(isSpecialFolder(albumDir), isFalse);
+      });
+
+      test('isSpecialFolder is case sensitive', () {
+        // Special folders should be case-sensitive to match Google's format
+        final Directory archiveLowercaseDir = Directory(
+          p.join(fixture.basePath, 'archive'),
+        );
+        final Directory trashUppercaseDir = Directory(
+          p.join(fixture.basePath, 'TRASH'),
+        );
+        final Directory screenshotsLowercaseDir = Directory(
+          p.join(fixture.basePath, 'screenshots'),
+        );
+        final Directory cameraNormalcaseDir = Directory(
+          p.join(fixture.basePath, 'Camera'),
+        );
+
+        // Create test directories
+        archiveLowercaseDir.createSync();
+        trashUppercaseDir.createSync();
+        screenshotsLowercaseDir.createSync();
+        cameraNormalcaseDir.createSync();
+
+        expect(isSpecialFolder(archiveLowercaseDir), isFalse);
+        expect(isSpecialFolder(trashUppercaseDir), isFalse);
+        expect(isSpecialFolder(screenshotsLowercaseDir), isFalse);
+        expect(isSpecialFolder(cameraNormalcaseDir), isTrue);
       });
     });
   });

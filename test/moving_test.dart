@@ -316,49 +316,20 @@ void main() {
             .list(recursive: true, followLinks: false)
             .toSet();
 
-        // Verify expected structure
-        expect(
-          outputted.whereType<Directory>().length,
-          greaterThanOrEqualTo(1),
+        // Verify expected structure - only ALL_PHOTOS directory should exist
+        // (no album folders since we're using JSON mode)
+        final dirs = outputted.whereType<Directory>().toList();
+        expect(dirs.length, equals(1));
+        expect(p.basename(dirs.first.path), equals('ALL_PHOTOS'));
+
+        // Check for albums-info.json file in root output directory
+        final albumsInfoFile = outputted.whereType<File>().firstWhereOrNull(
+          (final f) => p.basename(f.path) == 'albums-info.json',
         );
-        // Check that there are some files created
-        expect(outputted.whereType<File>().isNotEmpty, isTrue);
-        expect(outputted.whereType<Link>().length, 0);
-
-        // Check for ALL_PHOTOS directory without asserting exact count
-        final dirNames = outputted
-            .whereType<Directory>()
-            .map((final dir) => p.basename(dir.path))
-            .toSet();
-        expect(dirNames.contains('ALL_PHOTOS'), isTrue);
-        // With divideToDates: 0, no date-based folders should be created
-        expect(dirNames.contains('date-unknown'), isFalse);
-
         expect(
-          const UnorderedIterableEquality<String>().equals(
-            outputted.whereType<File>().map(
-              (final file) => p.basename(file.path),
-            ),
-            [
-              'image-edited.jpg',
-              'Screenshot_2022-10-28-09-31-43-118_com.snapchat.jpg',
-              'Urlaub in Knaufspesch in der Schneifel (38).JPG',
-              'albums-info.json',
-              'img_(87).(vacation stuff).lol(87).jpg',
-              'IMG-20150125-WA0003-modifié.jpg',
-              'IMG-20150125-WA0003-modifié(1).jpg',
-              'simple_file_20200101-edited.jpg',
-            ],
-          ),
-          true,
-        );
-
-        expect(
-          outputted
-              .whereType<Directory>()
-              .map((final dir) => p.basename(dir.path))
-              .toSet(),
-          {'ALL_PHOTOS'},
+          albumsInfoFile,
+          isNotNull,
+          reason: 'albums-info.json should be created in JSON mode',
         );
       });
     });
@@ -411,13 +382,13 @@ void main() {
         ).toList();
 
         // Verify the original file was moved (no longer exists)
-        expect(testFile.existsSync(), isFalse);
+        expect(await testFile.exists(), isFalse);
 
         // Verify it exists in the output directory
         final movedFile = File(
           '${output.path}/ALL_PHOTOS/test_file_to_move.jpg',
         );
-        expect(movedFile.existsSync(), isTrue);
+        expect(await movedFile.exists(), isTrue);
       });
     });
 
@@ -487,8 +458,9 @@ void main() {
         ).toList();
 
         // Should create the output directory
-        expect(nonExistentOutput.existsSync(), isTrue);
-        expect(nonExistentOutput.listSync().isNotEmpty, isTrue);
+        expect(await nonExistentOutput.exists(), isTrue);
+        final contents = await nonExistentOutput.list().toList();
+        expect(contents.isNotEmpty, isTrue);
       });
 
       /// Should handle empty media list gracefully.

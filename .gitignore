@@ -10,5 +10,7 @@ build/
 output/
 *.log
 pubspec.lock
+#Testing directories
 /test/generated
-/test/.temp_exif
+/test/debug*
+.DS_Store

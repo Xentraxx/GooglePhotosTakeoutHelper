@@ -1,5 +1,38 @@
-/// This file contains logic/utils for final act of moving actual files once
-/// we have everything grouped, de-duplicated and sorted
+// moving.dart
+//
+// This file contains the core logic for moving, copying, and organizing media files exported from Google Photos Takeout.
+// It provides utilities for de-duplicating, sorting, and placing files into user-friendly folder structures, supporting various album handling modes.
+//
+// Key Features:
+// - Unique file naming to avoid overwrites
+// - Cross-platform shortcut/symlink creation (Windows/Unix)
+// - Multiple album handling strategies: shortcut, reverse-shortcut, duplicate-copy, json, nothing
+// - Flexible date-based folder organization
+// - Robust error handling for file operations
+// - Metadata preservation (modification dates)
+//
+// Main Functions:
+//
+// 1. findNotExistingName: Ensures a file path is unique by appending (1), (2), etc. if needed.
+// 2. createShortcut: Creates a shortcut (Windows .lnk) or symlink (Unix) to a target file, using relative paths for portability.
+// 3. moveFileAndCreateShortcut: Moves/copies a file to a new location and creates a shortcut in the original location (used for reverse-shortcut mode).
+// 4. moveFiles: The main entry point. Iterates over all media, applies the selected album handling mode, and moves/copies/links files into the output structure. Supports progress reporting via Stream.
+//
+// Album Handling Modes:
+// - shortcut: All real files go to ALL_PHOTOS; album folders contain shortcuts.
+// - reverse-shortcut: Real files go to album folders; ALL_PHOTOS contains shortcuts.
+// - duplicate-copy: Every folder gets a real copy (max compatibility, more space).
+// - json: Only ALL_PHOTOS with real files; album membership is written to albums-info.json.
+// - nothing: Only ALL_PHOTOS with real files from year folders; albums ignored.
+//
+// Error Handling:
+// - Handles cross-device move errors, PowerShell failures, and Windows date limitations.
+// - Ensures no data loss by falling back to copy if move/shortcut fails.
+//
+// Usage:
+// - Used by the main application to process Google Photos Takeout exports into organized, deduplicated, and user-friendly folder structures.
+// - Designed for extensibility and robust cross-platform operation.
+
 // ignore_for_file: prefer_single_quotes
 
 library;
@@ -20,8 +53,12 @@ import 'utils.dart';
 /// Returns a File object with a unique path that doesn't exist yet
 File findNotExistingName(final File initialFile) {
   File file = initialFile;
+  int counter = 1;
   while (file.existsSync()) {
-    file = File('${p.withoutExtension(file.path)}(1)${p.extension(file.path)}');
+    final String baseName = p.withoutExtension(initialFile.path);
+    final String extension = p.extension(initialFile.path);
+    file = File('$baseName($counter)$extension');
+    counter++;
   }
   return file;
 }
@@ -33,9 +70,22 @@ File findNotExistingName(final File initialFile) {
 /// Returns the created link/shortcut file
 /// Uses relative paths to avoid breaking when folders are moved
 Future<File> createShortcut(final Directory location, final File target) async {
-  final String name =
-      '${p.basename(target.path)}${Platform.isWindows ? '.lnk' : ''}';
-  final File link = findNotExistingName(File(p.join(location.path, name)));
+  final String basename = p.basename(target.path);
+  final String name = Platform.isWindows
+      ? (basename.endsWith('.lnk') ? basename : '$basename.lnk')
+      : basename;
+  final File link = findNotExistingName(
+    File(p.join(location.path, name)),
+  ); // Ensure the parent directory for the shortcut exists (important for Windows)
+  final linkDir = Directory(p.dirname(link.path));
+  if (!await linkDir.exists()) {
+    await linkDir.create(recursive: true);
+  }
+  // Ensure the target directory exists before creating shortcuts
+  if (!await location.exists()) {
+    await location.create(recursive: true);
+  }
+
   // this must be relative to not break when user moves whole folder around:
   // https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/issues/232
   final String targetRelativePath = p.relative(
@@ -44,57 +94,73 @@ Future<File> createShortcut(final Directory location, final File target) async {
   );
   final String targetPath = target.absolute.path;
   if (Platform.isWindows) {
+    // Try native shortcut creation, fallback to PowerShell if needed.
     try {
       await createShortcutWin(link.path, targetPath);
     } catch (e) {
-      final ProcessResult res = await Process.run('powershell.exe', <String>[
-        '-ExecutionPolicy',
-        'Bypass',
-        '-NoLogo',
-        '-NonInteractive',
-        '-NoProfile',
-        '-Command',
-        "\$ws = New-Object -ComObject WScript.Shell; ",
-        "\$s = \$ws.CreateShortcut(\"${link.path}\"); ",
-        "\$s.TargetPath = \"$targetPath\"; ",
-        "\$s.Save()",
-      ]);
-      if (res.exitCode != 0) {
+      try {
+        final ProcessResult res = await Process.run('powershell.exe', <String>[
+          '-ExecutionPolicy',
+          'Bypass',
+          '-NoLogo',
+          '-NonInteractive',
+          '-NoProfile',
+          '-Command',
+          '''
+          try {
+            \$ws = New-Object -ComObject WScript.Shell
+            \$s = \$ws.CreateShortcut("${link.path}")
+            \$s.TargetPath = "$targetPath"
+            \$s.Save()
+          } catch {
+            Write-Error \$_.Exception.Message
+            exit 1
+          }
+          ''',
+        ]);
+        if (res.exitCode != 0) {
+          throw Exception('PowerShell shortcut creation failed: ${res.stderr}');
+        }
+      } catch (fallbackError) {
         throw Exception(
           'PowerShell doesnt work :( - \n\n'
           'report that to @TheLastGimbus on GitHub:\n\n'
           'https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/issues\n\n'
           '...or try other album solution\n'
           'sorry for inconvenience :('
-          '\nshortcut exc -> $e',
+          '\nOriginal error: $e'
+          '\nFallback error: $fallbackError',
         );
       }
     }
     return File(link.path);
   } else {
+    // Unix: create a symlink
     return File((await Link(link.path).create(targetRelativePath)).path);
   }
 }
 
-/// Moves a file to new location and creates a shortcut in the original location
+/// Moves or copies a file to new location and creates a shortcut in the original location
 ///
 /// Used for reverse-shortcut album behavior where originals go to albums
 /// and shortcuts are created in year folders.
 ///
-/// [newLocation] Directory to move the file to
-/// [target] File to move
+/// [newLocation] Directory to move/copy the file to
+/// [target] File to move/copy
+/// [copy] Whether to copy (true) or move (false) the file
 /// Returns the created shortcut file
 Future<File> moveFileAndCreateShortcut(
   final Directory newLocation,
-  final File target,
-) async {
+  final File target, {
+  required final bool copy,
+}) async {
   final String newPath = p.join(newLocation.path, p.basename(target.path));
-  final File movedFile = await target.rename(
-    newPath,
-  ); // Move the file from year folder to album (new location)
+  final File outputFile = copy
+      ? await target.copy(newPath) // Copy the file if copy mode
+      : await target.rename(newPath); // Move the file if move mode
 
   // Create shortcut in the original path (year folder)
-  return createShortcut(target.parent, movedFile);
+  return createShortcut(target.parent, outputFile);
 }
 
 /// Big-ass logic of moving files from input to output
@@ -126,9 +192,11 @@ Stream<int> moveFiles(
   final Map<String, List<String>> infoJson = <String, List<String>>{};
   int i = 0;
   for (final Media m in allMediaFinal) {
-    // main file shortcuts will link to
+    // mainFile is the real file that album shortcuts/symlinks will point to.
     File? mainFile;
 
+    // Sort files so the null key (ALL_PHOTOS/year folder) comes first.
+    // This ensures shortcuts in albums point to the correct file.
     final List<MapEntry<String?, File>> nullFirst = albumBehavior == 'json'
         // in 'json' case, we want to copy ALL files (like Archive) as normals
         ? <MapEntry<Null, File>>[
@@ -145,10 +213,19 @@ Stream<int> moveFiles(
     // ignore non-nulls with 'ignore', copy with 'duplicate-copy',
     // symlink with 'shortcut' etc
     for (final MapEntry<String?, File> file in nullFirst) {
-      // if it's not from year folder and we're doing nothing/json, skip
+      // Skip album files in 'nothing' and 'json' modes.
       if (file.key != null &&
           <String>['nothing', 'json'].contains(albumBehavior)) {
         continue;
+      }
+      // In reverse-shortcut mode, skip creating a real file in ALL_PHOTOS (null key)
+      if (albumBehavior == 'reverse-shortcut' && file.key == null) {
+        // Do not create a real file in ALL_PHOTOS; shortcut will be created after album file is created
+        continue;
+      }
+      // In reverse-shortcut mode, set mainFile to the album file for shortcut creation
+      if (albumBehavior == 'reverse-shortcut' && file.key != null) {
+        mainFile = file.value;
       }
       // now on, logic is shared for nothing+null/shortcut/copy cases
       final DateTime? date = m.dateTaken;
@@ -202,17 +279,43 @@ Stream<int> moveFiles(
           return copy
               ? await file.value.copy(freeFile.path)
               : await file.value.rename(freeFile.path);
-        } on FileSystemException {
-          print(
-            '[Step 7/8] [Error] Uh-uh, it looks like you selected another output drive than\n'
-            "your input drive - gpth can't move files between them. But, you don't have\n"
-            "to do this! Gpth *moves* files, so this doesn't take any extra space!\n"
-            'Please run again and select different output location <3',
-          );
+        } on FileSystemException catch (e) {
+          final String errorMessage =
+              '[Step 7/8] [Error] Uh-uh, it looks like you selected another output drive than\n'
+              "your input drive - gpth can't move files between them. But, you don't have\n"
+              "to do this! Gpth *moves* files, so this doesn't take any extra space!\n"
+              'Please run again and select different output location <3 Error message: $e';
+
+          print(errorMessage);
+
+          // In test environment, throw an exception instead of quitting
+          // Check multiple ways to detect test environment
+          final isTestEnvironment =
+              Platform.environment.containsKey('FLUTTER_TEST') ||
+              Platform.environment.containsKey('DART_TEST') ||
+              Platform.environment.containsKey('_DART_TEST') ||
+              // Check if we're running under dart test command
+              Platform.script.path.contains('test') ||
+              // Check if current executable is test-related
+              Platform.executable.contains('dart') &&
+                  Platform.script.toString().contains('test');
+
+          if (isTestEnvironment) {
+            throw Exception(
+              'Cross-device move error: Cannot move files between different drives',
+            );
+          }
+
           quit();
         }
       }
 
+      // Album handling logic:
+      // - For ALL_PHOTOS (null key): move/copy the file and set as mainFile.
+      // - For shortcut mode: create a shortcut in the album folder pointing to mainFile.
+      // - For reverse-shortcut: move/copy the file to the album folder and create a shortcut in ALL_PHOTOS.
+      // - For duplicate-copy: copy/move the file to every folder.
+      // - For json/nothing: only process ALL_PHOTOS.
       if (file.key == null) {
         // if it's just normal "Photos from .." (null) file, just move it
         result = await moveFile();
@@ -229,16 +332,20 @@ Stream<int> moveFiles(
           );
           result = await moveFile();
         }
-      } else if (albumBehavior == 'reverse-shortcut' && mainFile != null) {
+      } else if (albumBehavior == 'reverse-shortcut' &&
+          file.key != null &&
+          mainFile != null) {
+        // Move/copy the file to the album folder and create a shortcut in ALL_PHOTOS
         try {
-          result = await moveFileAndCreateShortcut(folder, mainFile);
+          result = await moveFileAndCreateShortcut(
+            folder,
+            mainFile,
+            copy: copy,
+          );
         } catch (e) {
           if (e is FileSystemException) {
-            //If file not exists its because is already moved to another album
-            //Just copy the original to the album
             result = await moveFile();
           } else {
-            // in case of other exception, print details
             print(
               '[Step 7/8] [Error] Creating shortcut for '
               '${p.basename(mainFile.path)} in ${p.basename(folder.path)} '
@@ -247,11 +354,32 @@ Stream<int> moveFiles(
             result = await moveFile();
           }
         }
+        // After creating the album file, create a shortcut in ALL_PHOTOS
+        final allPhotosDir = Directory(p.join(output.path, 'ALL_PHOTOS'));
+        await allPhotosDir.create(recursive: true);
+        await createShortcut(allPhotosDir, result);
+      } else if (albumBehavior == 'reverse-shortcut' && file.key == null) {
+        // Skip creating a real file in ALL_PHOTOS (null key)
+        continue;
       } else {
         // else - if we either run duplicate-copy or main file is missing:
         // (this happens with archive/trash/weird situation)
-        // just copy it
-        result = await moveFile();
+
+        // Special handling for duplicate-copy mode in move operations
+        if (albumBehavior == 'duplicate-copy' &&
+            !copy &&
+            mainFile != null &&
+            file.key != null) {
+          // In move mode with duplicate-copy, we already moved the file to ALL_PHOTOS
+          // Now we need to copy from the mainFile to the album folder
+          final File freeFile = findNotExistingName(
+            File(p.join(folder.path, p.basename(file.value.path))),
+          );
+          result = await mainFile.copy(freeFile.path);
+        } else {
+          // Normal case: move/copy from original source
+          result = await moveFile();
+        }
       }
 
       // Done! Now, set the date:
@@ -282,15 +410,17 @@ Stream<int> moveFiles(
         ); //If error code 0, no need to notify user. Only log.
       }
 
-      // one copy/move/whatever - one yield
+      // Yield progress for each file processed.
       yield ++i;
 
+      // In 'json' mode, record album membership for this file.
       if (albumBehavior == 'json') {
         infoJson[p.basename(result.path)] = m.files.keys.nonNulls.toList();
       }
     }
     // done with this media - next!
   }
+  // If in 'json' mode, write the album membership info to albums-info.json in the output folder.
   if (albumBehavior == 'json') {
     await File(
       p.join(output.path, 'albums-info.json'),

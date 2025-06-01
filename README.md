@@ -25,9 +25,13 @@ When you export photos from Google Photos using [Google Takeout](https://takeout
 2. Deselect all, then select only **Google Photos**
 3. Download all ZIP files
 
+<img width="75%" alt="gpth usage image tutorial" src="https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/assets/40139196/8e85f58c-9958-466a-a176-51af85bb73dd">
+
 ### 2. Extract and Merge
 
 Unzip all files and merge them so you have one unified "Takeout" folder.
+
+<img width="75%" alt="Unzip image tutorial" src="https://user-images.githubusercontent.com/40139196/229361367-b9803ab9-2724-4ddf-9af5-4df507e02dfe.png">
 
 **⚠️ Keep the original ZIPs as backup!**
 
@@ -130,25 +134,71 @@ GPTH offers several ways to handle your Google Photos albums:
 **Best for:** Developers, users migrating to photo management software that can read JSON metadata, or those who don't care about visual album organization.
 
 ### ❌ Nothing
-**What it does:** Ignores albums entirely and creates only `ALL_PHOTOS` with files from year folders. Album-only files are included if they can be linked to year folders.
+**What it does:** Ignores album associations entirely and creates only `ALL_PHOTOS` with all unique photos. All photos including album-only photos are processed, but album information is discarded.
 
 **Advantages:**
 - Simplest processing
 - Fastest execution
 - Clean, single-folder result
 - No complex album logic
+- All photos are preserved regardless of their source
 
 **Disadvantages:**
 - Completely loses album organization
-- Some album-only photos might be skipped
 - No way to recover album information later
 
 **Best for:** Users who don't care about album organization and just want all photos in chronological order.
+
+## Special Folder Handling
+
+Google Photos Takeout includes several special system folders that contain photos but aren't user-created albums:
+
+- **Archive**: Photos you've archived in Google Photos
+- **Trash**: Deleted photos (may still be in takeout)  
+- **Screenshots**: Screenshots taken on your device
+- **Camera**: Photos from your device's camera app
+
+**Important**: These special folders are automatically distinguished from user albums and are not counted in album statistics.
+
+### Special Folder Options
+
+GPTH provides several ways to handle these special folders:
+
+#### 🔄 Auto (Default)
+**What it does:** Automatically handles special folders based on your chosen album mode.
+
+- **Nothing mode**: Special folders are skipped (only year folder photos processed)
+- **JSON mode**: Special folder files are included in ALL_PHOTOS, with folder info in JSON metadata
+- **Other modes**: Special folders are treated as album folders with their names preserved
+
+#### ⏭️ Skip
+**What it does:** Completely ignores special folders - no files from Archive, Trash, Screenshots, or Camera are processed.
+
+**Best for:** Users who only want photos from year folders and user albums, excluding system-generated folders.
+
+#### 📁 Include  
+**What it does:** Includes all special folder files in the ALL_PHOTOS directory without preserving folder structure.
+
+**Best for:** Users who want all photos in one place regardless of their original organization.
+
+#### 📂 Albums
+**What it does:** Treats special folders exactly like regular album folders, preserving their names and structure.
+
+**Best for:** Users who want to maintain the distinction between Archive, Trash, Screenshots, and Camera as separate organized folders.
+
+### Command Line Control
+
+Use the `--special-folders` argument to override automatic behavior:
+
+```bash
+gpth --input "/path/to/takeout" --output "/path/to/organized" --special-folders "albums"
+```
 
 ## Important Notes
 
 - **File Movement:** By default, GPTH moves (not copies) files to save space. Use `--copy` flag if you want to preserve the original takeout structure.
 - **Album-Only Photos:** Some photos exist only in albums (not in year folders). GPTH handles these differently depending on the mode chosen.
+- **Special vs User Albums:** Special folders (Archive, Trash, Screenshots, Camera) are automatically distinguished from user-created albums and handled according to the `--special-folders` setting.
 - **Duplicate Handling:** If a photo appears in multiple albums, the behavior varies by mode (shortcuts link to same file, duplicate-copy creates multiple copies, etc.).
 
 ## Command Line Usage
@@ -175,6 +225,7 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 | `--divide-to-dates` | Folder structure: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day |
 | `--copy` | Copy files instead of moving (safer but uses more space) |
 | `--skip-extras` | Skip extra images like "-edited" versions |
+| `--special-folders` | override automatic behavior: `auto`, `skip`, `include`, `albums` |
 
 ### Metadata & Processing
 
@@ -301,7 +352,7 @@ If GPTH saved you time and frustration, consider supporting development:
 ## Related Projects
 
 - **[Google Keep Exporter](https://github.com/vHanda/google-keep-exporter)**: Export Google Keep notes to Markdown
-- **[PhotoMigrator](https://github.com/jaimetur/PhotoMigrator)**: Uses GPTH 4.x.x which has been designed to Interact and Manage different Photos Cloud services, and allow users to do an Automatic Migration from one Photo Cloud service to other or from one account to a new account of the same Photo Cloud service.
+- **[PhotoMigrator](https://github.com/jaimetur/PhotoMigrator)**: Uses GPTH 4.x.x and has been designed to Interact and Manage different Photos Cloud services, and allow users to do an Automatic Migration from one Photo Cloud service to other or from one account to a new account of the same Photo Cloud service.
 
 ---
 
