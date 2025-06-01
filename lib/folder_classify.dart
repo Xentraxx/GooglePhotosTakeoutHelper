@@ -88,7 +88,6 @@ Future<bool> isAlbumFolder(final Directory dir) async {
 ///
 /// Special folders are system folders created by Google Photos that
 /// contain photos but are not user-created albums. These include:
-/// - ALL_PHOTOS: Contains all photos (may be processed separately)
 /// - Archive: Archived photos
 /// - Trash: Deleted photos
 /// - Screenshots: Screenshots taken on device
@@ -100,7 +99,6 @@ bool isSpecialFolder(final Directory dir) {
   final String folderName = p.basename(dir.path);
 
   const Set<String> specialFolders = {
-    'ALL_PHOTOS',
     'Archive',
     'Trash',
     'Screenshots',

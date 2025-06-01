@@ -84,10 +84,11 @@ void main() {
       /// - Album folders contain platform-specific shortcuts (.lnk on Windows, symlinks on Unix)
       /// - No file content duplication occurs
       /// - All shortcuts/symlinks point to valid targets
+      /// - **Special folders (Archive, Trash, Screenshots, Camera, ALL_PHOTOS) are NOT considered albums**
       ///
       /// **Validations**:
       /// - File count in ALL_PHOTOS matches expected range
-      /// - Correct number of album folders created
+      /// - Correct number of album folders created (user albums only, excludes special folders)
       /// - Platform-specific shortcut/symlink validation
       /// - Unique file hashes confirm no duplication
       test('Shortcut mode creates proper symlinks/shortcuts', () async {
@@ -104,7 +105,10 @@ void main() {
         expect(results.allPhotosFiles.length, greaterThan(25));
 
         // Validate album folders contain shortcuts/symlinks
-        expect(results.albumFolders.length, equals(5));
+        expect(
+          results.albumFolders.length,
+          equals(5),
+        ); // Only user albums, not special folders
 
         for (final albumFolder in results.albumFolders) {
           final albumFiles = await _getFilesInDirectory(albumFolder);
@@ -137,6 +141,7 @@ void main() {
       /// - Album folders contain actual file copies, not symlinks
       /// - File duplication increases total file count
       /// - All copied files have actual content and valid file sizes
+      /// - **Special folders are NOT counted as albums**
       ///
       /// **Validations**:
       /// - ALL_PHOTOS contains expected number of files
@@ -157,7 +162,7 @@ void main() {
         expect(results.allPhotosFiles.length, greaterThan(25));
 
         // Validate album folders contain actual files
-        expect(results.albumFolders.length, equals(5));
+        expect(results.albumFolders.length, equals(5)); // Only user albums
 
         int totalAlbumFiles = 0;
         for (final albumFolder in results.albumFolders) {
@@ -192,6 +197,7 @@ void main() {
       /// - ALL_PHOTOS contains shortcuts/symlinks pointing to album files
       /// - Album folders contain actual files with content
       /// - Platform-specific shortcut/symlink behavior
+      /// - **Special folders are NOT counted as albums**
       ///
       /// **Validations**:
       /// - Album folders contain original files (not symlinks)
@@ -244,7 +250,7 @@ void main() {
       /// - All files are placed in ALL_PHOTOS
       /// - albums-info.json file is created in the output root
       /// - JSON structure maps filenames to their album memberships
-      /// - No separate album folders are created
+      /// - No separate album folders are created (special folders are not treated as albums)
       ///
       /// **Validations**:
       /// - ALL_PHOTOS contains all processed files
@@ -278,7 +284,10 @@ void main() {
         }
 
         // Validate no separate album folders exist
-        expect(results.albumFolders.length, equals(0));
+        expect(
+          results.albumFolders.length,
+          equals(0),
+        ); // No album folders, including special folders
       });
 
       /// Tests the `--albums nothing` mode behavior
@@ -288,7 +297,7 @@ void main() {
       ///
       /// **Expected Behavior**:
       /// - All files are placed in ALL_PHOTOS only
-      /// - No album folders are created
+      /// - No album folders are created (special folders are not treated as albums)
       /// - No albums-info.json file is created
       /// - Album metadata is completely ignored
       ///
@@ -311,7 +320,10 @@ void main() {
         expect(results.allPhotosFiles.length, greaterThan(20));
 
         // Validate no album folders exist
-        expect(results.albumFolders.length, equals(0));
+        expect(
+          results.albumFolders.length,
+          equals(0),
+        ); // No album folders, including special folders
 
         // Validate no albums-info.json exists
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
@@ -753,10 +765,11 @@ void main() {
       /// - All files are processed successfully
       /// - Memory usage remains within reasonable bounds
       /// - Output structure is correct despite large dataset
+      /// - **Special folders are NOT counted as albums**
       ///
       /// **Validations**:
       /// - File count exceeds 200 (large dataset processed)
-      /// - All 10 albums are created
+      /// - All 10 albums are created (user albums only)
       /// - Processing time is under 3 minutes
       /// - Performance metrics are logged for analysis
       test('Large dataset performance', () async {
@@ -787,7 +800,7 @@ void main() {
 
         // Validate processing completed successfully
         expect(results.allPhotosFiles.length, greaterThan(200));
-        expect(results.albumFolders.length, equals(10));
+        expect(results.albumFolders.length, equals(10)); // Only user albums
 
         // Validate reasonable performance (adjust thresholds as needed)
         expect(stopwatch.elapsed.inMinutes, lessThan(3));
@@ -905,6 +918,7 @@ void main() {
       /// - Album folders contain shortcuts to year-organized files
       /// - Original files remain in takeout directory
       /// - EXIF metadata is written to processed files
+      /// - **Special folders are NOT counted as albums**
       ///
       /// **Validations**:
       /// - Year directories are created and validated
@@ -934,7 +948,7 @@ void main() {
         expect(yearDirs.length, greaterThan(0));
 
         // Validate shortcuts in albums
-        expect(results.albumFolders.length, equals(5));
+        expect(results.albumFolders.length, equals(5)); // Only user albums
 
         // Validate original files preserved (copy mode)
         final originalFiles = await _getAllFiles(takeoutPath);
@@ -957,6 +971,7 @@ void main() {
       /// - Album folders contain actual file copies
       /// - Extra files are filtered out during processing
       /// - Pixel format transformations are applied
+      /// - **Special folders are NOT counted as albums**
       ///
       /// **Validations**:
       /// - Year/month directory structure is created
@@ -994,7 +1009,7 @@ void main() {
           }
 
           // Validate duplicate copies in albums
-          expect(results.albumFolders.length, equals(5));
+          expect(results.albumFolders.length, equals(5)); // Only user albums
 
           for (final albumFolder in results.albumFolders) {
             final albumFiles = await _getFilesInDirectory(albumFolder);
@@ -1024,6 +1039,7 @@ void main() {
       /// - Album information stored in JSON format only
       /// - All file processing flags applied correctly
       /// - Platform-specific creation time updates (Windows only)
+      /// - **No album folders or special folders are created**
       ///
       /// **Validations**:
       /// - Complete year/month/day directory structure
@@ -1059,7 +1075,10 @@ void main() {
         expect(await albumsInfoFile.exists(), isTrue);
 
         // Validate no separate album folders
-        expect(results.albumFolders.length, equals(0));
+        expect(
+          results.albumFolders.length,
+          equals(0),
+        ); // No album folders, including special folders
       });
     });
   });
@@ -1076,6 +1095,8 @@ void main() {
 /// - `allPhotosFiles`: List of all files found in the ALL_PHOTOS directory
 /// - `albumFolders`: List of album directories created during processing
 /// - `metadata`: Additional metadata about the processing results
+/// - `yearFolders`: year folders which are no albums
+/// - `specialFolders`: Special folders which are neither Albums nor Year folders
 ///
 /// **Usage**:
 /// Returned by `_analyzeOutput()` and used throughout tests to validate
@@ -1085,9 +1106,13 @@ class OutputAnalysis {
     required this.allPhotosFiles,
     required this.albumFolders,
     required this.metadata,
+    required this.yearFolders,
+    required this.specialFolders,
   });
   final List<File> allPhotosFiles;
   final List<Directory> albumFolders;
+  final List<Directory> yearFolders;
+  final List<Directory> specialFolders;
   final Map<String, dynamic> metadata;
 }
 
@@ -1220,6 +1245,30 @@ Future<OutputAnalysis> _analyzeOutput(final String outputPath) async {
     }
   }
 
+  // Find year directories using the proper classification function
+  final yearFolders = <Directory>[];
+  await for (final entity in outputDir.list()) {
+    if (entity is Directory) {
+      final dirName = p.basename(entity.path);
+      // Exclude ALL_PHOTOS and use isYearFolder() for proper classification
+      if (dirName != 'ALL_PHOTOS' && isYearFolder(entity)) {
+        yearFolders.add(entity);
+      }
+    }
+  }
+
+  // Find special directories using the proper classification function
+  final specialFolders = <Directory>[];
+  await for (final entity in outputDir.list()) {
+    if (entity is Directory) {
+      final dirName = p.basename(entity.path);
+      // Exclude ALL_PHOTOS and use isSpecialFolder() for proper classification
+      if (dirName != 'ALL_PHOTOS' && isSpecialFolder(entity)) {
+        specialFolders.add(entity);
+      }
+    }
+  }
+
   // Collect metadata
   final metadata = <String, dynamic>{
     'totalFiles': allPhotosFiles.length,
@@ -1231,6 +1280,8 @@ Future<OutputAnalysis> _analyzeOutput(final String outputPath) async {
     allPhotosFiles: allPhotosFiles,
     albumFolders: albumFolders,
     metadata: metadata,
+    yearFolders: yearFolders,
+    specialFolders: specialFolders,
   );
 }
 
