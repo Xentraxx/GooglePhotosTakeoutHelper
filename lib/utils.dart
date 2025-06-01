@@ -632,7 +632,7 @@ void _saveShortcutOptimized(
 
   for (int attempt = 1; attempt <= maxRetries; attempt++) {
     // Short delay to allow file system to settle
-    sleep(Duration(milliseconds: retryDelayMs));
+    sleep(const Duration(milliseconds: retryDelayMs));
 
     hr = persistFile.save(shortcutPathPtr, TRUE);
     if (SUCCEEDED(hr)) {
