@@ -101,9 +101,11 @@ void main() {
         final results = await _analyzeOutput(outputPath);
 
         // Validate ALL_PHOTOS contains original files
+        // Expected: 3 years * 10 photos/year + 3 album-only photos + 4 special folders with 2 pictures each = 41 photos
         expect(results.allPhotosFiles.length, equals(41));
 
         // Validate album folders contain shortcuts/symlinks (user albums only, excludes special folders)
+        // Expected: 5 user albums as configured in setUp()
         expect(results.albumFolders.length, equals(5));
         // If album folders exist, validate shortcuts/symlinks
         for (final albumFolder in results.albumFolders) {
@@ -118,6 +120,14 @@ void main() {
               // Unix symlinks
               final link = Link(file.path);
               expect(await link.exists(), isTrue);
+
+              // Verify symlink target exists
+              final target = await link.target();
+              // Resolve relative symlink target path from the album directory
+              final resolvedTarget = p.isAbsolute(target)
+                  ? target
+                  : p.join(albumFolder.path, target);
+              expect(await File(resolvedTarget).exists(), isTrue);
             }
           }
         }
@@ -164,8 +174,8 @@ void main() {
 
         expect(
           results.specialFolders.length,
-          equals(0),
-        ); // No special folders in output
+          equals(4),
+        ); // Special folders are being treated as albums and therefore created in auto mode
         expect(
           results.yearFolders.length,
           equals(0),
@@ -230,8 +240,8 @@ void main() {
 
         expect(
           results.specialFolders.length,
-          equals(0),
-        ); // No special folders in output
+          equals(4),
+        ); // Special folders are being treated as albums and therefore created in auto mode.
         expect(
           results.yearFolders.length,
           equals(0),
@@ -246,6 +256,15 @@ void main() {
             } else {
               final link = Link(file.path);
               expect(await link.exists(), isTrue);
+
+              // Verify symlink target exists
+              final target = await link.target();
+              // Resolve relative symlink target path from the ALL_PHOTOS directory
+              final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+              final resolvedTarget = p.isAbsolute(target)
+                  ? target
+                  : p.join(allPhotosDir.path, target);
+              expect(await File(resolvedTarget).exists(), isTrue);
             }
           }
 
@@ -342,7 +361,9 @@ void main() {
         final results = await _analyzeOutput(outputPath);
 
         // Validate ALL_PHOTOS contains files
-        expect(results.allPhotosFiles.length, equals(33));
+        // Expected: Only year folder photos (no album-only photos) = 3 years * 10 photos/year = 30 photos
+        // Album-only photos should be excluded in 'nothing' mode
+        expect(results.allPhotosFiles.length, equals(30));
 
         // Validate no album folders exist (including special folders)
         expect(results.albumFolders.length, equals(0));
@@ -437,6 +458,23 @@ void main() {
         }
         expect(results.albumFolders.length, equals(5));
         expect(yearDirs.length, equals(3));
+
+        // Validate that year folders contain files (not subdirectories for level 1)
+        for (final yearDir in yearDirs) {
+          final yearContents = await yearDir.list().toList();
+          final filesInYear = yearContents.whereType<File>().toList();
+          final dirsInYear = yearContents.whereType<Directory>().toList();
+
+          // At division level 1, year folders should contain files, not month subdirectories
+          expect(filesInYear.length, greaterThan(0));
+          expect(dirsInYear.length, equals(0));
+        }
+
+        // Validate no "date-unknown" folder exists since all test files have dates
+        final dateUnknownDir = Directory(
+          p.join(allPhotosDir.path, 'date-unknown'),
+        );
+        expect(await dateUnknownDir.exists(), isFalse);
       });
 
       /// Tests `--divide-to-dates 2` behavior (year/month organization)
@@ -479,20 +517,39 @@ void main() {
           }
         }
         expect(results.albumFolders.length, equals(5));
-        expect(yearDirs.length, greaterThan(0));
+        expect(yearDirs.length, equals(3));
 
+        // Validate year/month structure
         for (final yearDir in yearDirs) {
-          final monthDirs = await Directory(yearDir.path)
-              .list()
-              .where((final e) => e is Directory)
-              .map((final e) => p.basename(e.path))
-              .toList();
+          final yearContents = await yearDir.list().toList();
+          final monthDirs = yearContents.whereType<Directory>().toList();
+          final filesInYear = yearContents.whereType<File>().toList();
 
+          // At division level 2, year folders should contain month subdirectories, not files
+          expect(monthDirs.length, greaterThan(0));
+          expect(
+            filesInYear.length,
+            equals(0),
+          ); // No files directly in year folder
+
+          // Validate month directory names and contents
           for (final monthDir in monthDirs) {
-            final month = int.tryParse(monthDir);
+            final monthName = p.basename(monthDir.path);
+            final month = int.tryParse(monthName);
             expect(month, isNotNull);
             expect(month!, greaterThanOrEqualTo(1));
             expect(month, lessThanOrEqualTo(12));
+
+            // Month folders should contain files, not day subdirectories at level 2
+            final monthContents = await monthDir.list().toList();
+            final filesInMonth = monthContents.whereType<File>().toList();
+            final dirsInMonth = monthContents.whereType<Directory>().toList();
+
+            expect(filesInMonth.length, greaterThan(0));
+            expect(
+              dirsInMonth.length,
+              equals(0),
+            ); // No day subdirectories at level 2
           }
         }
       });
@@ -526,7 +583,7 @@ void main() {
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
         expect(await allPhotosDir.exists(), isTrue);
-        expect(results.albumFolders, equals(5));
+        expect(results.albumFolders.length, equals(5));
 
         // Recursively check year/month/day structure inside ALL_PHOTOS - validate year folders using simple year pattern
         final yearDirs = <Directory>[];
@@ -539,25 +596,53 @@ void main() {
             }
           }
         }
-        expect(yearDirs.length, greaterThan(0));
+        expect(yearDirs.length, equals(3));
 
+        // Validate complete year/month/day structure
         for (final yearDir in yearDirs) {
-          final monthDirs = await Directory(
-            yearDir.path,
-          ).list().where((final e) => e is Directory).toList();
+          final yearContents = await yearDir.list().toList();
+          final monthDirs = yearContents.whereType<Directory>().toList();
+          final filesInYear = yearContents.whereType<File>().toList();
+
+          // At division level 3, year folders should contain month subdirectories, not files
+          expect(monthDirs.length, greaterThan(0));
+          expect(
+            filesInYear.length,
+            equals(0),
+          ); // No files directly in year folder
 
           for (final monthDir in monthDirs) {
-            final dayDirs = await Directory(monthDir.path)
-                .list()
-                .where((final e) => e is Directory)
-                .map((final e) => p.basename(e.path))
-                .toList();
+            final monthName = p.basename(monthDir.path);
+            final month = int.tryParse(monthName);
+            expect(month, isNotNull);
+            expect(month!, greaterThanOrEqualTo(1));
+            expect(month, lessThanOrEqualTo(12));
+
+            // Month folders should contain day subdirectories, not files at level 3
+            final monthContents = await monthDir.list().toList();
+            final dayDirs = monthContents.whereType<Directory>().toList();
+            final filesInMonth = monthContents.whereType<File>().toList();
+
+            expect(dayDirs.length, greaterThan(0));
+            expect(
+              filesInMonth.length,
+              equals(0),
+            ); // No files directly in month folder
 
             for (final dayDir in dayDirs) {
-              final day = int.tryParse(dayDir);
+              final dayName = p.basename(dayDir.path);
+              final day = int.tryParse(dayName);
               expect(day, isNotNull);
               expect(day!, greaterThanOrEqualTo(1));
               expect(day, lessThanOrEqualTo(31));
+
+              // Day folders should contain actual files at level 3
+              final dayContents = await dayDir.list().toList();
+              final filesInDay = dayContents.whereType<File>().toList();
+              final dirsInDay = dayContents.whereType<Directory>().toList();
+
+              expect(filesInDay.length, greaterThan(0));
+              expect(dirsInDay.length, equals(0)); // No further subdirectories
             }
           }
         }
@@ -798,7 +883,11 @@ void main() {
               foundSymlinks = true;
               // Verify symlink target exists
               final target = await link.target();
-              expect(await File(target).exists(), isTrue);
+              // Resolve relative symlink target path from the album directory
+              final resolvedTarget = p.isAbsolute(target)
+                  ? target
+                  : p.join(albumFolder.path, target);
+              expect(await File(resolvedTarget).exists(), isTrue);
             }
           }
         }
@@ -860,12 +949,13 @@ void main() {
         final results = await _analyzeOutput(largeOutputPath);
 
         // Validate processing completed successfully
-        expect(results.allPhotosFiles.length, greaterThan(200));
+        // Expected: 5 years * 50 photos/year + 20 album-only photos = 270 total files
+        expect(results.allPhotosFiles.length, equals(270));
         expect(results.albumFolders.length, equals(10)); // Only user albums
         expect(
           results.specialFolders.length,
-          equals(0),
-        ); // No special folders in output
+          equals(4),
+        ); // Special folders are being treated as albums and therefore created in auto mode.
         expect(
           results.yearFolders.length,
           equals(0),
@@ -1141,7 +1231,7 @@ void main() {
             }
           }
         }
-        expect(yearDirs.length, equals(4));
+        expect(yearDirs.length, equals(3));
 
         // Validate albums-info.json exists
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
