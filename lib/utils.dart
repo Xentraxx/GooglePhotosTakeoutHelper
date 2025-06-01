@@ -388,6 +388,10 @@ Future<void> createShortcutWin(
   }
 
   ////FIXME currently native mode is disabled due to heap exception issues. Uses Powershell for now.
+  // Properly escape paths for PowerShell by wrapping in single quotes and escaping internal single quotes
+  final String escapedShortcutPath = shortcutPath.replaceAll("'", "''");
+  final String escapedTargetPath = absoluteTargetPath.replaceAll("'", "''");
+
   final ProcessResult res = await Process.run('powershell.exe', <String>[
     '-ExecutionPolicy',
     'Bypass',
@@ -395,10 +399,11 @@ Future<void> createShortcutWin(
     '-NonInteractive',
     '-NoProfile',
     '-Command',
+    // Use single quotes to properly handle paths with spaces and special characters
     // ignore: no_adjacent_strings_in_list
     '\$ws = New-Object -ComObject WScript.Shell; '
-        '\$s = \$ws.CreateShortcut("$shortcutPath"); '
-        '\$s.TargetPath = "$absoluteTargetPath"; '
+        '\$s = \$ws.CreateShortcut(\'$escapedShortcutPath\'); '
+        '\$s.TargetPath = \'$escapedTargetPath\'; '
         '\$s.Save()',
   ]);
   if (res.exitCode != 0) {

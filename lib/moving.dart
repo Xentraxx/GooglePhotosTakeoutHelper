@@ -99,6 +99,10 @@ Future<File> createShortcut(final Directory location, final File target) async {
       await createShortcutWin(link.path, targetPath);
     } catch (e) {
       try {
+        // Properly escape paths for PowerShell by wrapping in single quotes and escaping internal single quotes
+        final String escapedLinkPath = link.path.replaceAll("'", "''");
+        final String escapedTargetPath = targetPath.replaceAll("'", "''");
+
         final ProcessResult res = await Process.run('powershell.exe', <String>[
           '-ExecutionPolicy',
           'Bypass',
@@ -109,8 +113,8 @@ Future<File> createShortcut(final Directory location, final File target) async {
           '''
           try {
             \$ws = New-Object -ComObject WScript.Shell
-            \$s = \$ws.CreateShortcut("${link.path}")
-            \$s.TargetPath = "$targetPath"
+            \$s = \$ws.CreateShortcut('$escapedLinkPath')
+            \$s.TargetPath = '$escapedTargetPath'
             \$s.Save()
           } catch {
             Write-Error \$_.Exception.Message
