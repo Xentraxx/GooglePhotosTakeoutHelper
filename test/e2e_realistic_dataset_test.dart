@@ -457,7 +457,7 @@ void main() {
           }
         }
         expect(results.albumFolders.length, equals(5));
-        expect(yearDirs.length, equals(3));
+        expect(yearDirs.length, equals(4));
 
         // Validate that year folders contain files (not subdirectories for level 1)
         for (final yearDir in yearDirs) {
@@ -470,11 +470,11 @@ void main() {
           expect(dirsInYear.length, equals(0));
         }
 
-        // Validate no "date-unknown" folder exists since all test files have dates
+        // Validate "date-unknown" folder exists since some files don't have a date
         final dateUnknownDir = Directory(
           p.join(allPhotosDir.path, 'date-unknown'),
         );
-        expect(await dateUnknownDir.exists(), isFalse);
+        expect(await dateUnknownDir.exists(), isTrue);
       });
 
       /// Tests `--divide-to-dates 2` behavior (year/month organization)
@@ -517,7 +517,7 @@ void main() {
           }
         }
         expect(results.albumFolders.length, equals(5));
-        expect(yearDirs.length, equals(3));
+        expect(yearDirs.length, equals(4));
 
         // Validate year/month structure
         for (final yearDir in yearDirs) {
@@ -552,6 +552,11 @@ void main() {
             ); // No day subdirectories at level 2
           }
         }
+        // Validate "date-unknown" folder exists since some files don't have a date
+        final dateUnknownDir = Directory(
+          p.join(allPhotosDir.path, 'date-unknown'),
+        );
+        expect(await dateUnknownDir.exists(), isTrue);
       });
 
       /// Tests `--divide-to-dates 3` behavior (year/month/day organization)
@@ -596,7 +601,7 @@ void main() {
             }
           }
         }
-        expect(yearDirs.length, equals(3));
+        expect(yearDirs.length, equals(4));
 
         // Validate complete year/month/day structure
         for (final yearDir in yearDirs) {
@@ -646,6 +651,11 @@ void main() {
             }
           }
         }
+        // Validate "date-unknown" folder exists since some files don't have a date
+        final dateUnknownDir = Directory(
+          p.join(allPhotosDir.path, 'date-unknown'),
+        );
+        expect(await dateUnknownDir.exists(), isTrue);
       });
     });
 
@@ -1231,7 +1241,7 @@ void main() {
             }
           }
         }
-        expect(yearDirs.length, equals(3));
+        expect(yearDirs.length, equals(4));
 
         // Validate albums-info.json exists
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
@@ -1244,6 +1254,11 @@ void main() {
           results.yearFolders.length,
           equals(0),
         ); // Year folders are inside ALL_PHOTOS, not in output root
+        // Validate "date-unknown" folder exists since some files don't have a date
+        final dateUnknownDir = Directory(
+          p.join(allPhotosDir.path, 'date-unknown'),
+        );
+        expect(await dateUnknownDir.exists(), isTrue);
       });
     });
   });
