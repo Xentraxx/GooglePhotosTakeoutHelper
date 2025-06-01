@@ -1127,6 +1127,8 @@ Future<String> _runGpthProcess({
   final bool transformPixelMp = false,
   final bool updateCreationTime = false,
   final bool limitFilesize = false,
+  final String specialFolders =
+      'auto', // Add special-folders parameter with default 'auto'
   final Duration timeout = const Duration(minutes: 2),
 }) async {
   final args = <String>[
@@ -1138,6 +1140,8 @@ Future<String> _runGpthProcess({
     albums,
     '--divide-to-dates',
     divideToDates.toString(),
+    '--special-folders',
+    specialFolders, // Add special-folders to arguments
     '--no-modify-json', // Preserve .supplemental-metadata.json format
   ];
 
