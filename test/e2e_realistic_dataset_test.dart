@@ -1367,12 +1367,19 @@ Future<String> _runGpthProcess({
   if (updateCreationTime) args.add('--update-creation-time');
   if (limitFilesize) args.add('--limit-filesize');
 
+  // Determine project root dynamically
+  // The test file is in test/ so we need to go up one level to get to project root
+  final String currentDir = Directory.current.path;
+  final String projectRoot = currentDir.endsWith('/test')
+      ? Directory(currentDir).parent.path
+      : currentDir;
+
   // Run the process using Dart's VM
   final result = await Process.run('dart', [
     'run',
     'bin/gpth.dart',
     ...args,
-  ], workingDirectory: '/Users/jens/development/GooglePhotosTakeoutHelper');
+  ], workingDirectory: projectRoot);
 
   if (result.exitCode != 0) {
     throw Exception(
