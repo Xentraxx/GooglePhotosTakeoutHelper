@@ -94,49 +94,8 @@ Future<File> createShortcut(final Directory location, final File target) async {
   );
   final String targetPath = target.absolute.path;
   if (Platform.isWindows) {
-    // Try native shortcut creation, fallback to PowerShell if needed.
-    try {
-      await createShortcutWin(link.path, targetPath);
-    } catch (e) {
-      try {
-        // Properly escape paths for PowerShell by wrapping in single quotes and escaping internal single quotes
-        final String escapedLinkPath = link.path.replaceAll("'", "''");
-        final String escapedTargetPath = targetPath.replaceAll("'", "''");
-
-        final ProcessResult res = await Process.run('powershell.exe', <String>[
-          '-ExecutionPolicy',
-          'Bypass',
-          '-NoLogo',
-          '-NonInteractive',
-          '-NoProfile',
-          '-Command',
-          '''
-          try {
-            \$ws = New-Object -ComObject WScript.Shell
-            \$s = \$ws.CreateShortcut('$escapedLinkPath')
-            \$s.TargetPath = '$escapedTargetPath'
-            \$s.Save()
-          } catch {
-            Write-Error \$_.Exception.Message
-            exit 1
-          }
-          ''',
-        ]);
-        if (res.exitCode != 0) {
-          throw Exception('PowerShell shortcut creation failed: ${res.stderr}');
-        }
-      } catch (fallbackError) {
-        throw Exception(
-          'PowerShell doesnt work :( - \n\n'
-          'report that to @TheLastGimbus on GitHub:\n\n'
-          'https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/issues\n\n'
-          '...or try other album solution\n'
-          'sorry for inconvenience :('
-          '\nOriginal error: $e'
-          '\nFallback error: $fallbackError',
-        );
-      }
-    }
+    // Use the main shortcut creation function from utils.dart
+    await createShortcutWin(link.path, targetPath);
     return File(link.path);
   } else {
     // Unix: create a symlink
