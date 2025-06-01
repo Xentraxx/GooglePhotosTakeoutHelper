@@ -13,7 +13,7 @@
 
 #### Bug fixes
 
--
+- Fixed documentation and interactive mode to accurately reflect behaviour in "nothing" album mode.
 
 ## 4.0.5-xentraxx
 

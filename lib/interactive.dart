@@ -37,7 +37,8 @@ const Map<String, String> albumOptions = <String, String>{
       "Use if you're a programmer, or just want to get everything, \n"
       'ignoring lack of year-folders etc.\n',
   'nothing':
-      'Just ignore albums and put year-photos into one folder. \n'
+      'Ignore album associations and put all unique photos into one folder. \n'
+      'All photos including album-only photos are processed. \n'
       'NOTE: Special folders (Archive/Trash) are handled separately.\n',
   'reverse-shortcut':
       'Album folders with ORIGINAL photos. "ALL_PHOTOS" folder \n'
@@ -297,8 +298,8 @@ Future<bool> askModifyJson() async {
 ///   Most space-efficient option with programmatic album information.
 ///   Note: Special folder handling is controlled separately.
 ///
-/// - **nothing**: Ignores albums entirely. Only creates ALL_PHOTOS folder with files
-///   from year folders. Album-only files are skipped unless they have null keys assigned.
+/// - **nothing**: Ignores album associations entirely. Creates only ALL_PHOTOS folder with all
+///   unique photos including album-only photos. Album metadata is discarded.
 ///   Simplest option for users who don't care about album organization.
 ///   Note: Special folders (Archive, Trash, etc.) are handled separately.
 Future<String> askAlbums() async {

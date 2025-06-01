@@ -362,9 +362,9 @@ void main() {
         final results = await _analyzeOutput(outputPath);
 
         // Validate ALL_PHOTOS contains files
-        // Expected: Only year folder photos (no album-only photos) = 3 years * 10 photos/year = 30 photos
-        // Album-only photos should be excluded in 'nothing' mode
-        expect(results.allPhotosFiles.length, equals(30));
+        // Expected: All unique photos including album-only photos = 3 years * 10 photos/year + 3 album-only = 33 photos
+        // 'Nothing' mode processes all photos but ignores album associations
+        expect(results.allPhotosFiles.length, equals(33));
 
         // Validate no album folders exist (including special folders)
         expect(results.albumFolders.length, equals(0));

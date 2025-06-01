@@ -134,17 +134,17 @@ GPTH offers several ways to handle your Google Photos albums:
 **Best for:** Developers, users migrating to photo management software that can read JSON metadata, or those who don't care about visual album organization.
 
 ### ❌ Nothing
-**What it does:** Ignores albums entirely and creates only `ALL_PHOTOS` with files from year folders. Album-only files are included if they can be linked to year folders.
+**What it does:** Ignores album associations entirely and creates only `ALL_PHOTOS` with all unique photos. All photos including album-only photos are processed, but album information is discarded.
 
 **Advantages:**
 - Simplest processing
 - Fastest execution
 - Clean, single-folder result
 - No complex album logic
+- All photos are preserved regardless of their source
 
 **Disadvantages:**
 - Completely loses album organization
-- Some album-only photos might be skipped
 - No way to recover album information later
 
 **Best for:** Users who don't care about album organization and just want all photos in chronological order.
