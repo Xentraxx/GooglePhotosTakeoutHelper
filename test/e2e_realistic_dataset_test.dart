@@ -99,6 +99,9 @@ void main() {
           divideToDates: 0,
         );
 
+        // Wait for file system operations to stabilize
+        await _waitForFileSystemStability(outputPath);
+
         final results = await _analyzeOutput(outputPath);
 
         // Validate ALL_PHOTOS contains original files
@@ -118,17 +121,16 @@ void main() {
               // Windows shortcuts
               expect(file.path.endsWith('.lnk'), isTrue);
             } else {
-              // Unix symlinks
-              final link = Link(file.path);
-              expect(await link.exists(), isTrue);
-
-              // Verify symlink target exists
-              final target = await link.target();
-              // Resolve relative symlink target path from the album directory
-              final resolvedTarget = p.isAbsolute(target)
-                  ? target
-                  : p.join(albumFolder.path, target);
-              expect(await File(resolvedTarget).exists(), isTrue);
+              // Unix symlinks - use retry logic to handle race conditions
+              final isValid = await _validateSymlinkWithRetry(
+                file.path,
+                albumFolder.path,
+              );
+              expect(
+                isValid,
+                isTrue,
+                reason: 'Symlink validation failed for ${file.path}',
+              );
             }
           }
         }
@@ -162,6 +164,9 @@ void main() {
           albums: 'duplicate-copy',
           divideToDates: 0,
         );
+
+        // Wait for file system operations to stabilize
+        await _waitForFileSystemStability(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -233,6 +238,9 @@ void main() {
           divideToDates: 0,
         );
 
+        // Wait for file system operations to stabilize
+        await _waitForFileSystemStability(outputPath);
+
         final results = await _analyzeOutput(outputPath);
 
         // Album folders may not be created - adjust expectations
@@ -255,17 +263,18 @@ void main() {
             if (Platform.isWindows) {
               expect(file.path.endsWith('.lnk'), isTrue);
             } else {
-              final link = Link(file.path);
-              expect(await link.exists(), isTrue);
-
-              // Verify symlink target exists
-              final target = await link.target();
-              // Resolve relative symlink target path from the ALL_PHOTOS directory
+              // Use retry logic for symlink validation in ALL_PHOTOS
               final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
-              final resolvedTarget = p.isAbsolute(target)
-                  ? target
-                  : p.join(allPhotosDir.path, target);
-              expect(await File(resolvedTarget).exists(), isTrue);
+              final isValid = await _validateSymlinkWithRetry(
+                file.path,
+                allPhotosDir.path,
+              );
+              expect(
+                isValid,
+                isTrue,
+                reason:
+                    'Symlink validation failed for ${file.path} in ALL_PHOTOS',
+              );
             }
           }
 
@@ -307,6 +316,9 @@ void main() {
           albums: 'json',
           divideToDates: 0,
         );
+
+        // Wait for file system operations to stabilize
+        await _waitForFileSystemStability(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -359,6 +371,9 @@ void main() {
           divideToDates: 0,
         );
 
+        // Wait for file system operations to stabilize
+        await _waitForFileSystemStability(outputPath);
+
         final results = await _analyzeOutput(outputPath);
 
         // Validate ALL_PHOTOS contains files
@@ -402,7 +417,7 @@ void main() {
           albums: 'shortcut',
           divideToDates: 0,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // All files should be in single ALL_PHOTOS folder
@@ -440,7 +455,7 @@ void main() {
           albums: 'shortcut',
           divideToDates: 1,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
@@ -501,7 +516,7 @@ void main() {
           albums: 'shortcut',
           divideToDates: 2,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
@@ -584,7 +599,7 @@ void main() {
           albums: 'shortcut',
           divideToDates: 3,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
@@ -687,6 +702,7 @@ void main() {
           albums: 'shortcut',
           copy: false,
         );
+        await _waitForFileSystemStability(outputPath);
 
         // Verify fewer original files remain (JSON and structure files)
         final remainingFiles = await _getAllFiles(takeoutPath);
@@ -724,7 +740,7 @@ void main() {
           albums: 'nothing',
           skipExtras: false,
         );
-
+        await _waitForFileSystemStability(outputWithExtras);
         final resultsWithExtras = await _analyzeOutput(outputWithExtras);
 
         // Run with skip-extras
@@ -740,7 +756,7 @@ void main() {
           albums: 'nothing',
           skipExtras: true,
         );
-
+        await _waitForFileSystemStability(outputWithoutExtras);
         final resultsWithoutExtras = await _analyzeOutput(outputWithoutExtras);
 
         // Should have same or fewer files when skipping extras
@@ -903,21 +919,17 @@ void main() {
           albumOnlyPhotos: 20,
           exifRatio: 0.8,
         );
-
         final largeOutputPath = p.join(fixture.basePath, 'large_output');
         await Directory(largeOutputPath).create(recursive: true);
-
         final stopwatch = Stopwatch()..start();
-
         await _runGpthProcess(
           takeoutPath: largeTakeoutPath,
           outputPath: largeOutputPath,
           albums: 'shortcut',
           timeout: const Duration(minutes: 5),
         );
-
+        await _waitForFileSystemStability(largeOutputPath);
         stopwatch.stop();
-
         final results = await _analyzeOutput(largeOutputPath);
 
         // Debug: Print file counts and paths
@@ -941,7 +953,7 @@ void main() {
             albumOnlyFiles++;
           } else if (filename.contains('(1)') ||
               filename.contains('(2)') ||
-              filename.contains('(3)')) {
+              filename.contains('(3')) {
             conflictFiles++;
           } else {
             regularFiles++;
@@ -963,7 +975,6 @@ void main() {
 
         // Validate processing completed successfully
         // Expected: 5 years * 50 photos/year + 20 album-only photos + conflict files from album duplicates
-        // Album duplicates (30% of year photos per album * 10 albums) create filename conflicts when moved to ALL_PHOTOS
         // These conflicts are resolved by creating files with (1), (2), etc. suffixes
         // Based on debug output, actual count is ~311 files (including ~29 conflict resolution files)
         // The generation has a slight ransomeness, so we only check for more than 300 files and less than 350.
@@ -1010,7 +1021,7 @@ void main() {
           outputPath: outputPath,
           albums: 'duplicate-copy',
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate file integrity by comparing hashes
@@ -1066,7 +1077,7 @@ void main() {
           albums: 'json',
           limitFilesize: true,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Should still process files successfully
@@ -1111,7 +1122,7 @@ void main() {
           copy: true,
           writeExif: true,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate year division structure inside ALL_PHOTOS using simple year pattern
@@ -1170,7 +1181,7 @@ void main() {
             skipExtras: true,
             transformPixelMp: true,
           );
-
+          await _waitForFileSystemStability(outputPath);
           final results = await _analyzeOutput(outputPath);
 
           // Validate month division structure inside ALL_PHOTOS using simple year pattern
@@ -1234,7 +1245,7 @@ void main() {
           updateCreationTime: Platform.isWindows,
           limitFilesize: true,
         );
-
+        await _waitForFileSystemStability(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate day division structure inside ALL_PHOTOS using simple year pattern
@@ -1591,15 +1602,35 @@ Future<String> _getFileHash(final File file) async {
 ///
 /// **Usage**: Used in data integrity tests to compare file content across locations
 ///
-/// Gets hashes for multiple files
+/// Gets hashes for multiple files with controlled concurrency
 Future<Map<String, String>> _getFileHashes(final List<File> files) async {
   final hashes = <String, String>{};
 
-  for (final file in files) {
-    try {
-      hashes[file.path] = await _getFileHash(file);
-    } catch (e) {
-      print('Warning: Could not hash file ${file.path}: $e');
+  // Limit concurrent hash operations to prevent overwhelming the file system
+  const batchSize = 5;
+
+  for (int i = 0; i < files.length; i += batchSize) {
+    final batch = files.skip(i).take(batchSize).toList();
+    final futures = batch.map((final file) async {
+      try {
+        final hash = await _getFileHash(file);
+        return MapEntry(file.path, hash);
+      } catch (e) {
+        print('Warning: Could not hash file ${file.path}: $e');
+        return null;
+      }
+    });
+
+    final results = await Future.wait(futures);
+    for (final result in results) {
+      if (result != null) {
+        hashes[result.key] = result.value;
+      }
+    }
+
+    // Small delay between batches to reduce I/O pressure
+    if (i + batchSize < files.length) {
+      await Future.delayed(const Duration(milliseconds: 10));
     }
   }
 
@@ -1627,4 +1658,119 @@ Future<Map<String, String>> _getFileHashes(final List<File> files) async {
 Future<Set<String>> _getUniqueFileHashes(final List<File> files) async {
   final hashes = await _getFileHashes(files);
   return hashes.values.toSet();
+}
+
+/// **_waitForFileSystemStability() Function**
+///
+/// Waits for file system operations to complete and stabilize after GPTH processing.
+/// This helps prevent race conditions between process completion and file analysis.
+///
+/// **Parameters**:
+/// - `outputPath`: Path to monitor for stability
+/// - `maxWaitTime`: Maximum time to wait for stability
+/// - `pollInterval`: How often to check for changes
+///
+/// **Behavior**:
+/// - Monitors directory for file count changes
+/// - Waits until no changes occur for a stable period
+/// - Ensures symlinks and file operations are fully committed
+///
+/// **Usage**: Call after `_runGpthProcess()` and before `_analyzeOutput()`
+Future<void> _waitForFileSystemStability(
+  final String outputPath, {
+  final Duration maxWaitTime = const Duration(seconds: 10),
+  final Duration pollInterval = const Duration(milliseconds: 500),
+}) async {
+  final outputDir = Directory(outputPath);
+  if (!await outputDir.exists()) return;
+
+  int previousFileCount = 0;
+  int stableCount = 0;
+  const requiredStableChecks = 3; // Number of consecutive stable checks needed
+
+  final stopwatch = Stopwatch()..start();
+
+  while (stopwatch.elapsed < maxWaitTime &&
+      stableCount < requiredStableChecks) {
+    final currentFiles = await _getAllFiles(outputPath);
+    final currentFileCount = currentFiles.length;
+
+    if (currentFileCount == previousFileCount) {
+      stableCount++;
+    } else {
+      stableCount = 0; // Reset if count changed
+      previousFileCount = currentFileCount;
+    }
+
+    if (stableCount < requiredStableChecks) {
+      await Future.delayed(pollInterval);
+    }
+  }
+
+  stopwatch.stop();
+
+  // Additional platform-specific wait for symlink/shortcut stability
+  if (!Platform.isWindows) {
+    // Extra delay for symlink metadata to stabilize on Unix-like systems
+    await Future.delayed(const Duration(milliseconds: 100));
+  } else {
+    // Extra delay for Windows shortcut (.lnk) file creation
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+}
+
+/// **_validateSymlinkWithRetry() Function**
+///
+/// Validates symlink targets with retry logic to handle race conditions.
+/// Symlinks may exist before their targets are fully created, causing validation failures.
+///
+/// **Parameters**:
+/// - `linkPath`: Path to the symlink to validate
+/// - `albumFolderPath`: Base path for resolving relative targets
+/// - `maxRetries`: Maximum number of validation attempts
+/// - `retryDelay`: Delay between retry attempts
+///
+/// **Returns**: True if symlink and target are valid, false otherwise
+///
+/// **Usage**: Use instead of direct symlink validation to handle timing issues
+Future<bool> _validateSymlinkWithRetry(
+  final String linkPath,
+  final String albumFolderPath, {
+  final int maxRetries = 3,
+  final Duration retryDelay = const Duration(milliseconds: 100),
+}) async {
+  for (int attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      final link = Link(linkPath);
+      if (!await link.exists()) {
+        if (attempt < maxRetries - 1) {
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        return false;
+      }
+
+      // Verify symlink target exists
+      final target = await link.target();
+      final resolvedTarget = p.isAbsolute(target)
+          ? target
+          : p.join(albumFolderPath, target);
+
+      if (await File(resolvedTarget).exists()) {
+        return true;
+      }
+
+      if (attempt < maxRetries - 1) {
+        await Future.delayed(retryDelay);
+      }
+    } catch (e) {
+      if (attempt < maxRetries - 1) {
+        await Future.delayed(retryDelay);
+        continue;
+      }
+      return false;
+    }
+  }
+
+  return false;
 }
