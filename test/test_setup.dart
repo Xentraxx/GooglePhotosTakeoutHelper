@@ -633,6 +633,8 @@ Future<void> generateRealisticDataset({
     createdEntities.add(specialDir);
 
     // Add a few photos to each special folder
+    // Note: These will be classified as special folders by isSpecialFolder()
+    // and excluded from album counting by isAlbumFolder()
     for (int i = 0; i < 2; i++) {
       final specialDate = DateTime.now().subtract(Duration(days: i * 30));
       final String filename;
@@ -714,7 +716,10 @@ Future<void> generateRealisticDataset({
   print('Generated realistic dataset at: $basePath');
   print('Created ${createdPhotos.length} photos across $yearSpan years');
   print(
-    'Created ${selectedAlbums.length} albums: ${selectedAlbums.join(', ')}',
+    'Created ${selectedAlbums.length} user albums: ${selectedAlbums.join(', ')}',
+  );
+  print(
+    'Created ${specialFolders.length} special folders: ${specialFolders.join(', ')} (not counted as albums)',
   );
   print('Created $albumOnlyPhotos album-only photos');
   print('${(exifRatio * 100).round()}% of photos have EXIF data');

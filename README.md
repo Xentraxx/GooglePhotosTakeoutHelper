@@ -158,6 +158,8 @@ Google Photos Takeout includes several special system folders that contain photo
 - **Screenshots**: Screenshots taken on your device
 - **Camera**: Photos from your device's camera app
 
+**Important**: These special folders are automatically distinguished from user albums and are not counted in album statistics.
+
 ### Special Folder Options
 
 GPTH provides several ways to handle these special folders:
@@ -166,13 +168,13 @@ GPTH provides several ways to handle these special folders:
 **What it does:** Automatically handles special folders based on your chosen album mode.
 
 - **Nothing mode**: Special folders are skipped (only year folder photos processed)
-- **JSON mode**: Special folder files are included in ALL_PHOTOS as regular files
+- **JSON mode**: Special folder files are included in ALL_PHOTOS, with folder info in JSON metadata
 - **Other modes**: Special folders are treated as album folders with their names preserved
 
 #### ⏭️ Skip
 **What it does:** Completely ignores special folders - no files from Archive, Trash, Screenshots, or Camera are processed.
 
-**Best for:** Users who only want photos from year folders and albums, excluding system-generated folders.
+**Best for:** Users who only want photos from year folders and user albums, excluding system-generated folders.
 
 #### 📁 Include  
 **What it does:** Includes all special folder files in the ALL_PHOTOS directory without preserving folder structure.
@@ -196,6 +198,7 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --special-folders 
 
 - **File Movement:** By default, GPTH moves (not copies) files to save space. Use `--copy` flag if you want to preserve the original takeout structure.
 - **Album-Only Photos:** Some photos exist only in albums (not in year folders). GPTH handles these differently depending on the mode chosen.
+- **Special vs User Albums:** Special folders (Archive, Trash, Screenshots, Camera) are automatically distinguished from user-created albums and handled according to the `--special-folders` setting.
 - **Duplicate Handling:** If a photo appears in multiple albums, the behavior varies by mode (shortcuts link to same file, duplicate-copy creates multiple copies, etc.).
 
 ## Command Line Usage
