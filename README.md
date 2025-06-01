@@ -314,6 +314,9 @@ Extracts location data and timestamps from JSON files and writes them to media f
 - Preserve or reorganize album structure
 - Copy or move files (safety vs. efficiency)
 
+### ⚠️ Fixing Invalid Extensions
+Has a mode that can detect invalid extensions in file name and is able to fix them.
+
 ## Installation
 
 ### Pre-built Binaries
