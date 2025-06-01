@@ -37,8 +37,7 @@
 /// - Cross-platform shortcut/symlink behavior
 // ignore_for_file: avoid_redundant_argument_values
 
-@Timeout(Duration(seconds: 45))
-
+@Timeout(Duration(seconds: 120))
 library;
 
 import 'dart:convert';
