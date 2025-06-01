@@ -362,16 +362,16 @@ Future<void> generateRealisticDataset({
 
   // Define realistic album names including emojis
   final List<String> albumNames = [
-    'Vacation 2023 🏖️',
+    'Vacation 2023',
     'Family Photos 👨‍👩‍👧‍👦',
-    'Holiday Memories 🎄',
+    'Holiday Memories',
     'Wedding Photos 💒',
-    'Travel Adventures ✈️',
+    'Travel Adventures',
     'Pet Photos 🐕🐱',
     'Cooking & Food 🍕',
     'Nature & Landscapes 🌄',
     'Friends & Fun 🎉',
-    'Work & Office 💼',
+    'Work & Office',
     'Art & Creative 🎨',
     'Summer Fun ☀️',
   ];
@@ -431,22 +431,20 @@ Future<void> generateRealisticDataset({
       final photoFile = File(photoPath);
       if (hasExif) {
         final baseBytes = base64.decode(greenImgBase64.replaceAll('\n', ''));
-        // Add unique content to make each photo different
-        final uniqueBytes = List<int>.from(baseBytes);
-        uniqueBytes.addAll('unique_${i}_${j}_$filename'.codeUnits);
+        // Create truly unique image by modifying pixel data while preserving headers and EXIF
+        final uniqueBytes = _createUniqueImageBytes(baseBytes, i, j, filename);
         photoFile.writeAsBytesSync(uniqueBytes, flush: true);
       } else {
         final baseBytes = base64.decode(
           greenImgNoMetaDataBase64.replaceAll('\n', ''),
         );
-        // Add unique content to make each photo different
-        final uniqueBytes = List<int>.from(baseBytes);
-        uniqueBytes.addAll('unique_${i}_${j}_$filename'.codeUnits);
+        // Create truly unique image by modifying pixel data while preserving headers
+        final uniqueBytes = _createUniqueImageBytes(baseBytes, i, j, filename);
         photoFile.writeAsBytesSync(uniqueBytes, flush: true);
       }
       createdEntities.add(photoFile);
       createdPhotos.add(filename); // Create JSON metadata file
-      final jsonFile = File('$photoPath.json');
+      final jsonFile = File('$photoPath.supplemental-metadata.json');
       jsonFile.writeAsStringSync(
         jsonEncode({
           'title': filename,
@@ -537,9 +535,12 @@ Future<void> generateRealisticDataset({
         originalPhoto.copySync(albumPhotoPath);
 
         // Copy JSON file too
-        final originalJsonPath = '${originalPhoto.path}.json';
+        final originalJsonPath =
+            '${originalPhoto.path}.supplemental-metadata.json';
         if (File(originalJsonPath).existsSync()) {
-          File(originalJsonPath).copySync('$albumPhotoPath.json');
+          File(
+            originalJsonPath,
+          ).copySync('$albumPhotoPath.supplemental-metadata.json');
         }
       }
     }
@@ -573,12 +574,11 @@ Future<void> generateRealisticDataset({
     ); // Create album-only photo with EXIF data and unique content
     final photoFile = File(photoPath);
     final baseBytes = base64.decode(greenImgBase64.replaceAll('\n', ''));
-    // Add unique content to make each album-only photo different
-    final uniqueBytes = List<int>.from(baseBytes);
-    uniqueBytes.addAll('album_only_${albumName}_${i}_$filename'.codeUnits);
+    // Create truly unique image by modifying pixel data while preserving headers and EXIF
+    final uniqueBytes = _createUniqueImageBytes(baseBytes, 999, i, filename);
     photoFile.writeAsBytesSync(uniqueBytes, flush: true);
     createdEntities.add(photoFile); // Create JSON metadata for album-only photo
-    final jsonFile = File('$photoPath.json');
+    final jsonFile = File('$photoPath.supplemental-metadata.json');
     jsonFile.writeAsStringSync(
       jsonEncode({
         'title': filename,
@@ -632,48 +632,82 @@ Future<void> generateRealisticDataset({
     await specialDir.create(recursive: true);
     createdEntities.add(specialDir);
 
-    // Add a few photos to special folders
-    if (folderName == 'Screenshots') {
-      for (int i = 0; i < 3; i++) {
-        final screenshotDate = DateTime.now().subtract(Duration(days: i * 30));
-        final filename =
-            'Screenshot_${screenshotDate.year}-${screenshotDate.month.toString().padLeft(2, '0')}-${screenshotDate.day.toString().padLeft(2, '0')}-${screenshotDate.hour.toString().padLeft(2, '0')}-${screenshotDate.minute.toString().padLeft(2, '0')}-${screenshotDate.second.toString().padLeft(2, '0')}_com.example.app.jpg';
-        final photoPath = p.join(specialDir.path, filename);
-        final photoFile = File(photoPath);
-        photoFile.writeAsBytesSync(
-          base64.decode(greenImgNoMetaDataBase64.replaceAll('\n', '')),
-          flush: true,
-        );
-        createdEntities.add(photoFile); // Create JSON metadata
-        final jsonFile = File('$photoPath.json');
-        jsonFile.writeAsStringSync(
-          jsonEncode({
-            'title': filename,
-            'description': 'Screenshot from mobile device',
-            'imageViews': '1',
-            'creationTime': {
-              'timestamp':
-                  '${(screenshotDate.millisecondsSinceEpoch / 1000).floor()}',
-              'formatted':
-                  '${screenshotDate.day.toString().padLeft(2, '0')}.${screenshotDate.month.toString().padLeft(2, '0')}.${screenshotDate.year}, ${screenshotDate.hour.toString().padLeft(2, '0')}:${screenshotDate.minute.toString().padLeft(2, '0')}:${screenshotDate.second.toString().padLeft(2, '0')} UTC',
-            },
-            'photoTakenTime': {
-              'timestamp':
-                  '${(screenshotDate.millisecondsSinceEpoch / 1000).floor()}',
-              'formatted':
-                  '${screenshotDate.day.toString().padLeft(2, '0')}.${screenshotDate.month.toString().padLeft(2, '0')}.${screenshotDate.year}, ${screenshotDate.hour.toString().padLeft(2, '0')}:${screenshotDate.minute.toString().padLeft(2, '0')}:${screenshotDate.second.toString().padLeft(2, '0')} UTC',
-            },
-            'archived': false,
-            'url':
-                'https://photos.google.com/photo/screenshot_${DateTime.now().millisecondsSinceEpoch}_$i',
-            'googlePhotosOrigin': {
-              'mobileUpload': {'deviceType': 'ANDROID_PHONE'},
-            },
-          }),
-          flush: true,
-        );
-        createdEntities.add(jsonFile);
+    // Add a few photos to each special folder
+    for (int i = 0; i < 2; i++) {
+      final specialDate = DateTime.now().subtract(Duration(days: i * 30));
+      final String filename;
+      final String description;
+
+      switch (folderName) {
+        case 'Screenshots':
+          filename =
+              'Screenshot_${specialDate.year}-${specialDate.month.toString().padLeft(2, '0')}-${specialDate.day.toString().padLeft(2, '0')}-${specialDate.hour.toString().padLeft(2, '0')}-${specialDate.minute.toString().padLeft(2, '0')}-${specialDate.second.toString().padLeft(2, '0')}_com.example.app.jpg';
+          description = 'Screenshot from mobile device';
+          break;
+        case 'Archive':
+          filename =
+              'archived_photo_${specialDate.year}${specialDate.month.toString().padLeft(2, '0')}${specialDate.day.toString().padLeft(2, '0')}_$i.jpg';
+          description = 'Archived photo';
+          break;
+        case 'Trash':
+          filename =
+              'deleted_image_${specialDate.year}${specialDate.month.toString().padLeft(2, '0')}${specialDate.day.toString().padLeft(2, '0')}_$i.jpg';
+          description = 'Deleted photo in trash';
+          break;
+        case 'Camera':
+          filename =
+              'CAM_${specialDate.year}${specialDate.month.toString().padLeft(2, '0')}${specialDate.day.toString().padLeft(2, '0')}_${specialDate.hour.toString().padLeft(2, '0')}${specialDate.minute.toString().padLeft(2, '0')}${specialDate.second.toString().padLeft(2, '0')}_$i.jpg';
+          description = 'Camera photo';
+          break;
+        default:
+          filename = 'special_${folderName.toLowerCase()}_$i.jpg';
+          description = 'Special folder photo';
       }
+
+      final photoPath = p.join(specialDir.path, filename);
+      final photoFile = File(photoPath);
+      final baseBytes = base64.decode(
+        greenImgNoMetaDataBase64.replaceAll('\n', ''),
+      );
+      // Create truly unique image by modifying pixel data while preserving headers
+      final uniqueBytes = _createUniqueImageBytes(
+        baseBytes,
+        888 + folderName.hashCode,
+        i,
+        filename,
+      );
+      photoFile.writeAsBytesSync(uniqueBytes, flush: true);
+      createdEntities.add(photoFile);
+
+      // Create JSON metadata
+      final jsonFile = File('$photoPath.supplemental-metadata.json');
+      jsonFile.writeAsStringSync(
+        jsonEncode({
+          'title': filename,
+          'description': description,
+          'imageViews': '${i + 1}',
+          'creationTime': {
+            'timestamp':
+                '${(specialDate.millisecondsSinceEpoch / 1000).floor()}',
+            'formatted':
+                '${specialDate.day.toString().padLeft(2, '0')}.${specialDate.month.toString().padLeft(2, '0')}.${specialDate.year}, ${specialDate.hour.toString().padLeft(2, '0')}:${specialDate.minute.toString().padLeft(2, '0')}:${specialDate.second.toString().padLeft(2, '0')} UTC',
+          },
+          'photoTakenTime': {
+            'timestamp':
+                '${(specialDate.millisecondsSinceEpoch / 1000).floor()}',
+            'formatted':
+                '${specialDate.day.toString().padLeft(2, '0')}.${specialDate.month.toString().padLeft(2, '0')}.${specialDate.year}, ${specialDate.hour.toString().padLeft(2, '0')}:${specialDate.minute.toString().padLeft(2, '0')}:${specialDate.second.toString().padLeft(2, '0')} UTC',
+          },
+          'archived': folderName == 'Archive',
+          'url':
+              'https://photos.google.com/photo/${folderName.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}_$i',
+          'googlePhotosOrigin': {
+            'mobileUpload': {'deviceType': 'ANDROID_PHONE'},
+          },
+        }),
+        flush: true,
+      );
+      createdEntities.add(jsonFile);
     }
   }
 
@@ -685,4 +719,88 @@ Future<void> generateRealisticDataset({
   print('Created $albumOnlyPhotos album-only photos');
   print('${(exifRatio * 100).round()}% of photos have EXIF data');
   print('Total files created: ${createdEntities.length}');
+}
+
+/// Creates unique image bytes by modifying pixel data while preserving file headers and EXIF data
+///
+/// This function ensures that each generated image has a unique hash while maintaining:
+/// - JPEG file structure and headers
+/// - EXIF metadata (if present)
+/// - Valid image format that can be processed by the application
+///
+/// The uniqueness is achieved by modifying pixel data in the middle of the image data,
+/// which ensures hash differences while keeping the file structure intact.
+List<int> _createUniqueImageBytes(
+  final List<int> baseBytes,
+  final int yearIndex,
+  final int photoIndex,
+  final String filename,
+) {
+  final uniqueBytes = List<int>.from(baseBytes);
+
+  // Find the start of image data (after headers and EXIF)
+  // JPEG format: FF D8 (SOI) ... [EXIF/headers] ... FF DA (SOS - Start of Scan)
+  int sosIndex = -1;
+  for (int i = 0; i < uniqueBytes.length - 1; i++) {
+    if (uniqueBytes[i] == 0xFF && uniqueBytes[i + 1] == 0xDA) {
+      sosIndex = i + 2; // Skip the SOS marker
+      break;
+    }
+  }
+
+  // If we found the start of scan, modify image data, otherwise modify towards the end
+  int modifyStart = sosIndex > 0 ? sosIndex + 10 : uniqueBytes.length - 100;
+  if (modifyStart < 0 || modifyStart >= uniqueBytes.length - 50) {
+    modifyStart = uniqueBytes.length - 50;
+  }
+
+  // Create unique modifications based on input parameters
+  final uniqueData =
+      '${yearIndex}_${photoIndex}_${filename.hashCode}'.codeUnits;
+
+  // Safely modify bytes in the image data section
+  for (
+    int i = 0;
+    i < uniqueData.length && (modifyStart + i) < uniqueBytes.length - 10;
+    i++
+  ) {
+    final targetIndex = modifyStart + i;
+    // Avoid modifying JPEG markers (0xFF sequences)
+    if (targetIndex > 0 &&
+        targetIndex < uniqueBytes.length - 1 &&
+        uniqueBytes[targetIndex - 1] != 0xFF &&
+        uniqueBytes[targetIndex] != 0xFF) {
+      uniqueBytes[targetIndex] =
+          (uniqueBytes[targetIndex] ^ uniqueData[i]) & 0xFF;
+    }
+  }
+
+  // Add additional unique data at a safe location (before EOI marker)
+  // Find End of Image marker (FF D9)
+  int eoiIndex = -1;
+  for (int i = uniqueBytes.length - 10; i >= 0; i--) {
+    if (uniqueBytes[i] == 0xFF &&
+        i + 1 < uniqueBytes.length &&
+        uniqueBytes[i + 1] == 0xD9) {
+      eoiIndex = i;
+      break;
+    }
+  }
+
+  if (eoiIndex > 10) {
+    // Insert unique comment segment before EOI
+    final commentData =
+        'UNIQUE_${yearIndex}_${photoIndex}_${DateTime.now().microsecondsSinceEpoch}'
+            .codeUnits;
+    final commentSegment = <int>[
+      0xFF, 0xFE, // COM marker
+      (commentData.length + 2) >> 8, (commentData.length + 2) & 0xFF, // Length
+      ...commentData,
+    ];
+
+    // Insert comment before EOI
+    uniqueBytes.insertAll(eoiIndex, commentSegment);
+  }
+
+  return uniqueBytes;
 }

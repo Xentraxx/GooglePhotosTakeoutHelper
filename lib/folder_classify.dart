@@ -46,10 +46,28 @@ bool isYearFolder(final Directory dir) {
 /// (photo or video). Uses the wherePhotoVideo extension to check
 /// for supported media formats.
 ///
+/// Excludes special Google Photos system folders from being considered albums.
+///
 /// [dir] Directory to check
 /// Returns true if it's an album folder
 Future<bool> isAlbumFolder(final Directory dir) async {
   try {
+    // Get the folder name
+    final String folderName = p.basename(dir.path);
+
+    // Exclude special system folders and ALL_PHOTOS from being considered albums
+    const Set<String> specialFolders = {
+      'ALL_PHOTOS',
+      'Archive',
+      'Trash',
+      'Screenshots',
+      'Camera',
+    };
+
+    if (specialFolders.contains(folderName)) {
+      return false;
+    }
+
     await for (final entity in dir.list()) {
       if (entity is File) {
         // Check if it's a media file using the existing extension
@@ -64,4 +82,30 @@ Future<bool> isAlbumFolder(final Directory dir) async {
     // Handle permission denied or other errors
     return false;
   }
+}
+
+/// Determines if a directory is a Google Photos special folder
+///
+/// Special folders are system folders created by Google Photos that
+/// contain photos but are not user-created albums. These include:
+/// - ALL_PHOTOS: Contains all photos (may be processed separately)
+/// - Archive: Archived photos
+/// - Trash: Deleted photos
+/// - Screenshots: Screenshots taken on device
+/// - Camera: Photos from device camera
+///
+/// [dir] Directory to check
+/// Returns true if it's a special folder
+bool isSpecialFolder(final Directory dir) {
+  final String folderName = p.basename(dir.path);
+
+  const Set<String> specialFolders = {
+    'ALL_PHOTOS',
+    'Archive',
+    'Trash',
+    'Screenshots',
+    'Camera',
+  };
+
+  return specialFolders.contains(folderName);
 }

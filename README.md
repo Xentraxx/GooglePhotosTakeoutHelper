@@ -149,6 +149,49 @@ GPTH offers several ways to handle your Google Photos albums:
 
 **Best for:** Users who don't care about album organization and just want all photos in chronological order.
 
+## Special Folder Handling
+
+Google Photos Takeout includes several special system folders that contain photos but aren't user-created albums:
+
+- **Archive**: Photos you've archived in Google Photos
+- **Trash**: Deleted photos (may still be in takeout)  
+- **Screenshots**: Screenshots taken on your device
+- **Camera**: Photos from your device's camera app
+
+### Special Folder Options
+
+GPTH provides several ways to handle these special folders:
+
+#### 🔄 Auto (Default)
+**What it does:** Automatically handles special folders based on your chosen album mode.
+
+- **Nothing mode**: Special folders are skipped (only year folder photos processed)
+- **JSON mode**: Special folder files are included in ALL_PHOTOS as regular files
+- **Other modes**: Special folders are treated as album folders with their names preserved
+
+#### ⏭️ Skip
+**What it does:** Completely ignores special folders - no files from Archive, Trash, Screenshots, or Camera are processed.
+
+**Best for:** Users who only want photos from year folders and albums, excluding system-generated folders.
+
+#### 📁 Include  
+**What it does:** Includes all special folder files in the ALL_PHOTOS directory without preserving folder structure.
+
+**Best for:** Users who want all photos in one place regardless of their original organization.
+
+#### 📂 Albums
+**What it does:** Treats special folders exactly like regular album folders, preserving their names and structure.
+
+**Best for:** Users who want to maintain the distinction between Archive, Trash, Screenshots, and Camera as separate organized folders.
+
+### Command Line Control
+
+Use the `--special-folders` argument to override automatic behavior:
+
+```bash
+gpth --input "/path/to/takeout" --output "/path/to/organized" --special-folders "albums"
+```
+
 ## Important Notes
 
 - **File Movement:** By default, GPTH moves (not copies) files to save space. Use `--copy` flag if you want to preserve the original takeout structure.
@@ -179,6 +222,7 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 | `--divide-to-dates` | Folder structure: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day |
 | `--copy` | Copy files instead of moving (safer but uses more space) |
 | `--skip-extras` | Skip extra images like "-edited" versions |
+| `--special-folders` | override automatic behavior: `auto`, `skip`, `include`, `albums` |
 
 ### Metadata & Processing
 

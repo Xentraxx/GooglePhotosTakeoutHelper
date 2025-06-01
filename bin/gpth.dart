@@ -163,6 +163,19 @@ Future<void> main(final List<String> arguments) async {
       help:
           'Enforces a maximum size of 64MB per file for systems with low RAM (e.g. NAS).\n '
           'DateTime will not be extracted from or written to larger files.',
+    )
+    ..addOption(
+      'special-folders',
+      help:
+          'How to handle special folders (Archive, Trash, Screenshots, Camera)',
+      allowed: <String>['auto', 'skip', 'include', 'albums'],
+      allowedHelp: <String, String>{
+        'auto': 'Automatic handling based on album mode (default)',
+        'skip': 'Skip special folders entirely',
+        'include': 'Include special folder files in ALL_PHOTOS',
+        'albums': 'Treat special folders as album folders',
+      },
+      defaultsTo: 'auto',
     );
   final Map<String, dynamic> args = <String, dynamic>{};
   try {
@@ -249,6 +262,8 @@ Future<void> main(final List<String> arguments) async {
     args['modify-json'] = await interactive.askModifyJson();
     print('');
     args['albums'] = await interactive.askAlbums();
+    print('');
+    args['special-folders'] = await interactive.askSpecialFolders();
     print('');
     args['transform-pixel-mp'] = await interactive.askTransformPixelMP();
     print('');
@@ -380,6 +395,9 @@ Future<void> main(final List<String> arguments) async {
   // not matching "Photos from ...." name
   final List<Directory> albumFolders = <Directory>[];
 
+  // All special folders - Google Photos system folders (Archive, Trash, etc.)
+  final List<Directory> specialFolders = <Directory>[];
+
   /// ##############################################################
   /// #### Here we start the actual work ###########################
   /// ##############################################################
@@ -410,6 +428,8 @@ Future<void> main(final List<String> arguments) async {
       in input.list(recursive: true).whereType<Directory>()) {
     if (isYearFolder(d)) {
       yearFolders.add(d);
+    } else if (isSpecialFolder(d)) {
+      specialFolders.add(d);
     } else if (await isAlbumFolder(d)) {
       albumFolders.add(d);
     }
@@ -425,6 +445,38 @@ Future<void> main(final List<String> arguments) async {
     ); //Here we check if there are emojis in the album names and if yes, we hex encode them so there are no problems later!
     await for (final File file in cleanedAlbumDir.list().wherePhotoVideo()) {
       media.add(Media(<String?, File>{albumName(cleanedAlbumDir): file}));
+    }
+  }
+
+  // Process special folders based on album behavior and special-folders flag
+  for (final Directory s in specialFolders) {
+    final String folderName = albumName(s);
+    await for (final File file in s.list().wherePhotoVideo()) {
+      final String specialFoldersMode = args['special-folders'];
+
+      // Determine how to handle special folders
+      if (specialFoldersMode == 'skip') {
+        // Skip special folders entirely
+        continue;
+      } else if (specialFoldersMode == 'include') {
+        // Include special folder files in ALL_PHOTOS
+        media.add(Media(<String?, File>{null: file}));
+      } else if (specialFoldersMode == 'albums') {
+        // Treat special folders as album folders
+        media.add(Media(<String?, File>{folderName: file}));
+      } else {
+        // Auto mode - handle based on album behavior
+        if (args['albums'] == 'nothing') {
+          // In 'nothing' mode, skip special folders (they're not year folders)
+          continue;
+        } else if (args['albums'] == 'json') {
+          // In 'json' mode, include ALL photos including special folders as regular files
+          media.add(Media(<String?, File>{null: file}));
+        } else {
+          // In other modes (shortcut, duplicate-copy, reverse-shortcut), treat as special album folders
+          media.add(Media(<String?, File>{folderName: file}));
+        }
+      }
     }
   }
 

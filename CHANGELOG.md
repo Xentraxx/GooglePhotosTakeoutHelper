@@ -1,3 +1,20 @@
+## 4.0.6-xentraxx
+
+### Fork/Alternate version
+
+#### New Features
+
+- **Enhanced Special Folder Processing**: Added comprehensive handling for Google Photos special folders (Archive, Trash, Screenshots, Camera)
+  - New `--special-folders` command-line flag with options: 'auto', 'skip', 'include', 'albums'
+  - Interactive mode now includes special folder handling question
+  - Mode-specific processing based on album behavior and special folder settings
+  - Automatic detection of special folders by name
+  - Detailed documentation in README with usage examples
+
+#### Bug fixes
+
+-
+
 ## 4.0.5-xentraxx
 
 ### Fork/Alternate version

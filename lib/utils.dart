@@ -8,7 +8,7 @@ import 'interactive.dart' as interactive;
 import 'media.dart';
 
 // remember to bump this
-const String version = '4.0.5';
+const String version = '4.0.6';
 
 // Processing constants
 const int defaultBarWidth = 40;
