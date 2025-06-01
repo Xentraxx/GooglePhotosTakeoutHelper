@@ -101,6 +101,7 @@ void main() {
 
         // Wait for file system operations to stabilize
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -167,6 +168,7 @@ void main() {
 
         // Wait for file system operations to stabilize
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -199,8 +201,8 @@ void main() {
 
             for (final file in imageFiles) {
               // Verify these are actual files, not symlinks
-              expect(await File(file.path).exists(), isTrue);
-              expect(await Link(file.path).exists(), isFalse);
+              expect(await _existsWithRetry(File(file.path)), isTrue);
+              expect(await _existsWithRetry(Link(file.path)), isFalse);
 
               // Verify file has actual content
               final fileSize = await file.length();
@@ -240,6 +242,7 @@ void main() {
 
         // Wait for file system operations to stabilize
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -286,8 +289,8 @@ void main() {
                 .toList();
 
             for (final file in imageFiles) {
-              expect(await File(file.path).exists(), isTrue);
-              expect(await Link(file.path).exists(), isFalse);
+              expect(await _existsWithRetry(File(file.path)), isTrue);
+              expect(await _existsWithRetry(Link(file.path)), isFalse);
             }
           }
         }
@@ -319,6 +322,7 @@ void main() {
 
         // Wait for file system operations to stabilize
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -327,7 +331,7 @@ void main() {
 
         // Validate albums-info.json exists and has correct structure
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
-        expect(await albumsInfoFile.exists(), isTrue);
+        expect(await _existsWithRetry(albumsInfoFile), isTrue);
 
         final albumsInfo = jsonDecode(await albumsInfoFile.readAsString());
         expect(albumsInfo, isA<Map>());
@@ -373,6 +377,7 @@ void main() {
 
         // Wait for file system operations to stabilize
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         final results = await _analyzeOutput(outputPath);
 
@@ -391,7 +396,7 @@ void main() {
 
         // Validate no albums-info.json exists
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
-        expect(await albumsInfoFile.exists(), isFalse);
+        expect(await _existsWithRetry(albumsInfoFile), isFalse);
       });
     });
 
@@ -418,17 +423,16 @@ void main() {
           divideToDates: 0,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // All files should be in single ALL_PHOTOS folder
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
-        expect(await allPhotosDir.exists(), isTrue);
+        expect(await _existsWithRetry(allPhotosDir), isTrue);
 
         // No date-based subdirectories should exist inside ALL_PHOTOS
-        final subdirs = await allPhotosDir
-            .list()
-            .where((final e) => e is Directory)
-            .toList();
+        final entities = await _listWithRetry(allPhotosDir);
+        final subdirs = entities.whereType<Directory>().toList();
         expect(subdirs.length, equals(0));
         expect(results.albumFolders.length, equals(5));
       });
@@ -456,14 +460,16 @@ void main() {
           divideToDates: 1,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
-        expect(await allPhotosDir.exists(), isTrue);
+        expect(await _existsWithRetry(allPhotosDir), isTrue);
 
         // Should have year subdirectories inside ALL_PHOTOS (simple year format like "2022", "2023")
         final yearDirs = <Directory>[];
-        await for (final entity in allPhotosDir.list()) {
+        final entities = await _listWithRetry(allPhotosDir);
+        for (final entity in entities) {
           if (entity is Directory) {
             final dirName = p.basename(entity.path);
             // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -477,7 +483,7 @@ void main() {
 
         // Validate that year folders contain files (not subdirectories for level 1)
         for (final yearDir in yearDirs) {
-          final yearContents = await yearDir.list().toList();
+          final yearContents = await _listWithRetry(yearDir);
           final filesInYear = yearContents.whereType<File>().toList();
           final dirsInYear = yearContents.whereType<Directory>().toList();
 
@@ -490,7 +496,7 @@ void main() {
         final dateUnknownDir = Directory(
           p.join(allPhotosDir.path, 'date-unknown'),
         );
-        expect(await dateUnknownDir.exists(), isTrue);
+        expect(await _existsWithRetry(dateUnknownDir), isTrue);
       });
 
       /// Tests `--divide-to-dates 2` behavior (year/month organization)
@@ -517,13 +523,15 @@ void main() {
           divideToDates: 2,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
-        expect(await allPhotosDir.exists(), isTrue);
+        expect(await _existsWithRetry(allPhotosDir), isTrue);
         // Should have year/month subdirectories inside ALL_PHOTOS - validate year folders using simple year pattern
         final yearDirs = <Directory>[];
-        await for (final entity in allPhotosDir.list()) {
+        final entities = await _listWithRetry(allPhotosDir);
+        for (final entity in entities) {
           if (entity is Directory) {
             final dirName = p.basename(entity.path);
             // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -537,7 +545,7 @@ void main() {
 
         // Validate year/month structure
         for (final yearDir in yearDirs) {
-          final yearContents = await yearDir.list().toList();
+          final yearContents = await _listWithRetry(yearDir);
           final monthDirs = yearContents.whereType<Directory>().toList();
           final filesInYear = yearContents.whereType<File>().toList();
 
@@ -557,7 +565,7 @@ void main() {
             expect(month, lessThanOrEqualTo(12));
 
             // Month folders should contain files, not day subdirectories at level 2
-            final monthContents = await monthDir.list().toList();
+            final monthContents = await _listWithRetry(monthDir);
             final filesInMonth = monthContents.whereType<File>().toList();
             final dirsInMonth = monthContents.whereType<Directory>().toList();
 
@@ -572,7 +580,7 @@ void main() {
         final dateUnknownDir = Directory(
           p.join(allPhotosDir.path, 'date-unknown'),
         );
-        expect(await dateUnknownDir.exists(), isTrue);
+        expect(await _existsWithRetry(dateUnknownDir), isTrue);
       });
 
       /// Tests `--divide-to-dates 3` behavior (year/month/day organization)
@@ -600,15 +608,17 @@ void main() {
           divideToDates: 3,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
-        expect(await allPhotosDir.exists(), isTrue);
+        expect(await _existsWithRetry(allPhotosDir), isTrue);
         expect(results.albumFolders.length, equals(5));
 
         // Recursively check year/month/day structure inside ALL_PHOTOS - validate year folders using simple year pattern
         final yearDirs = <Directory>[];
-        await for (final entity in allPhotosDir.list()) {
+        final entities = await _listWithRetry(allPhotosDir);
+        for (final entity in entities) {
           if (entity is Directory) {
             final dirName = p.basename(entity.path);
             // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -621,7 +631,7 @@ void main() {
 
         // Validate complete year/month/day structure
         for (final yearDir in yearDirs) {
-          final yearContents = await yearDir.list().toList();
+          final yearContents = await _listWithRetry(yearDir);
           final monthDirs = yearContents.whereType<Directory>().toList();
           final filesInYear = yearContents.whereType<File>().toList();
 
@@ -640,7 +650,7 @@ void main() {
             expect(month, lessThanOrEqualTo(12));
 
             // Month folders should contain day subdirectories, not files at level 3
-            final monthContents = await monthDir.list().toList();
+            final monthContents = await _listWithRetry(monthDir);
             final dayDirs = monthContents.whereType<Directory>().toList();
             final filesInMonth = monthContents.whereType<File>().toList();
 
@@ -658,7 +668,7 @@ void main() {
               expect(day, lessThanOrEqualTo(31));
 
               // Day folders should contain actual files at level 3
-              final dayContents = await dayDir.list().toList();
+              final dayContents = await _listWithRetry(dayDir);
               final filesInDay = dayContents.whereType<File>().toList();
               final dirsInDay = dayContents.whereType<Directory>().toList();
 
@@ -671,7 +681,7 @@ void main() {
         final dateUnknownDir = Directory(
           p.join(allPhotosDir.path, 'date-unknown'),
         );
-        expect(await dateUnknownDir.exists(), isTrue);
+        expect(await _existsWithRetry(dateUnknownDir), isTrue);
       });
     });
 
@@ -703,6 +713,7 @@ void main() {
           copy: false,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
 
         // Verify fewer original files remain (JSON and structure files)
         final remainingFiles = await _getAllFiles(takeoutPath);
@@ -741,6 +752,7 @@ void main() {
           skipExtras: false,
         );
         await _waitForFileSystemStability(outputWithExtras);
+        await _forceFileSystemSync(outputWithExtras);
         final resultsWithExtras = await _analyzeOutput(outputWithExtras);
 
         // Run with skip-extras
@@ -757,6 +769,7 @@ void main() {
           skipExtras: true,
         );
         await _waitForFileSystemStability(outputWithoutExtras);
+        await _forceFileSystemSync(outputWithoutExtras);
         final resultsWithoutExtras = await _analyzeOutput(outputWithoutExtras);
 
         // Should have same or fewer files when skipping extras
@@ -874,7 +887,7 @@ void main() {
               final resolvedTarget = p.isAbsolute(target)
                   ? target
                   : p.join(albumFolder.path, target);
-              expect(await File(resolvedTarget).exists(), isTrue);
+              expect(await _existsWithRetry(File(resolvedTarget)), isTrue);
             }
           }
         }
@@ -929,6 +942,7 @@ void main() {
           timeout: const Duration(minutes: 5),
         );
         await _waitForFileSystemStability(largeOutputPath);
+        await _forceFileSystemSync(largeOutputPath);
         stopwatch.stop();
         final results = await _analyzeOutput(largeOutputPath);
 
@@ -1022,6 +1036,7 @@ void main() {
           albums: 'duplicate-copy',
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate file integrity by comparing hashes
@@ -1078,6 +1093,7 @@ void main() {
           limitFilesize: true,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Should still process files successfully
@@ -1085,7 +1101,7 @@ void main() {
 
         // Verify albums-info.json was created
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
-        expect(await albumsInfoFile.exists(), isTrue);
+        expect(await _existsWithRetry(albumsInfoFile), isTrue);
       });
     });
 
@@ -1123,12 +1139,14 @@ void main() {
           writeExif: true,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate year division structure inside ALL_PHOTOS using simple year pattern
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
         final yearDirs = <Directory>[];
-        await for (final entity in allPhotosDir.list()) {
+        final entities = await _listWithRetry(allPhotosDir);
+        for (final entity in entities) {
           if (entity is Directory) {
             final dirName = p.basename(entity.path);
             // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -1182,12 +1200,14 @@ void main() {
             transformPixelMp: true,
           );
           await _waitForFileSystemStability(outputPath);
+          await _forceFileSystemSync(outputPath);
           final results = await _analyzeOutput(outputPath);
 
           // Validate month division structure inside ALL_PHOTOS using simple year pattern
           final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
           final yearDirs = <Directory>[];
-          await for (final entity in allPhotosDir.list()) {
+          final entities = await _listWithRetry(allPhotosDir);
+          for (final entity in entities) {
             if (entity is Directory) {
               final dirName = p.basename(entity.path);
               // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -1198,9 +1218,8 @@ void main() {
           }
 
           for (final yearDir in yearDirs) {
-            final monthDirs = await Directory(
-              yearDir.path,
-            ).list().where((final e) => e is Directory).toList();
+            final monthEntities = await _listWithRetry(Directory(yearDir.path));
+            final monthDirs = monthEntities.whereType<Directory>().toList();
             expect(monthDirs.length, greaterThanOrEqualTo(1));
           }
 
@@ -1246,12 +1265,14 @@ void main() {
           limitFilesize: true,
         );
         await _waitForFileSystemStability(outputPath);
+        await _forceFileSystemSync(outputPath);
         final results = await _analyzeOutput(outputPath);
 
         // Validate day division structure inside ALL_PHOTOS using simple year pattern
         final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
         final yearDirs = <Directory>[];
-        await for (final entity in allPhotosDir.list()) {
+        final entities = await _listWithRetry(allPhotosDir);
+        for (final entity in entities) {
           if (entity is Directory) {
             final dirName = p.basename(entity.path);
             // Check for simple year pattern (not Google Photos "Photos from YYYY" pattern)
@@ -1264,7 +1285,7 @@ void main() {
 
         // Validate albums-info.json exists
         final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
-        expect(await albumsInfoFile.exists(), isTrue);
+        expect(await _existsWithRetry(albumsInfoFile), isTrue);
 
         // Validate no separate album folders (including special folders)
         expect(results.albumFolders.length, equals(0));
@@ -1277,7 +1298,7 @@ void main() {
         final dateUnknownDir = Directory(
           p.join(allPhotosDir.path, 'date-unknown'),
         );
-        expect(await dateUnknownDir.exists(), isTrue);
+        expect(await _existsWithRetry(dateUnknownDir), isTrue);
       });
     });
   });
@@ -1456,7 +1477,8 @@ Future<OutputAnalysis> _analyzeOutput(final String outputPath) async {
     'Camera',
   };
 
-  await for (final entity in outputDir.list()) {
+  final entities = await _listWithRetry(outputDir);
+  for (final entity in entities) {
     if (entity is Directory) {
       final dirName = p.basename(entity.path);
 
@@ -1548,15 +1570,16 @@ Future<List<File>> _getAllFiles(final String dirPath) async {
 ///
 /// **Usage**: Used to analyze album folder contents and validate shortcuts/copies
 ///
-/// Gets all files in a single directory (non-recursive)
+/// Gets all files in a single directory (non-recursive) with retry logic
 Future<List<File>> _getFilesInDirectory(final Directory dir) async {
   final files = <File>[];
 
-  if (!await dir.exists()) {
+  if (!await _existsWithRetry(dir)) {
     return files;
   }
 
-  await for (final entity in dir.list()) {
+  final entities = await _listWithRetry(dir);
+  for (final entity in entities) {
     if (entity is File) {
       files.add(entity);
     }
@@ -1757,6 +1780,122 @@ Future<bool> _validateSymlinkWithRetry(
           : p.join(albumFolderPath, target);
 
       if (await File(resolvedTarget).exists()) {
+        return true;
+      }
+
+      if (attempt < maxRetries - 1) {
+        await Future.delayed(retryDelay);
+      }
+    } catch (e) {
+      if (attempt < maxRetries - 1) {
+        await Future.delayed(retryDelay);
+        continue;
+      }
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/// **_forceFileSystemSync() Function**
+///
+/// Forces file system synchronization and flush to ensure all pending
+/// file operations are complete before proceeding with validations.
+///
+/// **Parameters**:
+/// - `targetPath`: Base path to synchronize (used for context)
+///
+/// **Platform Behavior**:
+/// - Unix-like systems: Executes `sync` command to flush file system buffers
+/// - Windows: Uses delay-based approach as `sync` is not available
+///
+/// **Usage**: Call after _waitForFileSystemStability and before any validation
+Future<void> _forceFileSystemSync(final String targetPath) async {
+  if (!Platform.isWindows) {
+    // On Unix-like systems, force file system sync
+    try {
+      final result = await Process.run('sync', []);
+      if (result.exitCode != 0) {
+        // If sync fails, fall back to delay
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      // Additional brief wait after sync
+      await Future.delayed(const Duration(milliseconds: 50));
+    } catch (e) {
+      // If sync command is not available, use delay
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  } else {
+    // On Windows, use longer delay as sync is not available
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+}
+
+/// **_listWithRetry() Function**
+///
+/// Lists directory contents with retry logic to handle race conditions.
+/// Directory listings may be inconsistent immediately after file operations.
+///
+/// **Parameters**:
+/// - `directory`: Directory to list
+/// - `maxRetries`: Maximum number of retry attempts
+/// - `retryDelay`: Delay between retry attempts
+///
+/// **Returns**: List of file system entities in the directory
+///
+/// **Usage**: Use instead of direct .list() calls to handle timing issues
+Future<List<FileSystemEntity>> _listWithRetry(
+  final Directory directory, {
+  final int maxRetries = 3,
+  final Duration retryDelay = const Duration(milliseconds: 100),
+}) async {
+  for (int attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (!await directory.exists()) {
+        if (attempt < maxRetries - 1) {
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        return [];
+      }
+
+      final entities = await directory.list().toList();
+      return entities;
+    } catch (e) {
+      if (attempt < maxRetries - 1) {
+        await Future.delayed(retryDelay);
+        continue;
+      }
+      return [];
+    }
+  }
+
+  return [];
+}
+
+/// **_existsWithRetry() Function**
+///
+/// Checks file/directory/link existence with retry logic to handle race conditions.
+/// File system entities may not be immediately visible after creation.
+///
+/// **Parameters**:
+/// - `entity`: File system entity to check (File, Directory, or Link)
+/// - `maxRetries`: Maximum number of retry attempts
+/// - `retryDelay`: Delay between retry attempts
+///
+/// **Returns**: True if entity exists, false otherwise
+///
+/// **Usage**: Use instead of direct .exists() calls to handle timing issues
+Future<bool> _existsWithRetry(
+  final FileSystemEntity entity, {
+  final int maxRetries = 3,
+  final Duration retryDelay = const Duration(milliseconds: 100),
+}) async {
+  for (int attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      final exists = await entity.exists();
+      if (exists) {
         return true;
       }
 
