@@ -14,7 +14,6 @@
 #### Bug fixes
 
 - Fixed documentation and interactive mode to accurately reflect behaviour in "nothing" album mode.
-- Fixed year album detection mode to be more restrictive
 
 ## 4.0.5-xentraxx
 
