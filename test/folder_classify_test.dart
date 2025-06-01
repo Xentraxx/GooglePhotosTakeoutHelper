@@ -343,5 +343,77 @@ void main() {
         expect(results.every((final result) => result == true), isTrue);
       });
     });
+
+    group('Special Folder Detection Tests', () {
+      test('isSpecialFolder correctly identifies all special folders', () {
+        // Create temporary directories for testing
+        final Directory archiveDir = Directory(
+          p.join(fixture.basePath, 'Archive'),
+        );
+        final Directory trashDir = Directory(p.join(fixture.basePath, 'Trash'));
+        final Directory screenshotsDir = Directory(
+          p.join(fixture.basePath, 'Screenshots'),
+        );
+        final Directory cameraDir = Directory(
+          p.join(fixture.basePath, 'Camera'),
+        );
+        final Directory allPhotosDir = Directory(
+          p.join(fixture.basePath, 'ALL_PHOTOS'),
+        );
+        final Directory normalDir = Directory(
+          p.join(fixture.basePath, 'Normal_Folder'),
+        );
+        final Directory albumDir = Directory(
+          p.join(fixture.basePath, 'Vacation Photos'),
+        );
+
+        // Create all the test directories
+        archiveDir.createSync();
+        trashDir.createSync();
+        screenshotsDir.createSync();
+        cameraDir.createSync();
+        allPhotosDir.createSync();
+        normalDir.createSync();
+        albumDir.createSync();
+
+        // Test each folder
+        expect(isSpecialFolder(archiveDir), isTrue);
+        expect(isSpecialFolder(trashDir), isTrue);
+        expect(isSpecialFolder(screenshotsDir), isTrue);
+        expect(isSpecialFolder(cameraDir), isTrue);
+        expect(isSpecialFolder(allPhotosDir), isTrue);
+
+        // Test non-special folders
+        expect(isSpecialFolder(normalDir), isFalse);
+        expect(isSpecialFolder(albumDir), isFalse);
+      });
+
+      test('isSpecialFolder is case sensitive', () {
+        // Special folders should be case-sensitive to match Google's format
+        final Directory archiveLowercaseDir = Directory(
+          p.join(fixture.basePath, 'archive'),
+        );
+        final Directory trashUppercaseDir = Directory(
+          p.join(fixture.basePath, 'TRASH'),
+        );
+        final Directory screenshotsLowercaseDir = Directory(
+          p.join(fixture.basePath, 'screenshots'),
+        );
+        final Directory cameraNormalcaseDir = Directory(
+          p.join(fixture.basePath, 'Camera'),
+        );
+
+        // Create test directories
+        archiveLowercaseDir.createSync();
+        trashUppercaseDir.createSync();
+        screenshotsLowercaseDir.createSync();
+        cameraNormalcaseDir.createSync();
+
+        expect(isSpecialFolder(archiveLowercaseDir), isFalse);
+        expect(isSpecialFolder(trashUppercaseDir), isFalse);
+        expect(isSpecialFolder(screenshotsLowercaseDir), isFalse);
+        expect(isSpecialFolder(cameraNormalcaseDir), isTrue);
+      });
+    });
   });
 }
