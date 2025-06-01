@@ -44,11 +44,14 @@ class TestFixture {
     final String timestamp = DateTime.now().microsecondsSinceEpoch.toString();
     final String randomSuffix = DateTime.now().millisecondsSinceEpoch
         .toRadixString(36);
+    // Add a more unique identifier to avoid conflicts in concurrent test scenarios
+    final String uniqueId =
+        '${DateTime.now().microsecondsSinceEpoch % 1000000}';
     basePath = p.join(
       current,
       'test',
       'generated',
-      'fixture_${timestamp}_$randomSuffix',
+      'fixture_${timestamp}_${randomSuffix}_$uniqueId',
     );
     baseDir = Directory(basePath);
     await baseDir.create(recursive: true);
@@ -57,8 +60,14 @@ class TestFixture {
 
   /// Clean up all created files and directories
   Future<void> tearDown() async {
-    // First, try to force-close any file handles
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Wait longer to ensure all file operations have completed
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Force garbage collection to help release file handles
+    if (Platform.isWindows) {
+      // On Windows, give extra time for file handles to be released
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
 
     // Reverse order to delete files before directories
     final entities = _createdEntities.toList().reversed.toList();
@@ -71,11 +80,19 @@ class TestFixture {
 
   /// Safely delete a file system entity with retry logic
   Future<void> _safeDelete(final FileSystemEntity entity) async {
-    const maxRetries = 3;
+    const maxRetries = 5; // Increased retries for Windows
     for (int retry = 0; retry < maxRetries; retry++) {
       try {
         if (await entity.exists()) {
           if (entity is File) {
+            // On Windows, try to change file attributes to remove read-only before deletion
+            if (Platform.isWindows) {
+              try {
+                await Process.run('attrib', ['-R', entity.path]);
+              } catch (e) {
+                // Ignore attrib errors
+              }
+            }
             await entity.delete();
           } else if (entity is Directory) {
             await _deleteDirectoryRecursively(entity);
@@ -91,8 +108,15 @@ class TestFixture {
             'Warning: Failed to delete ${entity.path} after $maxRetries attempts: $e',
           );
         } else {
-          // Wait before retry
-          await Future.delayed(Duration(milliseconds: 100 * (retry + 1)));
+          // Progressive backoff: wait longer on each retry
+          final delayMs = 200 * (retry + 1); // 200ms, 400ms, 600ms, 800ms
+          await Future.delayed(Duration(milliseconds: delayMs));
+
+          // Force garbage collection on Windows to help release handles
+          if (Platform.isWindows && retry > 0) {
+            // Give the OS more time to release file handles
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
         }
       }
     }
@@ -153,7 +177,11 @@ class TestFixture {
   File createImageWithExif(final String name) {
     final file = File(p.join(basePath, name));
     file.createSync(recursive: true);
-    file.writeAsBytesSync(base64.decode(greenImgBase64.replaceAll('\n', '')));
+    // Use writeAsBytesSync with flush: true to ensure data is written immediately
+    file.writeAsBytesSync(
+      base64.decode(greenImgBase64.replaceAll('\n', '')),
+      flush: true,
+    );
     _createdEntities.add(file);
     return file;
   }
@@ -162,8 +190,10 @@ class TestFixture {
   File createImageWithoutExif(final String name) {
     final file = File(p.join(basePath, name));
     file.createSync(recursive: true);
+    // Use writeAsBytesSync with flush: true to ensure data is written immediately
     file.writeAsBytesSync(
       base64.decode(greenImgNoMetaDataBase64.replaceAll('\n', '')),
+      flush: true,
     );
     _createdEntities.add(file);
     return file;
@@ -173,7 +203,8 @@ class TestFixture {
   File createFile(final String name, final List<int> content) {
     final file = File(p.join(basePath, name));
     file.createSync(recursive: true);
-    file.writeAsBytesSync(content);
+    // Use writeAsBytesSync with flush: true to ensure data is written immediately
+    file.writeAsBytesSync(content, flush: true);
     _createdEntities.add(file);
     return file;
   }
@@ -223,6 +254,7 @@ class TestFixture {
           'mobileUpload': {'deviceType': 'IOS_PHONE'},
         },
       }),
+      flush: true,
     );
     _createdEntities.add(file);
     return file;
@@ -238,9 +270,44 @@ class TestFixture {
 
     final file = File(p.join(dirPath, name));
     file.createSync(recursive: true);
-    file.writeAsBytesSync(base64.decode(greenImgBase64.replaceAll('\n', '')));
+    // Use writeAsBytesSync with flush: true to ensure data is written immediately
+    file.writeAsBytesSync(
+      base64.decode(greenImgBase64.replaceAll('\n', '')),
+      flush: true,
+    );
     _createdEntities.add(file);
     return file;
+  }
+
+  /// Generate a realistic Google Photos Takeout dataset within this fixture
+  ///
+  /// This is a convenience method that calls generateRealisticDataset() using
+  /// the current fixture's base path and manages the created entities for cleanup.
+  ///
+  /// Returns the path to the generated Takeout directory.
+  Future<String> generateRealisticTakeoutDataset({
+    final int yearSpan = 3,
+    final int albumCount = 5,
+    final int photosPerYear = 10,
+    final int albumOnlyPhotos = 3,
+    final double exifRatio = 0.7,
+  }) async {
+    final datasetPath = p.join(basePath, 'realistic_dataset');
+
+    await generateRealisticDataset(
+      basePath: datasetPath,
+      yearSpan: yearSpan,
+      albumCount: albumCount,
+      photosPerYear: photosPerYear,
+      albumOnlyPhotos: albumOnlyPhotos,
+      exifRatio: exifRatio,
+    );
+
+    // Add the entire dataset directory to cleanup
+    final datasetDir = Directory(datasetPath);
+    _createdEntities.add(datasetDir);
+
+    return p.join(datasetPath, 'Takeout');
   }
 }
 
@@ -260,3 +327,362 @@ final List<List<String>> testDatePatterns = [
   ['1990_06_16_07_30_00.jpg', '1990-06-16 07:30:00'],
   ['1869_12_30_16_59_57.jpg', '1869-12-30 16:59:57'],
 ];
+
+/// Generate a realistic Google Photos Takeout dataset for testing
+///
+/// Creates a complete test structure that mimics real Google Photos exports with:
+/// - Year folders (Photos from YYYY) containing original photos
+/// - Album folders with various naming patterns including emojis
+/// - JPG files with and without EXIF data
+/// - Corresponding JSON metadata files with realistic timestamps
+/// - Album-only photos and multi-album relationships
+/// - Various naming patterns found in real exports
+Future<void> generateRealisticDataset({
+  required final String basePath,
+  final int yearSpan = 5,
+  final int albumCount = 8,
+  final int photosPerYear = 15,
+  final int albumOnlyPhotos = 5,
+  final double exifRatio = 0.7, // 70% of photos have EXIF data
+}) async {
+  final Set<FileSystemEntity> createdEntities = {};
+
+  // Create base directory structure
+  final baseDir = Directory(basePath);
+  await baseDir.create(recursive: true);
+  createdEntities.add(baseDir);
+
+  final takeoutDir = Directory(p.join(basePath, 'Takeout'));
+  await takeoutDir.create(recursive: true);
+  createdEntities.add(takeoutDir);
+
+  final googlePhotosDir = Directory(p.join(takeoutDir.path, 'Google Photos'));
+  await googlePhotosDir.create(recursive: true);
+  createdEntities.add(googlePhotosDir);
+
+  // Define realistic album names including emojis
+  final List<String> albumNames = [
+    'Vacation 2023 🏖️',
+    'Family Photos 👨‍👩‍👧‍👦',
+    'Holiday Memories 🎄',
+    'Wedding Photos 💒',
+    'Travel Adventures ✈️',
+    'Pet Photos 🐕🐱',
+    'Cooking & Food 🍕',
+    'Nature & Landscapes 🌄',
+    'Friends & Fun 🎉',
+    'Work & Office 💼',
+    'Art & Creative 🎨',
+    'Summer Fun ☀️',
+  ];
+
+  // Define realistic photo filename patterns
+  final List<String Function(DateTime, int)> filenamePatterns = [
+    (final date, final index) =>
+        'IMG_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${date.hour.toString().padLeft(2, '0')}${date.minute.toString().padLeft(2, '0')}${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        'Screenshot_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}-${date.hour.toString().padLeft(2, '0')}-${date.minute.toString().padLeft(2, '0')}-${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        'MVIMG_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${date.hour.toString().padLeft(2, '0')}${date.minute.toString().padLeft(2, '0')}${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        'signal-${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}-${date.hour.toString().padLeft(2, '0')}${date.minute.toString().padLeft(2, '0')}${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        'VID_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${date.hour.toString().padLeft(2, '0')}${date.minute.toString().padLeft(2, '0')}${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        '${date.year}_${date.month.toString().padLeft(2, '0')}_${date.day.toString().padLeft(2, '0')}_${date.hour.toString().padLeft(2, '0')}_${date.minute.toString().padLeft(2, '0')}_${date.second.toString().padLeft(2, '0')}.jpg',
+    (final date, final index) =>
+        'PXL_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${date.hour.toString().padLeft(2, '0')}${date.minute.toString().padLeft(2, '0')}${date.second.toString().padLeft(2, '0')}${index.toString().padLeft(3, '0')}.jpg',
+    (final date, final index) =>
+        'Photo_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}_${index.toString().padLeft(4, '0')}.jpg',
+  ];
+
+  final currentYear = DateTime.now().year;
+  final List<String> createdPhotos = [];
+  final Map<String, List<String>> albumToPhotos = {};
+
+  // Create year folders and photos
+  for (int i = 0; i < yearSpan; i++) {
+    final year = currentYear - yearSpan + i + 1;
+    final yearDir = Directory(
+      p.join(googlePhotosDir.path, 'Photos from $year'),
+    );
+    await yearDir.create(recursive: true);
+    createdEntities.add(yearDir);
+
+    // Create photos for this year
+    for (int j = 0; j < photosPerYear; j++) {
+      final photoDate = DateTime(
+        year,
+        (j % 12) + 1,
+        ((j * 3) % 28) + 1,
+        (j * 2) % 24,
+        (j * 7) % 60,
+        (j * 11) % 60,
+      );
+
+      final patternIndex = j % filenamePatterns.length;
+      final filename = filenamePatterns[patternIndex](photoDate, j);
+      final photoPath = p.join(yearDir.path, filename);
+
+      // Determine if this photo should have EXIF data
+      final hasExif =
+          (j / photosPerYear) <
+          exifRatio; // Create photo file with unique content
+      final photoFile = File(photoPath);
+      if (hasExif) {
+        final baseBytes = base64.decode(greenImgBase64.replaceAll('\n', ''));
+        // Add unique content to make each photo different
+        final uniqueBytes = List<int>.from(baseBytes);
+        uniqueBytes.addAll('unique_${i}_${j}_$filename'.codeUnits);
+        photoFile.writeAsBytesSync(uniqueBytes, flush: true);
+      } else {
+        final baseBytes = base64.decode(
+          greenImgNoMetaDataBase64.replaceAll('\n', ''),
+        );
+        // Add unique content to make each photo different
+        final uniqueBytes = List<int>.from(baseBytes);
+        uniqueBytes.addAll('unique_${i}_${j}_$filename'.codeUnits);
+        photoFile.writeAsBytesSync(uniqueBytes, flush: true);
+      }
+      createdEntities.add(photoFile);
+      createdPhotos.add(filename); // Create JSON metadata file
+      final jsonFile = File('$photoPath.json');
+      jsonFile.writeAsStringSync(
+        jsonEncode({
+          'title': filename,
+          'description': '',
+          'imageViews': '${(j % 50) + 1}',
+          'creationTime': {
+            'timestamp': '${(photoDate.millisecondsSinceEpoch / 1000).floor()}',
+            'formatted':
+                '${photoDate.day.toString().padLeft(2, '0')}.${photoDate.month.toString().padLeft(2, '0')}.${photoDate.year}, ${photoDate.hour.toString().padLeft(2, '0')}:${photoDate.minute.toString().padLeft(2, '0')}:${photoDate.second.toString().padLeft(2, '0')} UTC',
+          },
+          'photoTakenTime': {
+            'timestamp': '${(photoDate.millisecondsSinceEpoch / 1000).floor()}',
+            'formatted':
+                '${photoDate.day.toString().padLeft(2, '0')}.${photoDate.month.toString().padLeft(2, '0')}.${photoDate.year}, ${photoDate.hour.toString().padLeft(2, '0')}:${photoDate.minute.toString().padLeft(2, '0')}:${photoDate.second.toString().padLeft(2, '0')} UTC',
+          },
+          'geoData': j % 3 == 0
+              ? {
+                  'latitude': 41.3221611 + (j * 0.001),
+                  'longitude': 19.8149139 + (j * 0.001),
+                  'altitude': 143.09 + (j * 2.5),
+                  'latitudeSpan': 0.0,
+                  'longitudeSpan': 0.0,
+                }
+              : null,
+          'geoDataExif': j % 3 == 0
+              ? {
+                  'latitude': 41.3221611 + (j * 0.001),
+                  'longitude': 19.8149139 + (j * 0.001),
+                  'altitude': 143.09 + (j * 2.5),
+                  'latitudeSpan': 0.0,
+                  'longitudeSpan': 0.0,
+                }
+              : null,
+          'archived': j % 7 == 0,
+          'url':
+              'https://photos.google.com/photo/${DateTime.now().millisecondsSinceEpoch}_$j',
+          if (j % 4 == 0)
+            'googlePhotosOrigin': {
+              'mobileUpload': {
+                'deviceType': ['IOS_PHONE', 'ANDROID_PHONE', 'CAMERA'][j % 3],
+              },
+            },
+        }),
+        flush: true,
+      );
+      createdEntities.add(jsonFile);
+    }
+  }
+
+  // Create album folders
+  final selectedAlbums = albumNames.take(albumCount).toList();
+  for (int i = 0; i < selectedAlbums.length; i++) {
+    final albumName = selectedAlbums[i];
+    final albumDir = Directory(p.join(googlePhotosDir.path, albumName));
+    await albumDir.create(recursive: true);
+    createdEntities.add(albumDir);
+
+    albumToPhotos[albumName] = [];
+
+    // Add random photos from year folders to this album
+    final photosInAlbum = (createdPhotos.length * 0.3)
+        .round(); // 30% of photos in each album
+    final albumPhotos = <String>[];
+
+    for (int j = 0; j < photosInAlbum; j++) {
+      final randomPhotoIndex =
+          (i * 13 + j * 7) % createdPhotos.length; // Deterministic but varied
+      final photoName = createdPhotos[randomPhotoIndex];
+      albumPhotos.add(photoName);
+
+      // Find original photo file
+      File? originalPhoto;
+      for (int yearOffset = 0; yearOffset < yearSpan; yearOffset++) {
+        final year = currentYear - yearSpan + yearOffset + 1;
+        final yearDir = Directory(
+          p.join(googlePhotosDir.path, 'Photos from $year'),
+        );
+        final potentialPath = p.join(yearDir.path, photoName);
+        if (File(potentialPath).existsSync()) {
+          originalPhoto = File(potentialPath);
+          break;
+        }
+      }
+
+      if (originalPhoto != null) {
+        // Copy photo to album
+        final albumPhotoPath = p.join(albumDir.path, photoName);
+        originalPhoto.copySync(albumPhotoPath);
+
+        // Copy JSON file too
+        final originalJsonPath = '${originalPhoto.path}.json';
+        if (File(originalJsonPath).existsSync()) {
+          File(originalJsonPath).copySync('$albumPhotoPath.json');
+        }
+      }
+    }
+
+    albumToPhotos[albumName] = albumPhotos;
+  }
+
+  // Create album-only photos (photos that exist only in albums, not in year folders)
+  final currentAlbums = selectedAlbums
+      .take(3)
+      .toList(); // Use first 3 albums for album-only photos
+  for (int i = 0; i < albumOnlyPhotos; i++) {
+    final albumIndex = i % currentAlbums.length;
+    final albumName = currentAlbums[albumIndex];
+    final albumDir = Directory(p.join(googlePhotosDir.path, albumName));
+
+    final albumOnlyDate = DateTime(
+      currentYear,
+      (i % 12) + 1,
+      ((i * 5) % 28) + 1,
+      (i * 3) % 24,
+      (i * 13) % 60,
+      (i * 17) % 60,
+    );
+
+    final filename =
+        'album_only_${albumName.replaceAll(RegExp(r'[^\w\s-]'), '')}_${albumOnlyDate.year}${albumOnlyDate.month.toString().padLeft(2, '0')}${albumOnlyDate.day.toString().padLeft(2, '0')}_$i.jpg';
+    final photoPath = p.join(
+      albumDir.path,
+      filename,
+    ); // Create album-only photo with EXIF data and unique content
+    final photoFile = File(photoPath);
+    final baseBytes = base64.decode(greenImgBase64.replaceAll('\n', ''));
+    // Add unique content to make each album-only photo different
+    final uniqueBytes = List<int>.from(baseBytes);
+    uniqueBytes.addAll('album_only_${albumName}_${i}_$filename'.codeUnits);
+    photoFile.writeAsBytesSync(uniqueBytes, flush: true);
+    createdEntities.add(photoFile); // Create JSON metadata for album-only photo
+    final jsonFile = File('$photoPath.json');
+    jsonFile.writeAsStringSync(
+      jsonEncode({
+        'title': filename,
+        'description': 'Album-only photo for testing',
+        'imageViews': '${i + 1}',
+        'creationTime': {
+          'timestamp':
+              '${(albumOnlyDate.millisecondsSinceEpoch / 1000).floor()}',
+          'formatted':
+              '${albumOnlyDate.day.toString().padLeft(2, '0')}.${albumOnlyDate.month.toString().padLeft(2, '0')}.${albumOnlyDate.year}, ${albumOnlyDate.hour.toString().padLeft(2, '0')}:${albumOnlyDate.minute.toString().padLeft(2, '0')}:${albumOnlyDate.second.toString().padLeft(2, '0')} UTC',
+        },
+        'photoTakenTime': {
+          'timestamp':
+              '${(albumOnlyDate.millisecondsSinceEpoch / 1000).floor()}',
+          'formatted':
+              '${albumOnlyDate.day.toString().padLeft(2, '0')}.${albumOnlyDate.month.toString().padLeft(2, '0')}.${albumOnlyDate.year}, ${albumOnlyDate.hour.toString().padLeft(2, '0')}:${albumOnlyDate.minute.toString().padLeft(2, '0')}:${albumOnlyDate.second.toString().padLeft(2, '0')} UTC',
+        },
+        'geoData': {
+          'latitude': 40.7128 + (i * 0.01),
+          'longitude': -74.0060 + (i * 0.01),
+          'altitude': 10.0 + (i * 5.0),
+          'latitudeSpan': 0.0,
+          'longitudeSpan': 0.0,
+        },
+        'geoDataExif': {
+          'latitude': 40.7128 + (i * 0.01),
+          'longitude': -74.0060 + (i * 0.01),
+          'altitude': 10.0 + (i * 5.0),
+          'latitudeSpan': 0.0,
+          'longitudeSpan': 0.0,
+        },
+        'archived': false,
+        'url':
+            'https://photos.google.com/photo/album_only_${DateTime.now().millisecondsSinceEpoch}_$i',
+        'googlePhotosOrigin': {
+          'mobileUpload': {'deviceType': 'IOS_PHONE'},
+        },
+      }),
+      flush: true,
+    );
+    createdEntities.add(jsonFile);
+
+    albumToPhotos[albumName]!.add(filename);
+  }
+
+  // Create some special folders that commonly appear in Google Takeout
+  final specialFolders = ['Archive', 'Trash', 'Screenshots', 'Camera'];
+
+  for (final folderName in specialFolders) {
+    final specialDir = Directory(p.join(googlePhotosDir.path, folderName));
+    await specialDir.create(recursive: true);
+    createdEntities.add(specialDir);
+
+    // Add a few photos to special folders
+    if (folderName == 'Screenshots') {
+      for (int i = 0; i < 3; i++) {
+        final screenshotDate = DateTime.now().subtract(Duration(days: i * 30));
+        final filename =
+            'Screenshot_${screenshotDate.year}-${screenshotDate.month.toString().padLeft(2, '0')}-${screenshotDate.day.toString().padLeft(2, '0')}-${screenshotDate.hour.toString().padLeft(2, '0')}-${screenshotDate.minute.toString().padLeft(2, '0')}-${screenshotDate.second.toString().padLeft(2, '0')}_com.example.app.jpg';
+        final photoPath = p.join(specialDir.path, filename);
+        final photoFile = File(photoPath);
+        photoFile.writeAsBytesSync(
+          base64.decode(greenImgNoMetaDataBase64.replaceAll('\n', '')),
+          flush: true,
+        );
+        createdEntities.add(photoFile); // Create JSON metadata
+        final jsonFile = File('$photoPath.json');
+        jsonFile.writeAsStringSync(
+          jsonEncode({
+            'title': filename,
+            'description': 'Screenshot from mobile device',
+            'imageViews': '1',
+            'creationTime': {
+              'timestamp':
+                  '${(screenshotDate.millisecondsSinceEpoch / 1000).floor()}',
+              'formatted':
+                  '${screenshotDate.day.toString().padLeft(2, '0')}.${screenshotDate.month.toString().padLeft(2, '0')}.${screenshotDate.year}, ${screenshotDate.hour.toString().padLeft(2, '0')}:${screenshotDate.minute.toString().padLeft(2, '0')}:${screenshotDate.second.toString().padLeft(2, '0')} UTC',
+            },
+            'photoTakenTime': {
+              'timestamp':
+                  '${(screenshotDate.millisecondsSinceEpoch / 1000).floor()}',
+              'formatted':
+                  '${screenshotDate.day.toString().padLeft(2, '0')}.${screenshotDate.month.toString().padLeft(2, '0')}.${screenshotDate.year}, ${screenshotDate.hour.toString().padLeft(2, '0')}:${screenshotDate.minute.toString().padLeft(2, '0')}:${screenshotDate.second.toString().padLeft(2, '0')} UTC',
+            },
+            'archived': false,
+            'url':
+                'https://photos.google.com/photo/screenshot_${DateTime.now().millisecondsSinceEpoch}_$i',
+            'googlePhotosOrigin': {
+              'mobileUpload': {'deviceType': 'ANDROID_PHONE'},
+            },
+          }),
+          flush: true,
+        );
+        createdEntities.add(jsonFile);
+      }
+    }
+  }
+
+  print('Generated realistic dataset at: $basePath');
+  print('Created ${createdPhotos.length} photos across $yearSpan years');
+  print(
+    'Created ${selectedAlbums.length} albums: ${selectedAlbums.join(', ')}',
+  );
+  print('Created $albumOnlyPhotos album-only photos');
+  print('${(exifRatio * 100).round()}% of photos have EXIF data');
+  print('Total files created: ${createdEntities.length}');
+}

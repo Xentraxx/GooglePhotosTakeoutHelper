@@ -94,7 +94,24 @@ class ExiftoolInterface {
       throw FileSystemException('File not found', file.path);
     }
 
-    final result = await Process.run(exiftoolPath, ['-j', '-n', file.path]);
+    final args = ['-j', '-n'];
+
+    // On Windows, explicitly set UTF-8 encoding for Unicode character support
+    if (Platform.isWindows) {
+      args.addAll(['-charset', 'filename=UTF8']);
+      args.addAll(['-charset', 'exif=UTF8']);
+    }
+
+    args.add(file.path);
+
+    final result = await Process.run(
+      exiftoolPath,
+      args,
+      // Ensure UTF-8 encoding for the process
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+
     if (result.exitCode != 0) {
       log(
         'exiftool returned a non 0 code for reading ${file.path} with error: ${result.stderr}',
@@ -136,10 +153,26 @@ class ExiftoolInterface {
     if (tags.isEmpty) {
       return <String, dynamic>{};
     }
+
     final args = <String>['-j', '-n'];
+
+    // On Windows, explicitly set UTF-8 encoding for Unicode character support
+    if (Platform.isWindows) {
+      args.addAll(['-charset', 'filename=UTF8']);
+      args.addAll(['-charset', 'exif=UTF8']);
+    }
+
     args.addAll(tags.map((final tag) => '-$tag'));
     args.add(filepath);
-    final result = await Process.run(exiftoolPath, args);
+
+    final result = await Process.run(
+      exiftoolPath,
+      args,
+      // Ensure UTF-8 encoding for the process
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+
     if (result.exitCode != 0) {
       log(
         'exiftool returned a non 0 code for reading ${file.path} with error: ${result.stderr}',
@@ -179,9 +212,24 @@ class ExiftoolInterface {
     }
 
     final args = <String>['-overwrite_original'];
+
+    // On Windows, explicitly set UTF-8 encoding for Unicode character support
+    if (Platform.isWindows) {
+      args.addAll(['-charset', 'filename=UTF8']);
+      args.addAll(['-charset', 'exif=UTF8']);
+    }
+
     tags.forEach((final tag, final value) => args.add('-$tag=$value'));
     args.add(filepath);
-    final result = await Process.run(exiftoolPath, args);
+
+    final result = await Process.run(
+      exiftoolPath,
+      args,
+      // Ensure UTF-8 encoding for the process
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+
     if (result.exitCode != 0) {
       log(
         '[Step 5/8] Writing exif to file ${file.path} failed.'

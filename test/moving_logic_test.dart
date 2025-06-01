@@ -67,7 +67,6 @@ void main() {
     late TestFixture fixture;
     late Directory outputDir;
     late List<Media> testMedia;
-
     setUp(() async {
       fixture = TestFixture();
       await fixture.setUp();
@@ -111,7 +110,16 @@ void main() {
       final albumDir = fixture.createDirectory('Vacation');
       final albumFile = File('${albumDir.path}/${p.basename(imgFile1.path)}');
       albumFile.createSync();
-      albumFile.writeAsBytesSync([0, 1, 2]); // Same content as imgFile1
+      albumFile.writeAsBytesSync([
+        0,
+        1,
+        2,
+      ], flush: true); // Same content as imgFile1 with explicit flush
+
+      // Give Windows a moment to ensure file handles are properly released
+      if (Platform.isWindows) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
 
       testMedia = <Media>[
         Media(
@@ -454,7 +462,7 @@ void main() {
 
         // Year-month folders are created under ALL_PHOTOS directory
         final allPhotosDir = Directory('${outputDir.path}/ALL_PHOTOS');
-        expect(allPhotosDir.existsSync(), isTrue);
+        expect(await allPhotosDir.exists(), isTrue);
 
         // Recursively check for year and month folders under ALL_PHOTOS
         final allDirs = <String>[];
@@ -485,11 +493,11 @@ void main() {
         ).toList();
 
         final allPhotosDir = Directory('${outputDir.path}/ALL_PHOTOS');
-        expect(allPhotosDir.existsSync(), isTrue);
+        expect(await allPhotosDir.exists(), isTrue);
 
         // Files without dates should be in the date-unknown subdirectory
         final dateUnknownDir = Directory('${allPhotosDir.path}/date-unknown');
-        expect(dateUnknownDir.existsSync(), isTrue);
+        expect(await dateUnknownDir.exists(), isTrue);
 
         final filesInDateUnknown = await dateUnknownDir
             .list()
@@ -669,7 +677,7 @@ void main() {
       /// Should handle output directory creation.
       test('handles output directory creation', () async {
         final newOutputDir = Directory('${fixture.basePath}/new_output');
-        expect(newOutputDir.existsSync(), isFalse);
+        expect(await newOutputDir.exists(), isFalse);
 
         await moveFiles(
           testMedia,
@@ -679,7 +687,7 @@ void main() {
           albumBehavior: 'nothing',
         ).toList();
 
-        expect(newOutputDir.existsSync(), isTrue);
+        expect(await newOutputDir.exists(), isTrue);
         final files = await newOutputDir
             .list(recursive: true)
             .whereType<File>()

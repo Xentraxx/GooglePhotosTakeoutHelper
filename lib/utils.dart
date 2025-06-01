@@ -9,7 +9,7 @@ import 'interactive.dart' as interactive;
 import 'media.dart';
 
 // remember to bump this
-const String version = '4.0.4';
+const String version = '4.0.5';
 
 // Processing constants
 const int defaultBarWidth = 40;
@@ -460,10 +460,22 @@ Future<void> createShortcutWin(
 ) async {
   // Make sure parent directory exists
   final Directory parentDir = Directory(p.dirname(shortcutPath));
-  if (!parentDir.existsSync()) {
-    parentDir.createSync(recursive: true);
+  if (!await parentDir.exists()) {
+    await parentDir.create(recursive: true);
   }
-  // Use PowerShell for reliable shortcut creation
+
+  // Ensure target path is absolute
+  final String absoluteTargetPath = p.isAbsolute(targetPath)
+      ? targetPath
+      : p.absolute(targetPath);
+
+  // Verify target exists before creating shortcut
+  if (!File(absoluteTargetPath).existsSync() &&
+      !Directory(absoluteTargetPath).existsSync()) {
+    throw Exception('Target path does not exist: $absoluteTargetPath');
+  }
+
+  ////FIXME currently native mode is disabled due to heap exception issues. Uses Powershell for now.
   final ProcessResult res = await Process.run('powershell.exe', <String>[
     '-ExecutionPolicy',
     'Bypass',
@@ -474,7 +486,7 @@ Future<void> createShortcutWin(
     // ignore: no_adjacent_strings_in_list
     '\$ws = New-Object -ComObject WScript.Shell; '
         '\$s = \$ws.CreateShortcut("$shortcutPath"); '
-        '\$s.TargetPath = "$targetPath"; '
+        '\$s.TargetPath = "$absoluteTargetPath"; '
         '\$s.Save()',
   ]);
   if (res.exitCode != 0) {

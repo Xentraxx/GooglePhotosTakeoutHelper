@@ -31,7 +31,8 @@ Future<bool> writeDateTimeToExif(
       return true; //If native way was able to write exif data: exit. If not, try exifTool.
     }
 
-    if (mimeTypeFromExtension != mimeTypeFromHeader) {
+    if (mimeTypeFromExtension != mimeTypeFromHeader &&
+        mimeTypeFromHeader != 'image/tiff') {
       log(
         "DateWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'.\n"
             'Exiftool would fail, skipping. You may want to run GPTH with --fix-extensions.\n ${file.path}',

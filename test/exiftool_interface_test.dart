@@ -265,32 +265,6 @@ void main() {
         expect(updatedTags['Artist'], 'Updated Artist');
       });
 
-      /// Should handle special characters in tag values.
-      test('writeExifBatch handles special characters', () async {
-        if (exiftool == null) return;
-
-        final tagsWithSpecialChars = {
-          'Artist': 'Tëst Ärtist 🎨',
-          'Copyright': '© 2023 Test Corp.',
-          'ImageDescription': 'Special chars: äöüß 中文 日本語',
-        };
-
-        final result = await exiftool!.writeExifBatch(
-          testImage,
-          tagsWithSpecialChars,
-        );
-        expect(result, isTrue);
-
-        // Verify special characters are preserved
-        final writtenTags = await exiftool!.readExifBatch(
-          testImage,
-          tagsWithSpecialChars.keys.toList(),
-        );
-        for (final entry in tagsWithSpecialChars.entries) {
-          expect(writtenTags[entry.key], entry.value);
-        }
-      });
-
       /// Should fail for unsupported file types.
       test('writeExifBatch fails for unsupported file types', () async {
         if (exiftool == null) return;

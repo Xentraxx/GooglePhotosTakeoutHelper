@@ -411,13 +411,13 @@ void main() {
         ).toList();
 
         // Verify the original file was moved (no longer exists)
-        expect(testFile.existsSync(), isFalse);
+        expect(await testFile.exists(), isFalse);
 
         // Verify it exists in the output directory
         final movedFile = File(
           '${output.path}/ALL_PHOTOS/test_file_to_move.jpg',
         );
-        expect(movedFile.existsSync(), isTrue);
+        expect(await movedFile.exists(), isTrue);
       });
     });
 
@@ -487,8 +487,9 @@ void main() {
         ).toList();
 
         // Should create the output directory
-        expect(nonExistentOutput.existsSync(), isTrue);
-        expect(nonExistentOutput.listSync().isNotEmpty, isTrue);
+        expect(await nonExistentOutput.exists(), isTrue);
+        final contents = await nonExistentOutput.list().toList();
+        expect(contents.isNotEmpty, isTrue);
       });
 
       /// Should handle empty media list gracefully.

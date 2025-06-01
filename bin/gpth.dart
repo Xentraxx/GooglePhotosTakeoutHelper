@@ -465,7 +465,7 @@ Future<void> main(final List<String> arguments) async {
       a,
     ); //Here we check if there are emojis in the album names and if yes, we hex encode them so there are no problems later!
     await for (final File file in cleanedAlbumDir.list().wherePhotoVideo()) {
-      media.add(Media(<String?, File>{cleanedAlbumDir.path: file}));
+      media.add(Media(<String?, File>{albumName(cleanedAlbumDir): file}));
     }
   }
 

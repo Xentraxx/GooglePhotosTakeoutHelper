@@ -25,9 +25,13 @@ When you export photos from Google Photos using [Google Takeout](https://takeout
 2. Deselect all, then select only **Google Photos**
 3. Download all ZIP files
 
+<img width="75%" alt="gpth usage image tutorial" src="https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/assets/40139196/8e85f58c-9958-466a-a176-51af85bb73dd">
+
 ### 2. Extract and Merge
 
 Unzip all files and merge them so you have one unified "Takeout" folder.
+
+<img width="75%" alt="Unzip image tutorial" src="https://user-images.githubusercontent.com/40139196/229361367-b9803ab9-2724-4ddf-9af5-4df507e02dfe.png">
 
 **⚠️ Keep the original ZIPs as backup!**
 
@@ -301,7 +305,7 @@ If GPTH saved you time and frustration, consider supporting development:
 ## Related Projects
 
 - **[Google Keep Exporter](https://github.com/vHanda/google-keep-exporter)**: Export Google Keep notes to Markdown
-- **[PhotoMigrator](https://github.com/jaimetur/PhotoMigrator)**: Uses GPTH 4.x.x which has been designed to Interact and Manage different Photos Cloud services, and allow users to do an Automatic Migration from one Photo Cloud service to other or from one account to a new account of the same Photo Cloud service.
+- **[PhotoMigrator](https://github.com/jaimetur/PhotoMigrator)**: Uses GPTH 4.x.x and has been designed to Interact and Manage different Photos Cloud services, and allow users to do an Automatic Migration from one Photo Cloud service to other or from one account to a new account of the same Photo Cloud service.
 
 ---
 
