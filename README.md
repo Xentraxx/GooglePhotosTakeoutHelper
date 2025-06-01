@@ -233,11 +233,30 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 |--------------------------|------------------------------------------------------|
 | `--write-exif`           | Write GPS coordinates and dates to EXIF metadata     |
 | `--modify-json`          | Fix JSON files with "supplemental-metadata" suffix   |
-| `--fix-extensions`       | Fix files with wrong extensions                      |
 | `--transform-pixel-mp`   | Convert Pixel Motion Photos (.MP/.MV) to .mp4        |
 | `--guess-from-name`      | Extract dates from filenames (enabled by default)    |
 | `--update-creation-time` | Sync creation time with modified time (Windows only) |
 | `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)    |
+
+### Invalid extensions
+
+Google Photos has an option of 'data saving' this will most likely compress the images into JPEGs, but will leave the
+name as it was in the original upload.
+Some web-downloaded images also may have a wrong extension (ex. `.jpeg` may actually be a `.heif`).
+
+GPTH natively writes EXIF into anything that has a `.jpeg` file signature (header), other file types are processed by
+exiftool, and it will most likely fail on files with invalid extension.
+
+NOTE: Some RAW formats are actually TIFF file format (and they contain TIFF header) such cases are not deemed invalid.
+
+Because of all that, GPTH by default will skip from writing EXIF into any files that have invalid extensions (based on
+its header), except if that file has JPEG or TIFF signature. There are a few options to fix extensions:
+
+| Argument                     | Description                                                   |
+|------------------------------|---------------------------------------------------------------|
+| `--fix-extensions`           | Fix invalid extensions (rename) except for 'actual' TIFFs     |
+| `--fix-extensions-non-jpeg`  | Same as `--fix-extensions` but also except for 'actual' JPEGs |
+| `--fix-extensions-solo-mode` | Same as `--fix-extensions` but quits further processing.      |
 
 ### Other Options
 
