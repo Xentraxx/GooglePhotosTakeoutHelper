@@ -233,8 +233,8 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 | Argument | Description |
 |----------|-------------|
-| `--write-exif` | Write GPS coordinates and dates to EXIF metadata (enabled by default)|
-| `--modify-json` | Fix JSON files with "supplemental-metadata" suffix |
+| `--write-exif` | Write GPS coordinates and dates to EXIF metadata (enabled by default) |
+| `--modify-json` | Fix JSON files with "supplemental-metadata" suffix (enabled by default) |
 | `--transform-pixel-mp` | Convert Pixel Motion Photos (.MP/.MV) to .mp4 |
 | `--guess-from-name` | Extract dates from filenames (enabled by default) |
 | `--update-creation-time` | Sync creation time with modified time (Windows only) |
