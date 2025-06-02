@@ -11,6 +11,8 @@
   - Automatic detection of special folders by name
   - Detailed documentation in README with usage examples
 
+- Using native dart ffi/win32 logic to create shortcuts on windows for 10x performance boost
+
 #### Bug fixes
 
 - Fixed documentation and interactive mode to accurately reflect behaviour in "nothing" album mode.
