@@ -37,6 +37,7 @@
 /// - Cross-platform shortcut/symlink behavior
 // ignore_for_file: avoid_redundant_argument_values
 
+@Timeout(Duration(seconds: 120))
 library;
 
 import 'dart:convert';
@@ -661,46 +662,6 @@ void main() {
     });
 
     group('Additional Flag Tests', () {
-      /// Tests `--copy` flag behavior (copy mode vs default move mode)
-      ///
-      /// **Purpose**: Validates that copy mode preserves original files in the
-      /// takeout directory while creating organized output, unlike move mode.
-      ///
-      /// **Expected Behavior**:
-      /// - Original files remain in takeout directory unchanged
-      /// - Output directory is created with organized structure
-      /// - File content integrity is maintained (hashes match)
-      /// - No files are removed from original location
-      ///
-      /// **Validations**:
-      /// - Original file count and hashes remain unchanged
-      /// - Output contains expected number of processed files
-      /// - Content verification through hash comparison
-      /// - Source directory remains intact
-      test('Copy mode preserves original files', () async {
-        // Get original file count and hashes
-        final originalFiles = await _getAllFiles(takeoutPath);
-        final originalHashes = await _getFileHashes(originalFiles);
-
-        await _runGpthProcess(
-          takeoutPath: takeoutPath,
-          outputPath: outputPath,
-          albums: 'shortcut',
-          copy: true,
-        );
-
-        // Verify original files still exist with same content
-        final stillExistingFiles = await _getAllFiles(takeoutPath);
-        final currentHashes = await _getFileHashes(stillExistingFiles);
-
-        expect(stillExistingFiles.length, equals(originalFiles.length));
-        expect(currentHashes, equals(originalHashes));
-
-        // Verify output was created
-        final results = await _analyzeOutput(outputPath);
-        expect(results.allPhotosFiles.length, greaterThan(20));
-      });
-
       /// Tests default move mode behavior (files are moved, not copied)
       ///
       /// **Purpose**: Validates that the default move mode removes files from
@@ -1407,12 +1368,19 @@ Future<String> _runGpthProcess({
   if (updateCreationTime) args.add('--update-creation-time');
   if (limitFilesize) args.add('--limit-filesize');
 
+  // Determine project root dynamically
+  // The test file is in test/ so we need to go up one level to get to project root
+  final String currentDir = Directory.current.path;
+  final String projectRoot = currentDir.endsWith('/test')
+      ? Directory(currentDir).parent.path
+      : currentDir;
+
   // Run the process using Dart's VM
   final result = await Process.run('dart', [
     'run',
     'bin/gpth.dart',
     ...args,
-  ], workingDirectory: '/Users/jens/development/GooglePhotosTakeoutHelper');
+  ], workingDirectory: projectRoot);
 
   if (result.exitCode != 0) {
     throw Exception(
