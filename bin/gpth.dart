@@ -156,7 +156,8 @@ Future<void> main(final List<String> arguments) async {
       'write-exif',
       help:
           'Writes geodata from json files and the extracted DateTime to EXIF. \n'
-          'It always writes to original data, even if combined with --copy!',
+          'It always writes to original data, even if combined with --copy! (default)',
+      defaultsTo: true,
     )
     ..addFlag(
       'limit-filesize',

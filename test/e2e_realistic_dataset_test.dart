@@ -42,7 +42,6 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -925,20 +924,12 @@ void main() {
 
         final results = await _analyzeOutput(largeOutputPath);
 
-        // Debug: Print file counts and paths
-        print('DEBUG: largeOutputPath = $largeOutputPath');
-        print(
-          'DEBUG: ALL_PHOTOS files count = ${results.allPhotosFiles.length}',
-        );
-        print('DEBUG: Album folders count = ${results.albumFolders.length}');
-        print(
-          'DEBUG: Special folders count = ${results.specialFolders.length}',
-        );
-        print('DEBUG: Year folders count = ${results.yearFolders.length}');
-
         // Count different file types
+        // ignore: unused_local_variable
         int albumOnlyFiles = 0;
+        // ignore: unused_local_variable
         int regularFiles = 0;
+        // ignore: unused_local_variable
         int conflictFiles = 0;
         for (final file in results.allPhotosFiles) {
           final filename = p.basename(file.path);
@@ -951,19 +942,6 @@ void main() {
           } else {
             regularFiles++;
           }
-        }
-
-        print('DEBUG: Album-only files: $albumOnlyFiles');
-        print('DEBUG: Regular files: $regularFiles');
-        print(
-          'DEBUG: Conflict/duplicate files (with parentheses): $conflictFiles',
-        );
-        print('DEBUG: Total: ${albumOnlyFiles + regularFiles + conflictFiles}');
-
-        // List some of the files to see what's being counted
-        print('DEBUG: First 20 ALL_PHOTOS files:');
-        for (int i = 0; i < math.min(20, results.allPhotosFiles.length); i++) {
-          print('  ${i + 1}: ${results.allPhotosFiles[i]}');
         }
 
         // Validate processing completed successfully
