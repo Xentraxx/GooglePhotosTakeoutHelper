@@ -273,9 +273,8 @@ Future<void> fixIncorrectExtensions(final Directory directory,
       final String? newExtension = extensionFromMime(mimeTypeFromHeader);
 
       if (newExtension == null) {
-        log('Could not determine new extension',
-            level: 'warning',
-            forcePrint: true);
+        log('Could not determine correct extension for file ${p.basename(file.path)}. Moving on..',
+            level: 'warning');
         continue;
       }
 
@@ -285,12 +284,10 @@ Future<void> fixIncorrectExtensions(final Directory directory,
 
       if (!jsonFile.existsSync() && !isExtra(file.path)) {
         log(
-            '[Step 1.5/8] Skipped fixing extension - unable to find matching json: ${jsonFile
-                .path}',
+            '[Step 1.5/8] unable to find matching json: ${jsonFile.path}',
             level: 'warning',
             forcePrint: true
         );
-        continue;
       }
 
       // Verify if the file renamed already exists
@@ -304,7 +301,7 @@ Future<void> fixIncorrectExtensions(final Directory directory,
       }
 
       try {
-        if (!isExtra(file.path)) {
+        if (jsonFile.existsSync() && !isExtra(file.path)) {
           // There is only one .json file for both original and any edited files
           await jsonFile.rename('$newFilePath.json');
           log('[Step 1.5/8] Fixed: ${jsonFile.path} -> $newFilePath.json');
