@@ -144,22 +144,22 @@ Future<void> main(final List<String> arguments) async {
     ..addFlag(
       'fix-extensions',
       help:
-          'Renames files by changing invalid extensions based on file\n'
-          'file signature. Without this, writing exif will fail on non-jpeg \n'
-          '"actual" files. This mode processes only non-TIFF files\n',
+          'Append correct extension for files based on file signature. \n'
+          'Without this, "actual" non-JPEG files with invalid extension \n'
+          'will be skipped from writing exif data.\n'
+          'This mode processes only non-TIFF files\n',
     )
     ..addFlag(
       'fix-extensions-non-jpeg',
       help:
-          'Renames files by changing invalid extensions based on file\n'
-          'file signature. This mode processes only non-TIFF and non-jpeg files\n',
+          'Append correct extension for files based on file signature. \n'
+          'This mode processes only non-TIFF and non-JPEG files\n',
     )
     ..addFlag(
       'fix-extensions-solo-mode',
       help:
-          'Renames files by changing invalid extensions based on file \n'
-          'signature. This mode processes only-non TIFF files and stops \n'
-          'further processing.\n',
+          'Append correct extension for files based on file signature. \n'
+          'This mode processes only non-TIFF files and stops further processing\n',
     )
     ..addFlag(
       'transform-pixel-mp',
