@@ -1,10 +1,12 @@
 # Google Photos Takeout Helper 📸
 
 [![AUR](https://img.shields.io/aur/version/gpth-bin?logo=arch-linux)](https://aur.archlinux.org/packages/gpth-bin)
-[![Downloads](https://img.shields.io/github/downloads/TheLastGimbus/GooglePhotosTakeoutHelper/total?label=downloads)](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/releases/)
+[![Downloads](https://img.shields.io/github/downloads/TheLastGimbus/GooglePhotosTakeoutHelper/total?label=downloads)](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases/)
 [![Issues](https://img.shields.io/github/issues-closed/TheLastGimbus/GooglePhotosTakeoutHelper?label=resolved%20issues)](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/issues)
 
 Transform your chaotic Google Photos Takeout into organized photo libraries with proper dates, albums, and metadata.
+
+> **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
 
 ## What This Tool Does
 
@@ -61,7 +63,7 @@ Unzip all files and merge them so you have one unified "Takeout" folder.
 
 ### 4. Download and Run GPTH
 
-1. Download the latest executable from [releases](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/releases)
+1. Download the latest executable from [releases](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
 2. **Interactive Mode** (recommended for beginners):
    - Windows: Double-click `gpth.exe`
    - Mac/Linux: Run `./gpth-macos` or `./gpth-linux` in terminal
@@ -82,7 +84,7 @@ GPTH offers several ways to handle your Google Photos albums:
 **Disadvantages:**
 - Shortcuts may break when moving folders between systems
 - Not all applications support shortcuts/symlinks
-- Windows shortcuts (.lnk files) don't work on Mac/Linux
+- Windows shortcuts (.lnk files) don't work on Mac/Linux. Needs to be run on OS which will later be used.
 
 **Best for:** Most users who want space efficiency and plan to keep photos on the same system.
 
@@ -320,7 +322,7 @@ Has a mode that can detect invalid extensions in file name and is able to fix th
 ## Installation
 
 ### Pre-built Binaries
-Download from [releases page](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/releases)
+Download from [releases page](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
 
 ### Package Managers
 - **Arch Linux**: `yay -S gpth-bin`
