@@ -66,8 +66,22 @@ void main() {
         exifRatio: 0.7,
       );
 
-      // Ensure directory is fully accessible (Windows race condition fix)
-      await Future.delayed(const Duration(milliseconds: 50));
+      // Enhanced Windows race condition fix: ensure directory is fully accessible
+      if (Platform.isWindows) {
+        // Longer delay on Windows due to filesystem sync characteristics
+        await Future.delayed(const Duration(milliseconds: 200));
+
+        // Force a filesystem operation to ensure sync
+        final inputDir = Directory(takeoutPath);
+        try {
+          await inputDir.list().length;
+        } catch (e) {
+          // If listing fails, wait a bit more
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      } else {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
 
       outputPath = p.join(fixture.basePath, 'output');
       await Directory(outputPath).create(recursive: true);
@@ -1329,22 +1343,54 @@ Future<String> _runGpthProcess({
       'auto', // Add special-folders parameter with default 'auto'
   final Duration timeout = const Duration(minutes: 2),
 }) async {
-  // Ensure input directory is accessible before running GPTH (Windows race condition fix)
+  // Enhanced Windows race condition fix: ensure input directory is fully accessible
   final inputDir = Directory(takeoutPath);
-  const maxRetries = 10;
-  const retryDelay = Duration(milliseconds: 100);
+  const maxRetries = 20; // Increased retries for Windows
+  const baseRetryDelay = Duration(milliseconds: 100);
 
   for (int i = 0; i < maxRetries; i++) {
     if (await inputDir.exists()) {
-      // Additional check: ensure directory is readable by listing its contents
+      // Multi-level accessibility verification
       try {
-        await inputDir.list().first;
-        break; // Directory exists and is accessible
+        // Test 1: Basic directory listing
+        final contents = await inputDir.list().toList();
+        if (contents.isEmpty) {
+          throw Exception('Directory is empty');
+        }
+
+        // Test 2: Verify we can access subdirectories (Takeout structure check)
+        bool foundTakeoutStructure = false;
+        for (final entity in contents) {
+          if (entity is Directory) {
+            try {
+              await entity.list().first;
+              foundTakeoutStructure = true;
+              break;
+            } catch (e) {
+              // Continue checking other directories
+            }
+          }
+        }
+
+        // Test 3: Windows-specific file system sync verification
+        if (Platform.isWindows) {
+          // Force filesystem metadata refresh on Windows
+          await Process.run('dir', [takeoutPath], runInShell: true);
+
+          // Additional small delay for Windows filesystem consistency
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+
+        if (foundTakeoutStructure) {
+          break; // Directory exists and is fully accessible
+        } else if (i == maxRetries - 1) {
+          throw Exception('Input directory structure not ready: $takeoutPath');
+        }
       } catch (e) {
         // Directory exists but might not be fully accessible yet
         if (i == maxRetries - 1) {
           throw Exception(
-            'Input directory exists but is not accessible: $takeoutPath',
+            'Input directory exists but is not accessible: $takeoutPath - $e',
           );
         }
       }
@@ -1354,8 +1400,11 @@ Future<String> _runGpthProcess({
       );
     }
 
-    // Wait before retrying
-    await Future.delayed(retryDelay);
+    // Progressive delay - increase wait time for later retries
+    final currentDelay = Duration(
+      milliseconds: baseRetryDelay.inMilliseconds + (i * 25),
+    );
+    await Future.delayed(currentDelay);
   }
 
   final args = <String>[
