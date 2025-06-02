@@ -66,6 +66,10 @@ void main() {
         albumOnlyPhotos: 3,
         exifRatio: 0.7,
       );
+
+      // Ensure directory is fully accessible (Windows race condition fix)
+      await Future.delayed(const Duration(milliseconds: 50));
+
       outputPath = p.join(fixture.basePath, 'output');
       await Directory(outputPath).create(recursive: true);
     });
@@ -1347,6 +1351,35 @@ Future<String> _runGpthProcess({
       'auto', // Add special-folders parameter with default 'auto'
   final Duration timeout = const Duration(minutes: 2),
 }) async {
+  // Ensure input directory is accessible before running GPTH (Windows race condition fix)
+  final inputDir = Directory(takeoutPath);
+  const maxRetries = 10;
+  const retryDelay = Duration(milliseconds: 100);
+
+  for (int i = 0; i < maxRetries; i++) {
+    if (await inputDir.exists()) {
+      // Additional check: ensure directory is readable by listing its contents
+      try {
+        await inputDir.list().first;
+        break; // Directory exists and is accessible
+      } catch (e) {
+        // Directory exists but might not be fully accessible yet
+        if (i == maxRetries - 1) {
+          throw Exception(
+            'Input directory exists but is not accessible: $takeoutPath',
+          );
+        }
+      }
+    } else if (i == maxRetries - 1) {
+      throw Exception(
+        'Input directory does not exist after retries: $takeoutPath',
+      );
+    }
+
+    // Wait before retrying
+    await Future.delayed(retryDelay);
+  }
+
   final args = <String>[
     '--input',
     takeoutPath,
