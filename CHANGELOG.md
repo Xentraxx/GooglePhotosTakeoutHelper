@@ -17,6 +17,7 @@
 #### Bug fixes
 
 - Fixed documentation and interactive mode to accurately reflect behaviour in "nothing" album mode.
+- In json mode, the album names were hex encoded in the albums-info.json. Fixed this.
 
 ## 4.0.5-xentraxx
 

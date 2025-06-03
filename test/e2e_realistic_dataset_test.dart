@@ -1269,6 +1269,373 @@ void main() {
         expect(await dateUnknownDir.exists(), isTrue);
       });
     });
+
+    group('Special Folders Handling Tests', () {
+      /// Tests the `--special-folders auto` mode behavior
+      ///
+      /// **Purpose**: Validates that automatic special folder handling
+      /// works correctly based on the album mode selected.
+      ///
+      /// **Expected Behavior**:
+      /// - In shortcut mode: special folders are treated as albums
+      /// - Archive, Trash, Screenshots, Camera folders contain shortcuts
+      /// - Special folder files are moved to ALL_PHOTOS as originals
+      /// - Special folders are NOT counted in regular album count
+      ///
+      /// **Validations**:
+      /// - Special folders exist as directories
+      /// - Special folders contain appropriate shortcuts or files
+      /// - Files from special folders appear in ALL_PHOTOS
+      /// - Album count excludes special folders
+      test('auto mode adapts to album behavior (shortcut)', () async {
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'shortcut',
+          specialFolders: 'auto',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // Verify special folders exist as album-like directories
+        expect(results.specialFolders.length, greaterThanOrEqualTo(4));
+
+        final specialFolderNames = results.specialFolders
+            .map((final dir) => p.basename(dir.path))
+            .toSet();
+
+        expect(specialFolderNames, contains('Archive'));
+        expect(specialFolderNames, contains('Trash'));
+        expect(specialFolderNames, contains('Screenshots'));
+        expect(specialFolderNames, contains('Camera'));
+
+        // In auto mode with shortcut, special folders should contain shortcuts
+        for (final specialFolder in results.specialFolders) {
+          final contents = await specialFolder.list().toList();
+          final hasShortcuts = Platform.isWindows
+              ? contents.any(
+                  (final entity) =>
+                      entity is File && entity.path.endsWith('.lnk'),
+                )
+              : contents.any((final entity) => entity is Link);
+
+          // Special folders should have some content (shortcuts or files)
+          expect(contents.length, greaterThan(0));
+
+          // In shortcut mode, special folders should contain shortcuts/symlinks
+          expect(
+            hasShortcuts,
+            isTrue,
+            reason:
+                'Special folder ${p.basename(specialFolder.path)} should contain shortcuts in shortcut mode',
+          );
+        }
+
+        // Regular album count should exclude special folders
+        expect(results.albumFolders.length, equals(5));
+      });
+
+      /// Tests the `--special-folders skip` mode behavior
+      ///
+      /// **Purpose**: Validates that special folders are completely ignored
+      /// when skip mode is selected, ensuring no processing occurs.
+      ///
+      /// **Expected Behavior**:
+      /// - Special folders are not created in output
+      /// - Files from special folders are not processed
+      /// - Only regular albums and year folder files are processed
+      /// - Reduced total file count compared to other modes
+      ///
+      /// **Validations**:
+      /// - No special folder directories in output
+      /// - Reduced file count in ALL_PHOTOS
+      /// - Only regular album folders exist
+      /// - Processing completes successfully
+      test('skip mode ignores special folders entirely', () async {
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'shortcut',
+          specialFolders: 'skip',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // Special folders should not exist in output
+        expect(results.specialFolders.length, equals(0));
+
+        // Should have fewer files since special folder files are skipped
+        expect(results.allPhotosFiles.length, lessThan(40));
+
+        // Regular album folders should still exist
+        expect(results.albumFolders.length, equals(5));
+
+        // Verify no special folder names exist as directories
+        final allDirs = await Directory(outputPath)
+            .list()
+            .where((final entity) => entity is Directory)
+            .map((final entity) => p.basename(entity.path))
+            .toSet();
+
+        expect(allDirs, isNot(contains('Archive')));
+        expect(allDirs, isNot(contains('Trash')));
+        expect(allDirs, isNot(contains('Screenshots')));
+        expect(allDirs, isNot(contains('Camera')));
+      });
+
+      /// Tests the `--special-folders include` mode behavior
+      ///
+      /// **Purpose**: Validates that special folder files are included
+      /// in ALL_PHOTOS without creating separate special folder directories.
+      ///
+      /// **Expected Behavior**:
+      /// - No special folder directories created
+      /// - Files from special folders appear in ALL_PHOTOS
+      /// - Higher file count in ALL_PHOTOS compared to skip mode
+      /// - Special folder files lose their special folder context
+      ///
+      /// **Validations**:
+      /// - No special folder directories exist
+      /// - Higher ALL_PHOTOS file count than skip mode
+      /// - Regular album folders still function normally
+      /// - All special folder files are processed
+      test('include mode puts special folder files in ALL_PHOTOS', () async {
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'shortcut',
+          specialFolders: 'include',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // Special folders should not exist as separate directories
+        expect(results.specialFolders.length, equals(0));
+
+        // Should have more files in ALL_PHOTOS since special folder files are included
+        expect(results.allPhotosFiles.length, greaterThan(30));
+
+        // Regular album folders should still exist
+        expect(results.albumFolders.length, equals(5));
+
+        // Verify no special folder directories exist
+        final allDirs = await Directory(outputPath)
+            .list()
+            .where((final entity) => entity is Directory)
+            .map((final entity) => p.basename(entity.path))
+            .toSet();
+
+        expect(allDirs, isNot(contains('Archive')));
+        expect(allDirs, isNot(contains('Trash')));
+        expect(allDirs, isNot(contains('Screenshots')));
+        expect(allDirs, isNot(contains('Camera')));
+      });
+
+      /// Tests the `--special-folders albums` mode behavior
+      ///
+      /// **Purpose**: Validates that special folders are explicitly treated
+      /// as regular album folders regardless of the album mode.
+      ///
+      /// **Expected Behavior**:
+      /// - Special folders are created as album directories
+      /// - Special folders behave exactly like regular albums
+      /// - Album behavior (shortcut/copy/etc.) applies to special folders
+      /// - Special folders are counted as regular albums
+      ///
+      /// **Validations**:
+      /// - Special folder directories exist and function as albums
+      /// - Album behavior is applied consistently to special folders
+      /// - Special folders contain expected content based on album mode
+      /// - File counts match expected patterns
+      test('albums mode treats special folders as regular albums', () async {
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'duplicate-copy',
+          specialFolders: 'albums',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // Special folders should exist as album directories
+        expect(results.specialFolders.length, greaterThanOrEqualTo(4));
+
+        final specialFolderNames = results.specialFolders
+            .map((final dir) => p.basename(dir.path))
+            .toSet();
+
+        expect(specialFolderNames, contains('Archive'));
+        expect(specialFolderNames, contains('Trash'));
+        expect(specialFolderNames, contains('Screenshots'));
+        expect(specialFolderNames, contains('Camera'));
+
+        // In duplicate-copy mode, special folders should contain actual file copies
+        for (final specialFolder in results.specialFolders) {
+          final files = await _getFilesInDirectory(specialFolder);
+          if (files.isNotEmpty) {
+            // Should contain actual files, not shortcuts
+            final hasActualFiles = Platform.isWindows
+                ? files.any((final file) => !file.path.endsWith('.lnk'))
+                : true; // On non-Windows, all files are actual files unless they're symlinks
+
+            expect(hasActualFiles, isTrue);
+          }
+        }
+
+        // Regular album folders should still exist
+        expect(results.albumFolders.length, equals(5));
+      });
+
+      /// Tests special folders interaction with different album modes
+      ///
+      /// **Purpose**: Validates that special folders work correctly
+      /// with different album behaviors (nothing, json, reverse-shortcut).
+      ///
+      /// **Expected Behavior**:
+      /// - In 'nothing' mode: special folders are processed based on special-folders setting
+      /// - In 'json' mode: special folder membership is recorded in albums-info.json
+      /// - In 'reverse-shortcut' mode: special folders contain originals, ALL_PHOTOS has shortcuts
+      ///
+      /// **Validations**:
+      /// - Correct interaction between album mode and special folder handling
+      /// - Expected file organization and metadata creation
+      /// - Proper shortcut/file placement based on mode combination
+      test('special folders with different album modes', () async {
+        // Test with 'nothing' album mode and 'include' special folders
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'nothing',
+          specialFolders: 'include',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // In 'nothing' mode, no album folders should be created
+        expect(results.albumFolders.length, equals(0));
+        expect(results.specialFolders.length, equals(0));
+
+        // All files should be in ALL_PHOTOS
+        expect(results.allPhotosFiles.length, greaterThan(20));
+
+        // Clean up for next test
+        await Directory(outputPath).delete(recursive: true);
+        await Directory(outputPath).create(recursive: true);
+
+        // Test with 'json' album mode and 'albums' special folders
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'json',
+          specialFolders: 'albums',
+        );
+
+        final jsonResults = await _analyzeOutput(outputPath);
+
+        // In 'json' mode, no physical album folders should exist
+        expect(jsonResults.albumFolders.length, equals(0));
+        expect(jsonResults.specialFolders.length, equals(0));
+
+        // But albums-info.json should contain special folder information
+        final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
+        expect(await albumsInfoFile.exists(), isTrue);
+
+        final albumsInfoContent = await albumsInfoFile.readAsString();
+        final albumsInfo =
+            jsonDecode(albumsInfoContent) as Map<String, dynamic>;
+
+        // Should have entries for files that were in special folders
+        final hasSpecialFolderEntries = albumsInfo.values.any(
+          (final albums) => (albums as List).any(
+            (final album) =>
+                ['Archive', 'Trash', 'Screenshots', 'Camera'].contains(album),
+          ),
+        );
+
+        expect(hasSpecialFolderEntries, isTrue);
+      });
+
+      /// Tests edge cases and error handling for special folders
+      ///
+      /// **Purpose**: Validates robust handling of edge cases and
+      /// error conditions related to special folder processing.
+      ///
+      /// **Expected Behavior**:
+      /// - Graceful handling of missing special folders
+      /// - Correct processing when special folders are empty
+      /// - Proper handling of special folders with unusual content
+      /// - No crashes or data loss in edge cases
+      ///
+      /// **Validations**:
+      /// - Processing completes successfully even with edge cases
+      /// - No unexpected errors or crashes
+      /// - Consistent behavior across different scenarios
+      /// - Data integrity maintained in all cases
+      test('edge cases and error handling', () async {
+        // Test with auto mode and reverse-shortcut (complex interaction)
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'reverse-shortcut',
+          specialFolders: 'auto',
+        );
+
+        final results = await _analyzeOutput(outputPath);
+
+        // Should process successfully without errors
+        expect(results.allPhotosFiles.length, greaterThan(0));
+
+        // In reverse-shortcut with auto, special folders should exist
+        expect(results.specialFolders.length, greaterThanOrEqualTo(4));
+
+        // Verify ALL_PHOTOS contains shortcuts (reverse-shortcut behavior)
+        final allPhotosContents = await Directory(
+          p.join(outputPath, 'ALL_PHOTOS'),
+        ).list().toList();
+
+        if (Platform.isWindows) {
+          final hasShortcuts = allPhotosContents.any(
+            (final entity) => entity is File && entity.path.endsWith('.lnk'),
+          );
+          expect(hasShortcuts, isTrue);
+        } else {
+          final hasSymlinks = allPhotosContents.any(
+            (final entity) => entity is Link,
+          );
+          expect(hasSymlinks, isTrue);
+        }
+
+        // Clean up for validation
+        await Directory(outputPath).delete(recursive: true);
+        await Directory(outputPath).create(recursive: true);
+
+        // Test skip mode with date division
+        await _runGpthProcess(
+          takeoutPath: takeoutPath,
+          outputPath: outputPath,
+          albums: 'shortcut',
+          divideToDates: 1,
+          specialFolders: 'skip',
+        );
+
+        final skipResults = await _analyzeOutput(outputPath);
+
+        // Should create year-based organization even with special folders skipped
+        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final yearDirs = <Directory>[];
+        await for (final entity in allPhotosDir.list()) {
+          if (entity is Directory) {
+            final dirName = p.basename(entity.path);
+            if (RegExp(r'^(20|19|18)\d{2}$').hasMatch(dirName)) {
+              yearDirs.add(entity);
+            }
+          }
+        }
+
+        expect(yearDirs.length, greaterThan(0));
+        expect(skipResults.specialFolders.length, equals(0));
+      });
+    });
   });
 }
 

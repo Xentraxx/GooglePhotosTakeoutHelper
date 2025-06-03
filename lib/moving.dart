@@ -378,7 +378,11 @@ Stream<int> moveFiles(
 
       // In 'json' mode, record album membership for this file.
       if (albumBehavior == 'json') {
-        infoJson[p.basename(result.path)] = m.files.keys.nonNulls.toList();
+        // Decode hex-encoded emoji album names back to original emoji for JSON
+        final decodedAlbumNames = m.files.keys.nonNulls
+            .map(_decodeAlbumNameEmoji)
+            .toList();
+        infoJson[p.basename(result.path)] = decodedAlbumNames;
       }
     }
     // done with this media - next!
@@ -389,4 +393,19 @@ Stream<int> moveFiles(
       p.join(output.path, 'albums-info.json'),
     ).writeAsString(jsonEncode(infoJson));
   }
+}
+
+/// Decodes hex-encoded emoji characters in album names back to original emoji
+///
+/// This ensures that album names in albums-info.json contain readable emoji
+/// instead of hex-encoded representations like "_0x1f600_"
+///
+/// [albumName] Album name that may contain hex-encoded emoji
+/// Returns the album name with emoji restored
+String _decodeAlbumNameEmoji(final String albumName) {
+  final RegExp emojiPattern = RegExp(r'_0x([0-9a-fA-F]+)_');
+  return albumName.replaceAllMapped(emojiPattern, (final Match match) {
+    final int codePoint = int.parse(match.group(1)!, radix: 16);
+    return String.fromCharCode(codePoint);
+  });
 }
