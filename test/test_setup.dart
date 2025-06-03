@@ -724,6 +724,47 @@ Future<void> generateRealisticDataset({
   print('Created $albumOnlyPhotos album-only photos');
   print('${(exifRatio * 100).round()}% of photos have EXIF data');
   print('Total files created: ${createdEntities.length}');
+
+  // Enhanced file operations synchronization (Windows race condition fix)
+  for (final entity in createdEntities) {
+    if (entity is File && await entity.exists()) {
+      // Force a file sync operation to ensure it's written to disk
+      try {
+        final handle = await entity.open(mode: FileMode.append);
+        await handle.flush();
+        await handle.close();
+      } catch (e) {
+        // Ignore sync errors for read-only or already closed files
+      }
+    }
+  }
+
+  // Platform-specific file system synchronization
+  if (Platform.isWindows) {
+    // Windows-specific: Force filesystem metadata refresh
+    try {
+      await Process.run('dir', [basePath], runInShell: true);
+    } catch (e) {
+      // Ignore if dir command fails
+    }
+
+    // Extended delay for Windows filesystem consistency
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // Final verification: try to list the generated dataset directory
+    try {
+      final takeoutDir = Directory(p.join(basePath, 'Takeout'));
+      if (await takeoutDir.exists()) {
+        await takeoutDir.list().length;
+      }
+    } catch (e) {
+      // If verification fails, add extra delay
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+  } else {
+    // Standard delay for other platforms
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
 }
 
 /// Creates unique image bytes by modifying pixel data while preserving file headers and EXIF data

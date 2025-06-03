@@ -12,6 +12,7 @@
   - Detailed documentation in README with usage examples
 
 - Using native dart ffi/win32 logic to create shortcuts on windows for 10x performance boost
+- Made --write-exif flag default behaviour
 
 #### Bug fixes
 

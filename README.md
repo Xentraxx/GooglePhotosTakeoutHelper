@@ -231,14 +231,14 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 ### Metadata & Processing
 
-| Argument                 | Description                                          |
-|--------------------------|------------------------------------------------------|
-| `--write-exif`           | Write GPS coordinates and dates to EXIF metadata     |
-| `--modify-json`          | Fix JSON files with "supplemental-metadata" suffix   |
-| `--transform-pixel-mp`   | Convert Pixel Motion Photos (.MP/.MV) to .mp4        |
-| `--guess-from-name`      | Extract dates from filenames (enabled by default)    |
+| Argument | Description |
+|----------|-------------|
+| `--write-exif` | Write GPS coordinates and dates to EXIF metadata (enabled by default) |
+| `--modify-json` | Fix JSON files with "supplemental-metadata" suffix (enabled by default) |
+| `--transform-pixel-mp` | Convert Pixel Motion Photos (.MP/.MV) to .mp4 |
+| `--guess-from-name` | Extract dates from filenames (enabled by default) |
 | `--update-creation-time` | Sync creation time with modified time (Windows only) |
-| `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)    |
+| `--limit-filesize` | Skip files larger than 64MB (for low-RAM systems) |
 
 ### Invalid extensions
 
@@ -282,7 +282,7 @@ gpth --input "~/Takeout" --output "~/Photos" --copy --divide-to-dates 1
 
 **Full metadata processing:**
 ```bash
-gpth --input "~/Takeout" --output "~/Photos" --write-exif --transform-pixel-mp --albums "duplicate-copy"
+gpth --input "~/Takeout" --output "~/Photos" --transform-pixel-mp --albums "duplicate-copy"
 ```
 
 **Fix dates in existing folder:**

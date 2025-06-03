@@ -138,7 +138,9 @@ Future<void> main(final List<String> arguments) async {
       'modify-json',
       help:
           'Delete the "supplemental-metadata" suffix from \n'
-          '.json files to ensure that script works correctly\n',
+          '.json files to ensure that script works correctly\n'
+          'Note that this mode will alter your original files,\n'
+          'regardless of the "copy" mode.\n',
       defaultsTo: true,
     )
     ..addFlag(
@@ -176,7 +178,8 @@ Future<void> main(final List<String> arguments) async {
       'write-exif',
       help:
           'Writes geodata from json files and the extracted DateTime to EXIF. \n'
-          'It always writes to original data, even if combined with --copy!',
+          'It always writes to original data, even if combined with --copy! (default)',
+      defaultsTo: true,
     )
     ..addFlag(
       'limit-filesize',

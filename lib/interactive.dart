@@ -252,11 +252,12 @@ Future<bool> askModifyJson() async {
   print(
     'Check if your .json files of your photos contains "supplemental-metadata" '
     'between the original extension and .json. If this suffix is present, '
-    'the script will not detect the corresponding JSON file',
+    'the script will not be able to map a media file with the corresponding JSON file.'
+    'Note that this mode will alter your original json files, regardless of the "copy" mode.',
   );
   print('For example: myImageName.jpg.supplemental-metadata.json');
   print(
-    '[1] (Erase suffix) - [Recommended] Yes, the photos have the suffix "supplemental-metadata"',
+    '[1] (Erase suffix) - Yes, the json files have the suffix "supplemental-metadata" (default)',
   );
   print('[2] (Dont Erease suffix) - No');
   print('(Type a number or press enter for default):');
