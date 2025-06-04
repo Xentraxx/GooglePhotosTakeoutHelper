@@ -144,6 +144,26 @@ Future<void> main(final List<String> arguments) async {
       defaultsTo: true,
     )
     ..addFlag(
+      'fix-extensions',
+      help:
+          'Append correct extension for files based on file signature. \n'
+          'Without this, "actual" non-JPEG files with invalid extension \n'
+          'will be skipped from writing exif data.\n'
+          'This mode processes only non-TIFF files\n',
+    )
+    ..addFlag(
+      'fix-extensions-non-jpeg',
+      help:
+          'Append correct extension for files based on file signature. \n'
+          'This mode processes only non-TIFF and non-JPEG files\n',
+    )
+    ..addFlag(
+      'fix-extensions-solo-mode',
+      help:
+          'Append correct extension for files based on file signature. \n'
+          'This mode processes only non-TIFF files and stops further processing\n',
+    )
+    ..addFlag(
       'transform-pixel-mp',
       help: 'Transform Pixel .MP or .MV extensions to ".mp4"\n',
     )
@@ -418,6 +438,28 @@ Future<void> main(final List<String> arguments) async {
   print(
     '[Step 1/8] Step 1 took ${sw1.elapsed.inMinutes} minutes or ${sw1.elapsed.inSeconds} seconds to complete.',
   );
+
+  /// ################# STEP 1.5 #####################################
+  /// ##### Fixing files (if needed) ##########################
+  final Stopwatch sw1_5 = Stopwatch()
+    ..start(); //Creation of our debugging stopwatch for each step.
+  if (args['fix-extensions'] ||
+      args['fix-extensions-non-jpeg'] ||
+      args['fix-extensions-solo-mode']) {
+    print(
+      '[Step 1.5'
+      '/8] Fixing file extensions... (this may take some time)',
+    );
+    await fixIncorrectExtensions(input, args['fix-extensions-non-jpeg']);
+  }
+  sw1_5.stop();
+  print(
+    '[Step 1.5/8] Step took ${sw1_5.elapsed.inMinutes} minutes or ${sw1_5.elapsed.inSeconds} seconds to complete.',
+  );
+
+  if (args['fix-extensions-solo-mode']) {
+    return; // Quit further processing after this mode
+  }
 
   /// ##############################################################
   /// ################# STEP 2 #####################################
