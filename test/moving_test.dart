@@ -189,6 +189,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await output
@@ -228,6 +229,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await output
@@ -256,6 +258,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'duplicate-copy',
+            specialFoldersMode: 'auto',
           ).toList();
 
           final outputted = await output
@@ -310,6 +313,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await output
@@ -347,6 +351,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify original files still exist
@@ -379,6 +384,7 @@ void main() {
           copy: false,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify the original file was moved (no longer exists)
@@ -424,6 +430,7 @@ void main() {
           copy: true,
           divideToDates: 1, // Divide by years
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await dateOutput
@@ -455,6 +462,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Should create the output directory
@@ -471,6 +479,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Should not crash and output should be empty

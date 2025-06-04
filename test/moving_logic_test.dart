@@ -185,6 +185,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await outputDir
@@ -227,6 +228,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         if (!Platform.isWindows) {
@@ -256,6 +258,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'duplicate-copy',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await outputDir
@@ -291,6 +294,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'duplicate-copy',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allFiles = await outputDir
@@ -326,6 +330,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await outputDir
@@ -360,6 +365,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final jsonFile = await outputDir
@@ -386,6 +392,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await outputDir
@@ -416,6 +423,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final dirs = await outputDir
@@ -436,6 +444,7 @@ void main() {
           copy: true,
           divideToDates: 1,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allDirs = (await outputDir.list(recursive: true).toList())
@@ -458,6 +467,7 @@ void main() {
           copy: true,
           divideToDates: 2,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Year-month folders are created under ALL_PHOTOS directory
@@ -490,6 +500,7 @@ void main() {
           copy: true,
           divideToDates: 1,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allPhotosDir = Directory('${outputDir.path}/ALL_PHOTOS');
@@ -523,6 +534,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Original files should still exist
@@ -556,6 +568,7 @@ void main() {
           copy: false,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Original should be moved (no longer exist in original location)
@@ -582,6 +595,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputFiles = await outputDir
@@ -616,6 +630,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputFiles = await outputDir
@@ -637,6 +652,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputFiles = await outputDir
@@ -666,6 +682,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         )) {
           events.add(event);
         }
@@ -685,6 +702,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         expect(await newOutputDir.exists(), isTrue);
@@ -707,6 +725,7 @@ void main() {
           copy: true,
           divideToDates: 1,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final outputted = await outputDir.list(recursive: true).toSet();
@@ -743,6 +762,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         stopwatch.stop();
@@ -765,6 +785,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify file contents are preserved

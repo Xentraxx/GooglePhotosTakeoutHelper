@@ -136,6 +136,8 @@ Future<File> moveFileAndCreateShortcut(
 ///
 /// [albumBehavior] must be one of [interactive.albumOptions]
 ///
+/// [specialFoldersMode] determines how to handle special folders (Archive, Trash, etc.)
+///
 /// Emits number of files that it copied/created/whatever (starting from 1) -
 /// use [outputFileCount] function for progress measurement
 Stream<int> moveFiles(
@@ -144,6 +146,7 @@ Stream<int> moveFiles(
   required final bool copy,
   required final num divideToDates,
   required final String albumBehavior,
+  required final String specialFoldersMode,
 }) async* {
   assert(
     interactive.albumOptions.keys.contains(albumBehavior),

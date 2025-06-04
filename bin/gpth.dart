@@ -713,6 +713,7 @@ Future<void> main(final List<String> arguments) async {
         ? args['divide-to-dates']
         : num.parse(args['divide-to-dates']),
     albumBehavior: args['albums'],
+    specialFoldersMode: args['special-folders'],
   ).listen((final _) => barCopy.increment()).asFuture();
   print('\n[Step 7/8] Done moving/copying media!');
 

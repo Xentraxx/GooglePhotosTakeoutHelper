@@ -304,6 +304,7 @@ void main() {
           copy: false, // Test move mode
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allEntities = await outputDir
@@ -380,6 +381,7 @@ void main() {
           copy: true, // Test copy mode
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify each album folder contains appropriate shortcuts
@@ -422,6 +424,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify album-only photo appears in ALL_PHOTOS
@@ -466,6 +469,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'duplicate-copy',
+            specialFoldersMode: 'auto',
           ).toList();
 
           final allEntities = await outputDir
@@ -528,6 +532,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'duplicate-copy',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Find files that should be duplicated
@@ -575,6 +580,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'duplicate-copy',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify that deleting album folders doesn't affect ALL_PHOTOS
@@ -621,6 +627,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'reverse-shortcut',
+            specialFoldersMode: 'auto',
           ).toList();
 
           final allEntities = await outputDir
@@ -679,6 +686,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'reverse-shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify album folders contain actual files, not shortcuts
@@ -738,6 +746,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'reverse-shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Debug: Print output directory structure
@@ -918,6 +927,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allEntities = await outputDir
@@ -967,6 +977,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Read and parse albums-info.json
@@ -1026,6 +1037,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'json',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Count all files - should be exactly 5 photos + 1 JSON
@@ -1064,6 +1076,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allEntities = await outputDir
@@ -1105,6 +1118,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         stopwatch.stop();
@@ -1143,6 +1157,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify no album folders exist
@@ -1194,6 +1209,7 @@ void main() {
           copy: true, // Copy mode
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify original files still exist
@@ -1241,6 +1257,7 @@ void main() {
           copy: false, // Move mode
           divideToDates: 0,
           albumBehavior: 'duplicate-copy',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify original files are moved/removed (depending on album behavior)
@@ -1297,6 +1314,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify original still exists with correct content
@@ -1374,6 +1392,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'shortcut',
+            specialFoldersMode: 'auto',
           ).toList();
 
           // Verify one file in ALL_PHOTOS
@@ -1461,6 +1480,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Verify all files are processed correctly
@@ -1514,6 +1534,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         stopwatch.stop();
@@ -1564,6 +1585,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'nothing',
+            specialFoldersMode: 'auto',
           ).toList();
         }, returnsNormally);
       });
@@ -1598,6 +1620,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'nothing',
+            specialFoldersMode: 'auto',
           ).toList();
         }, returnsNormally);
       });
@@ -1636,6 +1659,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'shortcut',
+          specialFoldersMode: 'auto',
         ).toList();
 
         final allEntities = await outputDir

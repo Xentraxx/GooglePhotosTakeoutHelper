@@ -264,6 +264,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'shortcut',
+            specialFoldersMode: 'auto',
           ).toList();
 
           // Verify output structure
@@ -412,6 +413,7 @@ void main() {
           copy: true,
           divideToDates: 0,
           albumBehavior: 'nothing',
+          specialFoldersMode: 'auto',
         ).toList();
 
         // Check that it returns a list (may be empty but still a list)
@@ -450,6 +452,7 @@ void main() {
             copy: true,
             divideToDates: 0,
             albumBehavior: 'nothing',
+            specialFoldersMode: 'auto',
           ).toList(),
           returnsNormally,
         );
