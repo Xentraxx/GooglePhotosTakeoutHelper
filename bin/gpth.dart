@@ -439,7 +439,9 @@ Future<void> main(final List<String> arguments) async {
   }
   for (final Directory f in yearFolders) {
     await for (final File file in f.list().wherePhotoVideo()) {
-      media.add(Media(<String?, File>{null: file}));
+      media.add(
+        Media(<String?, File>{null: file}),
+      ); //Here we add yearFolders to media list
     }
   }
   for (final Directory a in albumFolders) {
@@ -447,41 +449,20 @@ Future<void> main(final List<String> arguments) async {
       a,
     ); //Here we check if there are emojis in the album names and if yes, we hex encode them so there are no problems later!
     await for (final File file in cleanedAlbumDir.list().wherePhotoVideo()) {
-      media.add(Media(<String?, File>{albumName(cleanedAlbumDir): file}));
+      media.add(
+        Media(<String?, File>{albumName(cleanedAlbumDir): file}),
+      ); //Here we add albums to media list
     }
   }
 
-  // Process special folders based on album behavior and special-folders flag
-  for (final Directory s in specialFolders) {
-    final String folderName = albumName(s);
-    await for (final File file in s.list().wherePhotoVideo()) {
-      final String specialFoldersMode = args['special-folders'];
-
-      // Determine how to handle special folders
-      if (specialFoldersMode == 'skip') {
-        // Skip special folders entirely
-        continue;
-      } else if (specialFoldersMode == 'include') {
-        // Include special folder files in ALL_PHOTOS
-        media.add(Media(<String?, File>{null: file}));
-      } else if (specialFoldersMode == 'albums') {
-        // Treat special folders as album folders
-        media.add(Media(<String?, File>{folderName: file}));
-      } else {
-        // Auto mode - handle based on album behavior
-        if (args['albums'] == 'nothing') {
-          // In 'nothing' mode, skip special folders (they're not year folders)
-          continue;
-        } else if (args['albums'] == 'json') {
-          // In 'json' mode, include ALL photos including special folders as regular files
-          media.add(Media(<String?, File>{null: file}));
-        } else {
-          // In other modes (shortcut, duplicate-copy, reverse-shortcut), treat as special album folders
-          media.add(Media(<String?, File>{folderName: file}));
-        }
-      }
-    }
-  }
+  // Use utility function to (maybe) add special folders to the media list based on album and special folder mode
+  media.addAll(
+    await processSpecialFolderFiles(
+      specialFolders,
+      args['special-folders'],
+      args['albums'],
+    ),
+  );
 
   if (media.isEmpty) {
     await interactive.nothingFoundMessage();

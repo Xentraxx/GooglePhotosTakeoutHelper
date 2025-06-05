@@ -62,10 +62,13 @@
 library;
 
 import 'dart:io';
+
+import 'package:gpth/media.dart';
 import 'package:gpth/moving.dart';
 import 'package:gpth/utils.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
 import './test_setup.dart';
 
 void main() {
@@ -228,6 +231,635 @@ void main() {
         // This would require Media objects and is more of an integration test
         // For now, we'll test the core logic in integration tests
         expect(true, isTrue); // Placeholder
+      });
+    });
+
+    group('Special Folders Processing', () {
+      /// Tests the processSpecialFolderFiles function with different combinations
+      /// of specialFoldersMode and albumBehavior parameters to ensure proper
+      /// handling of Google Photos special folders (Archive, Trash, Screenshots, Camera).
+
+      late Directory archiveDir;
+      late Directory trashDir;
+      late Directory screenshotsDir;
+      late Directory cameraDir;
+
+      /// Sets up test special folders and files before each test.
+      setUp(() async {
+        // Create special folders
+        archiveDir = fixture.createDirectory('Archive');
+        trashDir = fixture.createDirectory('Trash');
+        screenshotsDir = fixture.createDirectory('Screenshots');
+        cameraDir = fixture.createDirectory('Camera');
+
+        // Create test files in special folders
+        fixture.createFile(
+          'Archive/photo1.jpg',
+          [255, 216, 255], // JPEG header
+        );
+        fixture.createFile(
+          'Trash/video1.mp4',
+          [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70], // MP4 header
+        );
+        fixture.createFile(
+          'Screenshots/screenshot1.png',
+          [137, 80, 78, 71, 13, 10, 26, 10], // PNG header
+        );
+        fixture.createFile(
+          'Camera/photo2.jpg',
+          [255, 216, 255], // JPEG header
+        );
+
+        // Create JSON metadata files
+        fixture.createJsonFile('Archive/photo1.jpg.json', 1599078832);
+        fixture.createJsonFile('Trash/video1.mp4.json', 1599078833);
+        fixture.createJsonFile('Screenshots/screenshot1.png.json', 1599078834);
+        fixture.createJsonFile('Camera/photo2.jpg.json', 1599078835);
+      });
+
+      group('specialFoldersMode: skip', () {
+        /// Should return empty list when mode is 'skip' regardless of albumBehavior.
+        test('returns empty list with albumBehavior: nothing', () async {
+          final specialFolders = [
+            archiveDir,
+            trashDir,
+            screenshotsDir,
+            cameraDir,
+          ];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'skip',
+            'nothing',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        test('returns empty list with albumBehavior: json', () async {
+          final specialFolders = [
+            archiveDir,
+            trashDir,
+            screenshotsDir,
+            cameraDir,
+          ];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'skip',
+            'json',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        test('returns empty list with albumBehavior: shortcut', () async {
+          final specialFolders = [
+            archiveDir,
+            trashDir,
+            screenshotsDir,
+            cameraDir,
+          ];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'skip',
+            'shortcut',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        test('returns empty list with albumBehavior: duplicate-copy', () async {
+          final specialFolders = [
+            archiveDir,
+            trashDir,
+            screenshotsDir,
+            cameraDir,
+          ];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'skip',
+            'duplicate-copy',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        test(
+          'returns empty list with albumBehavior: reverse-shortcut',
+          () async {
+            final specialFolders = [
+              archiveDir,
+              trashDir,
+              screenshotsDir,
+              cameraDir,
+            ];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'skip',
+              'reverse-shortcut',
+            );
+
+            expect(result, isEmpty);
+          },
+        );
+      });
+
+      group('specialFoldersMode: include', () {
+        /// Should add files with null key (for ALL_PHOTOS) when mode is 'include'.
+        test('adds files with null key for albumBehavior: nothing', () async {
+          final specialFolders = [archiveDir, trashDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'include',
+            'nothing',
+          );
+
+          expect(result, hasLength(2));
+          expect(
+            result.every((final Media media) => media.files.containsKey(null)),
+            isTrue,
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            containsAll(['photo1.jpg', 'video1.mp4']),
+          );
+        });
+
+        test('adds files with null key for albumBehavior: json', () async {
+          final specialFolders = [screenshotsDir, cameraDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'include',
+            'json',
+          );
+
+          expect(result, hasLength(2));
+          expect(
+            result.every((final media) => media.files.containsKey(null)),
+            isTrue,
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            containsAll(['screenshot1.png', 'photo2.jpg']),
+          );
+        });
+
+        test('adds files with null key for albumBehavior: shortcut', () async {
+          final specialFolders = [archiveDir, screenshotsDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'include',
+            'shortcut',
+          );
+
+          expect(result, hasLength(2));
+          expect(
+            result.every((final media) => media.files.containsKey(null)),
+            isTrue,
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            containsAll(['photo1.jpg', 'screenshot1.png']),
+          );
+        });
+
+        test(
+          'adds files with null key for albumBehavior: duplicate-copy',
+          () async {
+            final specialFolders = [trashDir, cameraDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'include',
+              'duplicate-copy',
+            );
+
+            expect(result, hasLength(2));
+            expect(
+              result.every((final media) => media.files.containsKey(null)),
+              isTrue,
+            );
+            expect(
+              result.map((final m) => p.basename(m.firstFile.path)),
+              containsAll(['video1.mp4', 'photo2.jpg']),
+            );
+          },
+        );
+
+        test(
+          'adds files with null key for albumBehavior: reverse-shortcut',
+          () async {
+            final specialFolders = [
+              archiveDir,
+              trashDir,
+              screenshotsDir,
+              cameraDir,
+            ];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'include',
+              'reverse-shortcut',
+            );
+
+            expect(result, hasLength(4));
+            expect(
+              result.every((final media) => media.files.containsKey(null)),
+              isTrue,
+            );
+            expect(
+              result.map((final m) => p.basename(m.firstFile.path)),
+              containsAll([
+                'photo1.jpg',
+                'video1.mp4',
+                'screenshot1.png',
+                'photo2.jpg',
+              ]),
+            );
+          },
+        );
+      });
+
+      group('specialFoldersMode: albums', () {
+        /// Should add files with folder name as key when mode is 'albums'.
+        test(
+          'adds files with folder name key for albumBehavior: nothing',
+          () async {
+            final specialFolders = [archiveDir, trashDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'albums',
+              'nothing',
+            );
+
+            expect(result, hasLength(2));
+
+            final archiveMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo1.jpg',
+            );
+            final trashMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'video1.mp4',
+            );
+
+            expect(archiveMedia.files.keys.contains('Archive'), isTrue);
+            expect(trashMedia.files.keys.contains('Trash'), isTrue);
+          },
+        );
+
+        test(
+          'adds files with folder name key for albumBehavior: json',
+          () async {
+            final specialFolders = [screenshotsDir, cameraDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'albums',
+              'json',
+            );
+
+            expect(result, hasLength(2));
+
+            final screenshotsMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+            );
+            final cameraMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+            );
+
+            expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+            expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+          },
+        );
+
+        test(
+          'adds files with folder name key for albumBehavior: shortcut',
+          () async {
+            final specialFolders = [archiveDir, screenshotsDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'albums',
+              'shortcut',
+            );
+
+            expect(result, hasLength(2));
+
+            final archiveMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo1.jpg',
+            );
+            final screenshotsMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+            );
+
+            expect(archiveMedia.files.keys.contains('Archive'), isTrue);
+            expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+          },
+        );
+
+        test(
+          'adds files with folder name key for albumBehavior: duplicate-copy',
+          () async {
+            final specialFolders = [trashDir, cameraDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'albums',
+              'duplicate-copy',
+            );
+
+            expect(result, hasLength(2));
+
+            final trashMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'video1.mp4',
+            );
+            final cameraMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+            );
+
+            expect(trashMedia.files.keys.contains('Trash'), isTrue);
+            expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+          },
+        );
+
+        test(
+          'adds files with folder name key for albumBehavior: reverse-shortcut',
+          () async {
+            final specialFolders = [
+              archiveDir,
+              trashDir,
+              screenshotsDir,
+              cameraDir,
+            ];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'albums',
+              'reverse-shortcut',
+            );
+
+            expect(result, hasLength(4));
+
+            final archiveMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo1.jpg',
+            );
+            final trashMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'video1.mp4',
+            );
+            final screenshotsMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+            );
+            final cameraMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+            );
+
+            expect(archiveMedia.files.keys.contains('Archive'), isTrue);
+            expect(trashMedia.files.keys.contains('Trash'), isTrue);
+            expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+            expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+          },
+        );
+      });
+
+      group('specialFoldersMode: auto', () {
+        /// Should behave based on albumBehavior when mode is 'auto'.
+        test('behaves like include when albumBehavior is nothing', () async {
+          final specialFolders = [archiveDir, trashDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'auto',
+            'nothing',
+          );
+
+          expect(result, hasLength(2));
+          expect(
+            result.every((final media) => media.files.containsKey(null)),
+            isTrue,
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            containsAll(['photo1.jpg', 'video1.mp4']),
+          );
+        });
+
+        test('behaves like albums when albumBehavior is json', () async {
+          final specialFolders = [screenshotsDir, cameraDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'auto',
+            'json',
+          );
+
+          expect(result, hasLength(2));
+
+          final screenshotsMedia = result.firstWhere(
+            (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+          );
+          final cameraMedia = result.firstWhere(
+            (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+          );
+
+          expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+          expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+        });
+
+        test('behaves like albums when albumBehavior is shortcut', () async {
+          final specialFolders = [archiveDir, screenshotsDir];
+
+          final result = await processSpecialFolderFiles(
+            specialFolders,
+            'auto',
+            'shortcut',
+          );
+
+          expect(result, hasLength(2));
+
+          final archiveMedia = result.firstWhere(
+            (final m) => p.basename(m.firstFile.path) == 'photo1.jpg',
+          );
+          final screenshotsMedia = result.firstWhere(
+            (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+          );
+
+          expect(archiveMedia.files.keys.contains('Archive'), isTrue);
+          expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+        });
+
+        test(
+          'behaves like albums when albumBehavior is duplicate-copy',
+          () async {
+            final specialFolders = [trashDir, cameraDir];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'auto',
+              'duplicate-copy',
+            );
+
+            expect(result, hasLength(2));
+
+            final trashMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'video1.mp4',
+            );
+            final cameraMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+            );
+
+            expect(trashMedia.files.keys.contains('Trash'), isTrue);
+            expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+          },
+        );
+
+        test(
+          'behaves like albums when albumBehavior is reverse-shortcut',
+          () async {
+            final specialFolders = [
+              archiveDir,
+              trashDir,
+              screenshotsDir,
+              cameraDir,
+            ];
+
+            final result = await processSpecialFolderFiles(
+              specialFolders,
+              'auto',
+              'reverse-shortcut',
+            );
+
+            expect(result, hasLength(4));
+
+            final archiveMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo1.jpg',
+            );
+            final trashMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'video1.mp4',
+            );
+            final screenshotsMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'screenshot1.png',
+            );
+            final cameraMedia = result.firstWhere(
+              (final m) => p.basename(m.firstFile.path) == 'photo2.jpg',
+            );
+
+            expect(archiveMedia.files.keys.contains('Archive'), isTrue);
+            expect(trashMedia.files.keys.contains('Trash'), isTrue);
+            expect(screenshotsMedia.files.keys.contains('Screenshots'), isTrue);
+            expect(cameraMedia.files.keys.contains('Camera'), isTrue);
+          },
+        );
+      });
+
+      group('Edge Cases', () {
+        /// Should handle empty special folders list.
+        test('handles empty special folders list', () async {
+          final result = await processSpecialFolderFiles(
+            [],
+            'include',
+            'nothing',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        /// Should handle special folders with no media files.
+        test('handles special folders with no media files', () async {
+          final emptyDir = fixture.createDirectory('EmptySpecial');
+          fixture.createFile('EmptySpecial/document.txt', [
+            116,
+            101,
+            115,
+            116,
+          ]); // Non-media file
+
+          final result = await processSpecialFolderFiles(
+            [emptyDir],
+            'include',
+            'nothing',
+          );
+
+          expect(result, isEmpty);
+        });
+
+        /// Should handle files without corresponding JSON metadata.
+        test('handles files without JSON metadata', () async {
+          final noJsonDir = fixture.createDirectory('NoJsonSpecial');
+          fixture.createFile(
+            'NoJsonSpecial/orphan.jpg',
+            [255, 216, 255], // JPEG header
+          );
+
+          final result = await processSpecialFolderFiles(
+            [noJsonDir],
+            'albums',
+            'json',
+          );
+
+          expect(result, hasLength(1));
+          expect(result.first.files.keys.first, equals('NoJsonSpecial'));
+          expect(p.basename(result.first.firstFile.path), equals('orphan.jpg'));
+        });
+
+        /// Should handle special folders with mixed file types.
+        test('handles mixed file types in special folders', () async {
+          final mixedDir = fixture.createDirectory('MixedSpecial');
+
+          // Create various file types
+          fixture.createFile('MixedSpecial/photo.jpg', [255, 216, 255]);
+          fixture.createFile('MixedSpecial/video.mp4', [
+            0x00,
+            0x00,
+            0x00,
+            0x20,
+            0x66,
+            0x74,
+            0x79,
+            0x70,
+          ]);
+          fixture.createFile('MixedSpecial/document.txt', [116, 101, 115, 116]);
+          fixture.createFile('MixedSpecial/archive.zip', [80, 75, 3, 4]);
+          fixture.createFile('MixedSpecial/image.png', [137, 80, 78, 71]);
+
+          // Create corresponding JSON files for media
+          fixture.createJsonFile('MixedSpecial/photo.jpg.json', 1599078837);
+          fixture.createJsonFile('MixedSpecial/video.mp4.json', 1599078838);
+          fixture.createJsonFile('MixedSpecial/image.png.json', 1599078839);
+
+          final result = await processSpecialFolderFiles(
+            [mixedDir],
+            'albums',
+            'shortcut',
+          );
+
+          // Should only include media files (photo, video, image)
+          expect(result, hasLength(3));
+          expect(
+            result.every(
+              (final media) => media.files.keys.first == 'MixedSpecial',
+            ),
+            isTrue,
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            containsAll(['photo.jpg', 'video.mp4', 'image.png']),
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            isNot(contains('document.txt')),
+          );
+          expect(
+            result.map((final m) => p.basename(m.firstFile.path)),
+            isNot(contains('archive.zip')),
+          );
+        });
       });
     });
   });

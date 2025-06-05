@@ -10,6 +10,7 @@ import 'package:proper_filesize/proper_filesize.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'package:win32/win32.dart';
 
+import 'grouping.dart';
 import 'interactive.dart' as interactive;
 import 'media.dart';
 
@@ -187,6 +188,96 @@ int outputFileCount(final List<Media> media, final String albumOption) {
   } else {
     throw ArgumentError.value(albumOption, 'albumOption');
   }
+}
+
+/// Processes Google Photos special folder files and creates Media objects
+///
+/// This function specifically handles files from Google Photos special folders
+/// (Archive, Trash, Screenshots, Camera) and creates appropriate Media objects
+/// based on the specified special folders handling mode and album behavior.
+/// This is called after regular year folders and albums have been processed.
+///
+/// [specialFoldersList] List of special Directories
+/// [specialFoldersMode] How to handle special folders ('skip', 'include', 'albums', 'auto')
+/// [albumBehavior] Album handling mode ('nothing', 'json', 'shortcut', etc.)
+///
+/// Returns a list of Media objects created from special folder files
+Future<List<Media>> processSpecialFolderFiles(
+  final List<Directory> specialFoldersList,
+  final String specialFoldersMode,
+  final String albumBehavior,
+) async {
+  final List<Media> media = [];
+  final List<(String, File, DateTime?)> specialFolderFiles = [];
+
+  // Process special folders based on album behavior and special-folders flag
+  for (final Directory s in specialFoldersList) {
+    final String folderName = albumName(s);
+    await for (final File file in s.list().wherePhotoVideo()) {
+      specialFolderFiles.add((
+        folderName,
+        file,
+        null,
+      )); // Date will be extracted later
+    }
+  }
+
+  for (final (folderName, file, dateTaken) in specialFolderFiles) {
+    if (specialFoldersMode == 'skip') {
+      // Skip special folders entirely - don't add to media list
+      continue;
+    } else if (specialFoldersMode == 'include') {
+      // Include special folder files in ALL_PHOTOS
+      media.add(
+        Media(
+          {null: file},
+          dateTaken: dateTaken,
+          dateTakenAccuracy: dateTaken != null ? 1 : null,
+        ),
+      );
+    } else if (specialFoldersMode == 'albums') {
+      // Treat special folders as album folders
+      media.add(
+        Media(
+          {folderName: file},
+          dateTaken: dateTaken,
+          dateTakenAccuracy: dateTaken != null ? 1 : null,
+        ),
+      );
+    } else {
+      // Auto mode - handle based on album behavior
+      if (albumBehavior == 'nothing') {
+        // In 'nothing' mode, treat special folders like regular photos (include mode)
+        media.add(
+          Media(
+            {null: file},
+            dateTaken: dateTaken,
+            dateTakenAccuracy: dateTaken != null ? 1 : null,
+          ),
+        );
+      } else if (albumBehavior == 'json') {
+        // In 'json' mode, treat special folders as album folders
+        media.add(
+          Media(
+            {folderName: file},
+            dateTaken: dateTaken,
+            dateTakenAccuracy: dateTaken != null ? 1 : null,
+          ),
+        );
+      } else {
+        // In other modes (shortcut, duplicate-copy, reverse-shortcut), treat as special album folders
+        media.add(
+          Media(
+            {folderName: file},
+            dateTaken: dateTaken,
+            dateTakenAccuracy: dateTaken != null ? 1 : null,
+          ),
+        );
+      }
+    }
+  }
+
+  return media;
 }
 
 extension Z on String {
