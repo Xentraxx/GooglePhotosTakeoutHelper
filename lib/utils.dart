@@ -250,7 +250,7 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
   );
 }
 
-/// Fixes incorrectly named files by changin their extensions to what mimeType suggests
+/// Fixes incorrectly named files by changing their extensions to what mimeType suggests
 ///
 /// Searches recursively for non-.json files
 ///
