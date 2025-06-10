@@ -8,8 +8,9 @@ import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:proper_filesize/proper_filesize.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
-import 'extras.dart';
 import 'package:win32/win32.dart';
+
+import 'extras.dart';
 import 'interactive.dart' as interactive;
 import 'media.dart';
 
@@ -256,15 +257,14 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
 ///
 /// [directory] Root directory to search recursively
 /// [nonJpeg] only processes files that do not contain JPEG header
-Future<void> fixIncorrectExtensions(final Directory directory,
-    final bool? nonJpeg) async {
+Future<void> fixIncorrectExtensions(
+  final Directory directory,
+  final bool? nonJpeg,
+) async {
   int fixedCount = 0;
-  await for (final FileSystemEntity file in directory
-      .list(recursive: true)
-      .wherePhotoVideo()) {
-    final List<int> headerBytes = await File(file.path)
-        .openRead(0, 128)
-        .first;
+  await for (final FileSystemEntity file
+      in directory.list(recursive: true).wherePhotoVideo()) {
+    final List<int> headerBytes = await File(file.path).openRead(0, 128).first;
     final String? mimeTypeFromHeader = lookupMimeType(
       file.path,
       headerBytes: headerBytes,
@@ -278,13 +278,16 @@ Future<void> fixIncorrectExtensions(final Directory directory,
 
     // Since for ex. CR2 is based on TIFF and mime lib does not support RAW
     // lets skip everything that has TIFF header
-    if (mimeTypeFromHeader != null && mimeTypeFromHeader != 'image/tiff' &&
+    if (mimeTypeFromHeader != null &&
+        mimeTypeFromHeader != 'image/tiff' &&
         mimeTypeFromHeader != mimeTypeFromExtension) {
       final String? newExtension = extensionFromMime(mimeTypeFromHeader);
 
       if (newExtension == null) {
-        log('Could not determine correct extension for file ${p.basename(file.path)}. Moving on..',
-            level: 'warning');
+        log(
+          'Could not determine correct extension for file ${p.basename(file.path)}. Moving on..',
+          level: 'warning',
+        );
         continue;
       }
 
@@ -294,18 +297,18 @@ Future<void> fixIncorrectExtensions(final Directory directory,
 
       if (!jsonFile.existsSync() && !isExtra(file.path)) {
         log(
-            '[Step 1.5/8] unable to find matching json: ${jsonFile.path}',
-            level: 'warning',
-            forcePrint: true
+          '[Step 1.5/8] unable to find matching json: ${jsonFile.path}',
+          level: 'warning',
+          forcePrint: true,
         );
       }
 
       // Verify if the file renamed already exists
       if (await newFile.exists()) {
         log(
-            '[Step 1.5/8] Skipped fixing extension because it already exists: $newFilePath',
-            level: 'warning',
-            forcePrint: true
+          '[Step 1.5/8] Skipped fixing extension because it already exists: $newFilePath',
+          level: 'warning',
+          forcePrint: true,
         );
         continue;
       }
@@ -321,16 +324,14 @@ Future<void> fixIncorrectExtensions(final Directory directory,
         fixedCount++;
       } on FileSystemException catch (e) {
         log(
-            '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
-            level: 'error',
-            forcePrint: true
+          '[Step 1.5/8] While fixing extension ${file.path}: ${e.message}',
+          level: 'error',
+          forcePrint: true,
         );
       }
     }
   }
-  print(
-    '[Step 1.5/8] Successfully fixed extensions: $fixedCount',
-  );
+  print('[Step 1.5/8] Successfully fixed extensions: $fixedCount');
 }
 
 /// Changes file extensions from .MP/.MV to specified extension (usually .mp4)
