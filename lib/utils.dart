@@ -255,7 +255,7 @@ Future<void> renameIncorrectJsonFiles(final Directory directory) async {
 /// Searches recursively for non-.json files
 ///
 /// [directory] Root directory to search recursively
-/// [nonJpeg] only processes files that do not container JPEG header
+/// [nonJpeg] only processes files that do not contain JPEG header
 Future<void> fixIncorrectExtensions(final Directory directory,
     final bool? nonJpeg) async {
   int fixedCount = 0;
