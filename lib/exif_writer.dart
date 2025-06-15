@@ -35,7 +35,7 @@ Future<bool> writeDateTimeToExif(
       log(
         "DateWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'.\n"
         'ExifTool would fail on this file due to extension/content mismatch. Consider running GPTH with --fix-extensions to rename files to correct extensions.\n ${file.path}',
-        level: 'error',
+        level: 'warning',
         forcePrint: true,
       );
       return false;
@@ -88,7 +88,7 @@ Future<bool> writeGpsToExif(
       log(
         "GPSWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'.\n"
         'Exiftool would fail, skipping. You may want to run GPTH with --fix-extensions.\n ${file.path}',
-        level: 'error',
+        level: 'warning',
         forcePrint: true,
       );
       return false;
