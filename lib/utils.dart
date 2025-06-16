@@ -294,12 +294,22 @@ Future<int> fixIncorrectExtensions(
         );
         continue; // Skip if the new file already exists
       }
-
       try {
         if (jsonFile != null && jsonFile.existsSync() && !isExtra(file.path)) {
-          // There is only one .json file for both original and any edited files
-          await jsonFile.rename('$newFilePath.json');
-          log('[Step 1/8] Fixed: ${jsonFile.path} -> $newFilePath.json');
+          // Handle both regular .json and .supplemental-metadata.json files
+          final String jsonFileName = p.basename(jsonFile.path);
+          final String newJsonPath;
+
+          if (jsonFileName.endsWith('.supplemental-metadata.json')) {
+            // For supplemental-metadata files, preserve the .supplemental-metadata part
+            newJsonPath = '$newFilePath.supplemental-metadata.json';
+          } else {
+            // For regular .json files
+            newJsonPath = '$newFilePath.json';
+          }
+
+          await jsonFile.rename(newJsonPath);
+          log('[Step 1/8] Fixed: ${jsonFile.path} -> $newJsonPath');
         }
         await file.rename(newFilePath);
         log('[Step 1/8] Fixed: ${file.path} -> $newFilePath');
