@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a bug or problem with the project. All fields are required.
+title: "[Bug] <short description of the problem>"
+labels: [bug]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Please fill out *all* fields below. Incomplete issues will be closed.**
+
+  - type: input
+    id: gpht-version
+    attributes:
+      label: What version of GPTH are you using?
+      placeholder: e.g. v4.0.8
+    validations:
+      required: true
+
+  - type: input
+    id: flag-combo
+    attributes:
+      label: What flag combination did you use?
+      placeholder: e.g. --fix-extensions=standard --transform-pixel-mp
+    validations:
+      required: true
+
+  - type: dropdown
+    id: exiftool-installed
+    attributes:
+      label: Is Exiftool installed?
+      options:
+        - Yes
+        - No
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-output
+    attributes:
+      label: What is the current output/result?
+      description: Include any logs or error messages (use verbose mode if applicable).
+      placeholder: Paste output or logs here...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: What is the expected output/result?
+      placeholder: Describe what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: more-info
+    attributes:
+      label: Further information on the issue
+      description: Add any other relevant context or screenshots.
+      placeholder: Any other details that could help reproduce the issue.
+    validations:
+      required: true
