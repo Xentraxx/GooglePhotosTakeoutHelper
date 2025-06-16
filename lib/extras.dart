@@ -92,10 +92,17 @@ bool isExtra(final String filename) {
 String removePartialExtraFormats(final String filename) {
   final String ext = p.extension(filename);
   final String nameWithoutExt = p.basenameWithoutExtension(filename);
-
+  final String dirname = p.dirname(filename);
   for (final String suffix in extraFormats) {
-    for (int i = 2; i <= suffix.length; i++) {
+    for (int i = 1; i <= suffix.length; i++) {
       final String partialSuffix = suffix.substring(0, i);
+
+      // Skip very short suffixes that are likely to cause false positives
+      if (partialSuffix.length < 2 ||
+          (partialSuffix.length == 1 && partialSuffix == '-')) {
+        continue;
+      }
+
       final RegExp regExp = RegExp(
         RegExp.escape(partialSuffix) + r'(?:\(\d+\))?$',
         caseSensitive: false,
@@ -103,11 +110,17 @@ String removePartialExtraFormats(final String filename) {
 
       if (regExp.hasMatch(nameWithoutExt)) {
         final String cleanedName = nameWithoutExt.replaceAll(regExp, '');
-        return cleanedName + ext;
+        // Preserve directory path and original path separator style
+        if (dirname == '.') {
+          return '$cleanedName$ext';
+        } else {
+          // Preserve the original path separator style from the input
+          final String separator = filename.contains('/') ? '/' : p.separator;
+          return '$dirname$separator$cleanedName$ext';
+        }
       }
     }
   }
-
   return filename;
 }
 
