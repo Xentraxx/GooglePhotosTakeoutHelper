@@ -7,9 +7,11 @@
 Transform your chaotic Google Photos Takeout into organized photo libraries with proper dates, albums, and metadata.
 
 ## Important Note
+
 This is a work in progress.
-If you have issues with the current version, I recommend trying https://github.com/Xentraxx/GooglePhotosTakeoutHelper/actions/runs/15668191903
-It is experimental, but WAYYYYY faster and better than the current version. I just didn't have the chance to try every possible case. Test coverage is there though!
+v4.0.8 should be reliable enough for most users and I will only fix critical issues for this version.
+If you encounter any problems, please also have a look at v4.0.9, which is work in progress.
+
 
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
 
@@ -23,6 +25,7 @@ When you export photos from Google Photos using [Google Takeout](https://takeout
 - ✅ **Writes GPS coordinates and timestamps** back to media files
 - ✅ **Removes duplicates** automatically
 - ✅ **Handles special formats** (HEIC, Motion Photos, etc.)
+- ✅ **Fixes mismatches of file name and mime type** if google photos renamed e.g. a .heic to .jpeg (but mime type remains heic) we can fix this mismatch
 
 ## Quick Start
 
@@ -34,9 +37,28 @@ When you export photos from Google Photos using [Google Takeout](https://takeout
 
 <img width="75%" alt="gpth usage image tutorial" src="https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/assets/40139196/8e85f58c-9958-466a-a176-51af85bb73dd">
 
-### 2. Extract and Merge
+### 2. Choose Your Extraction Method
 
-Unzip all files and merge them so you have one unified "Takeout" folder.
+GPTH now supports automatic extraction directly from ZIP files:
+
+#### Option A: Automatic ZIP Processing (Recommended)
+1. Keep your ZIP files from Google Takeout
+2. When running GPTH in interactive mode, select "Select ZIP files from Google Takeout"
+3. GPTH will automatically extract, merge, and process all files
+4. Original ZIP files are preserved; temporary extracted files are cleaned up automatically
+
+The automatic ZIP processing is recommended for most users as it:
+- Reduces manual work and potential errors
+- Ensures proper file merging across multiple ZIP files
+- Automatically cleans up temporary files
+
+The biggest downside is, that you need way more free disk space.
+If this is an issue, choose manual extraction.
+
+#### Option B: Manual Extraction (Traditional)
+1. Unzip all files manually
+2. Merge them so you have one unified "Takeout" folder
+3. When running GPTH, select "Use already extracted folder"
 
 <img width="75%" alt="Unzip image tutorial" src="https://user-images.githubusercontent.com/40139196/229361367-b9803ab9-2724-4ddf-9af5-4df507e02dfe.png">
 
@@ -68,7 +90,7 @@ Unzip all files and merge them so you have one unified "Takeout" folder.
 
 ### 4. Download and Run GPTH
 
-1. Download the latest executable from [releases](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/releases)
+1. Download the latest executable from [releases](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
 2. **Interactive Mode** (recommended for beginners):
    - Windows: Double-click `gpth.exe`
    - Mac/Linux: Run `./gpth-macos` or `./gpth-linux` in terminal
@@ -197,6 +219,26 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 | `--update-creation-time` | Sync creation time with modified time (Windows only) |
 | `--limit-filesize` | Skip files larger than 64MB (for low-RAM systems) |
 
+### Invalid extensions
+
+Google Photos has an option of 'data saving' which will most likely compress images into JPEGs, but will leave the
+filename as it was in the original upload.
+Some web-downloaded images also may have an incorrect extension (ex. a file with the filename extension `.jpeg` may actually be a `.heif` when looking at the mime type).
+
+GPTH natively writes EXIF into anything that has a `.jpeg` file signature (header), other file types are processed by
+exiftool, and it will most likely fail on files with invalid file type extension.
+
+NOTE: Some RAW formats are actually TIFF file format (and they contain TIFF header) such cases are not deemed invalid.
+
+Because of all that, GPTH by default will skip writing EXIF into any files that have a mismatch of the filename extension and the mime type (based on
+its header), except if that file has JPEG or TIFF signature. There are several options to fix extensions:
+
+| Argument                     | Description                                                   |
+|------------------------------|---------------------------------------------------------------|
+| `--fix-extensions`           | Renames files where the extension doesn't match the mime type, but skips TIFF-based files (like RAW formats)    |
+| `--fix-extensions-non-jpeg`  | Like above, but also skips actual JPEG files to be more conservative |
+| `--fix-extensions-solo-mode` | Performs extension fixing and then exits, useful for preprocessing files before running the main processing (standalone mode)|
+
 ### Other Options
 
 | Argument | Description |
@@ -256,14 +298,14 @@ Extracts location data and timestamps from JSON files and writes them to media f
 ## Installation
 
 ### Pre-built Binaries
-Download from [releases page](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/releases)
+Download from [releases page](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
 
 ### Package Managers
 - **Arch Linux**: `yay -S gpth-bin`
 
 ### Building from Source
 ```bash
-git clone https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper.git
+git clone https://github.com/Xentraxx/GooglePhotosTakeoutHelper.git
 cd GooglePhotosTakeoutHelper
 dart pub get
 dart compile exe bin/gpth.dart -o gpth

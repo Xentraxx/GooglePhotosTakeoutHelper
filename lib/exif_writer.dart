@@ -30,22 +30,12 @@ Future<bool> writeDateTimeToExif(
         await _noExifToolDateTimeWriter(file, dateTime, mimeTypeFromHeader)) {
       return true; //If native way was able to write exif data: exit. If not, try exifTool.
     }
-
     if (mimeTypeFromExtension != mimeTypeFromHeader &&
         mimeTypeFromHeader != 'image/tiff') {
       log(
-        "DateWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'. Exiftool would fail, skipping.\n ${file.path}",
-        level: 'error',
-        forcePrint: true,
-      );
-      return false;
-    }
-    if (mimeTypeFromExtension == 'video/x-msvideo' ||
-        mimeTypeFromHeader == 'video/x-msvideo') {
-      //Skipping AVI files
-      log(
-        'DateWriter - File has mimeType video/x-msvideo. Exiftool would fail, skipping.\n ${file.path}',
-        level: 'error',
+        "DateWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'.\n"
+        'ExifTool would fail on this file due to extension/content mismatch. Consider running GPTH with --fix-extensions to rename files to correct extensions.\n ${file.path}',
+        level: 'warning',
         forcePrint: true,
       );
       return false;
@@ -96,18 +86,9 @@ Future<bool> writeGpsToExif(
 
     if (mimeTypeFromExtension != mimeTypeFromHeader) {
       log(
-        "GPSWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'. Exiftool would fail, skipping.\n ${file.path}",
-        level: 'error',
-        forcePrint: true,
-      );
-      return false;
-    }
-    if (mimeTypeFromExtension == 'video/x-msvideo' ||
-        mimeTypeFromHeader == 'video/x-msvideo') {
-      //Skipping AVI files
-      log(
-        'GPSWriter - File has mimeType video/x-msvideo. Exiftool would fail, skipping.\n ${file.path}',
-        level: 'error',
+        "GPSWriter - File has a wrong extension indicating '$mimeTypeFromExtension' but actually it is '$mimeTypeFromHeader'.\n"
+        'Exiftool would fail, skipping. You may want to run GPTH with --fix-extensions.\n ${file.path}',
+        level: 'warning',
         forcePrint: true,
       );
       return false;

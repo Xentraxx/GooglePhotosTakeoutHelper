@@ -1,7 +1,7 @@
 name: gpth
 description: 'Tool to help you with exporting stuff from Google Photos'
-version: 4.0.7
-homepage: 'https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper'
+version: 4.0.8
+homepage: 'https://github.com/Xentraxx/GooglePhotosTakeoutHelper'
 publish_to: 'none'
 
 environment:
@@ -21,11 +21,7 @@ dependencies:
   exif_reader: ^3.16.1
   image: ^4.5.4
   emoji_regex: ^0.0.5
-
-  #  archive:
-  #    git:
-  #      url: https://github.com/TheLastGimbus/archive.git
-  #      ref: fix-windoza-extract-errors
+  archive: ^4.0.6
   proper_filesize: ^1.0.2
   unorm_dart: ^0.3.0
   win32: ^5.13.0

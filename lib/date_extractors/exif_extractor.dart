@@ -68,15 +68,6 @@ Future<DateTime?> exifDateTimeExtractor(final File file) async {
       return null;
     }
   }
-  //This is AVI and we currently do not support AVI with exiftool as it causes problems. Maybe it is fixable.
-  //TODO Support AVI in future
-  if (mimeType == 'video/x-msvideo') {
-    log(
-      '$mimeType is currently not supported by ExifTool. Skipping reading Exif info.',
-      level: 'warning',
-    );
-    return result; //result is null. We skip this mimeType.
-  }
   //At this point either we didn't do anything because the mimeType is unknown (null) or not supported by the native method.
   //Anyway, there is nothing else to do than to try it with exiftool now. exiftool is the last resort *sing* in any case due to performance.
   if ((mimeType == null || !supportedNativeMimeTypes.contains(mimeType)) &&

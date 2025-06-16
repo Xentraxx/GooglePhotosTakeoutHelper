@@ -135,6 +135,28 @@ Future<void> main(final List<String> arguments) async {
           "but doesn't break your input folder\n",
     )
     ..addFlag(
+      'fix-extensions',
+      help:
+          'Fix incorrect file extensions by renaming files to match their actual MIME type. \n'
+          'Skips TIFF-based files (like RAW formats) that are often misidentified. \n'
+          'Useful when Google Photos changed extensions during compression or \n'
+          'for web-downloaded images with wrong extensions.\n',
+    )
+    ..addFlag(
+      'fix-extensions-non-jpeg',
+      help:
+          'Fix incorrect file extensions like --fix-extensions, but more conservative. \n'
+          'Skips both TIFF-based files AND actual JPEG files for maximum safety. \n'
+          'Use when you want to fix only obviously wrong extensions.\n',
+    )
+    ..addFlag(
+      'fix-extensions-solo-mode',
+      help:
+          'Fix incorrect file extensions like --fix-extensions, then exit immediately. \n'
+          'Use this for preprocessing files before running the main GPTH processing. \n'
+          'Useful for batch fixing extensions across multiple Takeout folders.\n',
+    )
+    ..addFlag(
       'transform-pixel-mp',
       help: 'Transform Pixel .MP or .MV extensions to ".mp4"\n',
     )
@@ -212,28 +234,57 @@ Future<void> main(final List<String> arguments) async {
 
   /// ##############################################################
   /// Here the Script asks interactively to fill all arguments
-
   if (interactive.indeed) {
     // greet user
     await interactive.greet();
     print('');
-    // @Deprecated('Interactive unzipping is suspended for now!')
-    // final zips = await interactive.getZips();
-    //TODO: Add functionality to unzip files again
+
+    // Ask user whether to unzip files or use pre-extracted directory
+    final bool shouldUnzip = await interactive.askIfUnzip();
+    print('');
+
     late Directory inDir;
-    try {
-      inDir = await interactive.getInputDir();
-    } catch (e) {
-      print(
-        'Hmm, interactive selecting input dir crashed... \n'
-        "it looks like you're running in headless/on Synology/NAS...\n"
-        "If so, you have to use cli options - run 'gpth --help' to see them",
-      );
-      exit(69);
+
+    if (shouldUnzip) {
+      // User wants to select and unzip ZIP files
+      final List<File> zips = await interactive.getZips();
+      print('');
+
+      final Directory out = await interactive.getOutput();
+      print('');
+
+      // Calculate approx space required for everything
+      final int cumZipsSize = zips
+          .map((final e) => e.lengthSync())
+          .reduce((final a, final b) => a + b);
+      final int requiredSpace = (cumZipsSize * 2) + 256 * 1024 * 1024;
+      await interactive.freeSpaceNotice(requiredSpace, out);
+      print('');
+
+      final Directory unzipDir = Directory(p.join(out.path, '.gpth-unzipped'));
+      inDir = unzipDir;
+      args['output'] = out.path;
+
+      await interactive.unzip(zips, unzipDir);
+      print('');
+    } else {
+      // User wants to use pre-extracted directory
+      try {
+        inDir = await interactive.getInputDir();
+      } catch (e) {
+        print(
+          'Hmm, interactive selecting input dir crashed... \n'
+          "it looks like you're running in headless/on Synology/NAS...\n"
+          "If so, you have to use cli options - run 'gpth --help' to see them",
+        );
+        exit(69);
+      }
+      print('');
+      final Directory out = await interactive.getOutput();
+      args['output'] = out.path;
+      print('');
     }
-    print('');
-    final Directory out = await interactive.getOutput();
-    print('');
+
     args['write-exif'] = await interactive.askIfWriteExif();
     print('');
     args['limit-filesize'] = await interactive.askIfLimitFileSize();
@@ -244,26 +295,21 @@ Future<void> main(final List<String> arguments) async {
     print('');
     args['transform-pixel-mp'] = await interactive.askTransformPixelMP();
     print('');
+    final Map<String, bool> fixExtensionsResult = await interactive
+        .askFixExtensions();
+    args['fix-extensions'] = fixExtensionsResult['fix-extensions'];
+    args['fix-extensions-non-jpeg'] =
+        fixExtensionsResult['fix-extensions-non-jpeg'];
+    args['fix-extensions-solo-mode'] =
+        fixExtensionsResult['fix-extensions-solo-mode'];
+    print('');
     if (Platform.isWindows) {
       //Only in windows is going to ask
       args['update-creation-time'] = await interactive.askChangeCreationTime();
       print('');
     }
 
-    // @Deprecated('Interactive unzipping is suspended for now!')
-    // // calculate approx space required for everything
-    // final cumZipsSize = zips.map((e) => e.lengthSync()).reduce((a, b) => a + b);
-    // final requiredSpace = (cumZipsSize * 2) + 256 * 1024 * 1024;
-    // await interactive.freeSpaceNotice(requiredSpace, out); // and notify this
-    // print('');
-    //
-    // final unzipDir = Directory(p.join(out.path, '.gpth-unzipped'));
-    // args['input'] = unzipDir.path;
     args['input'] = inDir.path;
-    args['output'] = out.path;
-    //
-    // await interactive.unzip(zips, unzipDir);
-    // print('');
   }
 
   // elastic list of extractors - can add/remove with cli flags
@@ -376,11 +422,30 @@ Future<void> main(final List<String> arguments) async {
   /// #### Here we start the actual work ###########################
   /// ##############################################################
   /// ################# STEP 1 #####################################
-  /// ##### Fixing JSON files (if needed) ##########################
+  /// ##### Fixing extensions (if needed) ##########################
 
+  int fixedExtenionsCounter = 0;
+  final Stopwatch sw1 = Stopwatch()
+    ..start(); //Creation of our debugging stopwatch for each step.
+  if (args['fix-extensions'] ||
+      args['fix-extensions-non-jpeg'] ||
+      args['fix-extensions-solo-mode']) {
+    print('[Step 1/8] Fixing file extensions... (this may take some time)');
+    fixedExtenionsCounter = await fixIncorrectExtensions(
+      input,
+      args['fix-extensions-non-jpeg'],
+    );
+  } else {
+    print('[Step 1/8] Skipping fix extenions mode...');
+  }
+  sw1.stop();
   print(
-    '[Step 1/8] Ignore Step 1. It was deemed unnecessary and was removed. Continuing...',
+    '[Step 1/8] Step took ${sw1.elapsed.inMinutes} minutes or ${sw1.elapsed.inSeconds} seconds to complete.',
   );
+
+  if (args['fix-extensions-solo-mode']) {
+    return; // Quit further processing after this mode
+  }
 
   /// ##############################################################
   /// ################# STEP 2 #####################################
@@ -411,14 +476,15 @@ Future<void> main(final List<String> arguments) async {
       media.add(Media(<String?, File>{albumName(cleanedAlbumDir): file}));
     }
   }
-
   if (media.isEmpty) {
     await interactive.nothingFoundMessage();
-    // @Deprecated('Interactive unzipping is suspended for now!')
-    // if (interactive.indeed) {
-    //   print('([interactive] removing unzipped folder...)');
-    //   await input.delete(recursive: true);
-    // }
+    // Remove unzipped folder if it was created
+    if (interactive.indeed &&
+        args['input'] != null &&
+        args['input'].toString().endsWith('.gpth-unzipped')) {
+      print('([interactive] removing unzipped folder...)');
+      await input.delete(recursive: true);
+    }
     quit(13);
   }
   sw2.stop();
@@ -645,12 +711,13 @@ Future<void> main(final List<String> arguments) async {
   ).listen((final _) => barCopy.increment()).asFuture();
   print('\n[Step 7/8] Done moving/copying media!');
 
-  // @Deprecated('Interactive unzipping is suspended for now!')
-  // // remove unzipped folder if was created
-  // if (interactive.indeed) {
-  //   print('Removing unzipped folder...');
-  //   await input.delete(recursive: true);
-  // }
+  // Remove unzipped folder if it was created
+  if (interactive.indeed &&
+      args['input'] != null &&
+      args['input'].toString().endsWith('.gpth-unzipped')) {
+    print('Removing unzipped folder...');
+    await input.delete(recursive: true);
+  }
   sw7.stop();
   print(
     '[Step 7/8] Step 7 took ${sw7.elapsed.inMinutes} minutes or ${sw7.elapsed.inSeconds} seconds to complete.',
@@ -712,7 +779,8 @@ Future<void> main(final List<String> arguments) async {
       updatedCreationTimeCounter > 0 &&
       exifccounter > 0 &&
       exifdtcounter > 0 &&
-      args['skip-extras']) {
+      args['skip-extras'] &&
+      fixedExtenionsCounter > 0) {
     print('Error! No stats available (This is weird!)');
   }
   if (updatedCreationTimeCounter > 0) {
@@ -727,7 +795,10 @@ Future<void> main(final List<String> arguments) async {
     );
   }
   if (exifdtcounter > 0) {
-    print('$exifdtcounter got their DateTime set in EXIF data');
+    print('$exifdtcounter files got their DateTime set in EXIF data');
+  }
+  if (fixedExtenionsCounter > 0) {
+    print('$fixedExtenionsCounter files got their extensions fixed');
   }
   if (args['skip-extras']) print('$countExtras extras were skipped');
 
@@ -738,7 +809,7 @@ Future<void> main(final List<String> arguments) async {
     print('$extractionMethodString: ${entry.value} files');
   }
   print(
-    'In total the script took ${(sw2.elapsed + sw3.elapsed + sw4.elapsed + sw5.elapsed + sw6.elapsed + sw7.elapsed + sw8.elapsed).inMinutes} minutes to complete',
+    'In total the script took ${(sw1.elapsed + sw2.elapsed + sw3.elapsed + sw4.elapsed + sw5.elapsed + sw6.elapsed + sw7.elapsed + sw8.elapsed).inMinutes} minutes to complete',
   );
   print(
     "Last thing - I've spent *a ton* of time on this script - \n"

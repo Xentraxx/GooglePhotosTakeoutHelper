@@ -216,7 +216,7 @@ class ExiftoolInterface {
       log(
         '[Step 5/8] Writing exif to file ${file.path} failed.'
         '\n${result.stderr.replaceAll(" - ${file.path.replaceAll('\\', '/')}", "")}',
-        level: 'error',
+        level: 'warning',
         forcePrint: true,
       );
     }

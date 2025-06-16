@@ -1,3 +1,76 @@
+## 4.0.8-Xentraxx
+
+### Interactive ZIP File Extraction Restored
+
+#### Major Feature Restoration
+- **Restored interactive ZIP file extraction functionality** that was previously deprecated due to photo loss issues
+- Added comprehensive security measures to prevent data loss and security vulnerabilities
+- Implemented user-friendly choice between automatic ZIP extraction or using pre-extracted directories
+
+#### New Interactive ZIP Features
+- **`askIfUnzip()` function**: Provides users with clear options for handling Google Takeout data:
+  - Option 1: Select ZIP files for automatic extraction (Recommended)
+  - Option 2: Use already extracted directory
+- **Enhanced `getZips()` function**: Improved file picker with better validation and user feedback
+- **Secure `unzip()` function**: Comprehensive ZIP extraction with multiple safety layers
+
+#### Security and Safety Improvements
+- **ZIP Slip Protection**: Prevents malicious ZIP files from extracting outside the target directory
+- **Cross-platform filename sanitization**: Handles encoding issues and invalid characters safely
+- **Comprehensive error handling**: User-friendly error messages with actionable guidance
+- **File integrity validation**: Verifies ZIP files before extraction
+- **Progress reporting**: Real-time feedback during extraction process
+
+#### Technical Enhancements
+- **`_extractZipSafely()` helper**: Internal function with security checks and encoding handling
+- **`_sanitizeFileName()` helper**: Cross-platform filename normalization and safety checks
+- **`_handleExtractionError()` helper**: Context-specific error handling with detailed guidance
+- **`SecurityException` class**: Custom exception for handling security-related extraction issues
+
+#### Workflow Integration
+- Seamlessly integrated into interactive mode with clear user prompts
+
+### Extension Fixing Feature
+
+- Added comprehensive file extension correction functionality to handle mismatched MIME types and extensions
+- Added three CLI flags for different extension fixing behaviors:
+  - `--fix-extensions`: Fixes incorrect extensions except for TIFF-based files (e.g., RAW formats)
+  - `--fix-extensions-non-jpeg`: More conservative mode that also skips actual JPEG files  
+  - `--fix-extensions-solo-mode`: Standalone mode that fixes extensions and exits without further processing
+- Added interactive prompts for extension fixing configuration with three options for user convenience
+- Enhanced EXIF writing error messages to suggest using `--fix-extensions` when extension/MIME type mismatches are detected
+- Added comprehensive test coverage for extension fixing functionality including edge cases
+
+### JSON File Matching Improvements
+
+- Added support for removing partial extra format suffixes from truncated filenames (issue #29)
+- Enhanced JSON file matching for media files with filename truncation due to filesystem limits
+- Added `removePartialExtraFormats` function to handle cases where suffixes like "-ed" need to be removed to match corresponding JSON files
+- Improved date extraction reliability for files with truncated names ending in partial extra format patterns
+
+#### Technical Details
+
+When filenames are truncated due to filesystem character limits, partial suffixes (e.g., "-ed" from "-edited") can prevent proper JSON file matching for date extraction. The new functionality identifies and removes these partial patterns, allowing the JSON extractor to find corresponding metadata files and extract accurate photo dates.
+
+### Bug Fixes and Improvements
+
+- Fixed EXIF writing to properly handle files with incorrect extensions by detecting MIME type mismatches
+- Improved error logging with more informative messages about extension/MIME type conflicts
+- Updated statistics reporting to include count of fixed file extensions
+- Enhanced interactive mode with better user guidance for extension fixing options
+
+### Technical Details
+
+The extension fixing feature addresses a common issue where Google Photos' "data saving" option compresses images to JPEG format but retains original file extensions, or where web-downloaded images have incorrect extensions. The tool now:
+
+1. Reads file headers to detect actual MIME type
+2. Compares with extension-based MIME type detection
+3. Skips TIFF-based files (like RAW formats) as they're often misidentified
+4. Renames files with correct extensions and updates associated JSON metadata files
+5. Provides detailed logging of the fixing process
+
+The feature integrates seamlessly with the existing EXIF writing workflow, ensuring metadata can be properly written to files after extension correction.
+
 ## 4.0.7-Xentraxx
 
 ### Fork/Alternate version

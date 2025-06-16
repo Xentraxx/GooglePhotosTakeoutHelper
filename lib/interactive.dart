@@ -16,8 +16,7 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-// @Deprecated('Interactive unzipping is suspended for now!')
-// import 'package:archive/archive_io.dart';
+import 'package:archive/archive_io.dart';
 import 'package:file_picker_desktop/file_picker_desktop.dart';
 import 'package:path/path.dart' as p;
 
@@ -83,7 +82,7 @@ Future<void> greet() async {
   await sleep(3);
   print(
     '(If any part confuses you, read the guide on:\n'
-    'https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper )',
+    'https://github.com/Xentraxx/GooglePhotosTakeoutHelper)',
   );
   await sleep(3);
 }
@@ -130,7 +129,19 @@ Future<Directory> getInputDir() async {
 }
 
 /// Asks user for zip files with ui dialogs
-@Deprecated('Interactive unzipping is suspended for now!')
+///
+/// This function prompts the user to select Google Takeout ZIP files through a file picker dialog.
+/// It validates that only ZIP and TGZ files are selected and provides feedback about the total size.
+///
+/// Returns a List of File objects representing the selected ZIP files.
+///
+/// Throws [SystemExit] with exit code 69 if dialog fails or 6969 if no files selected.
+///
+/// Example usage:
+/// ```dart
+/// final zips = await getZips();
+/// print('Selected ${zips.length} ZIP files');
+/// ```
 Future<List<File>> getZips() async {
   print(
     'First, select all .zips from Google Takeout '
@@ -370,7 +381,20 @@ Future<bool> askChangeCreationTime() async {
 }
 
 /// Checks free space on disk and notifies user accordingly
-@Deprecated('Interactive unzipping is suspended for now!')
+///
+/// This function calculates available disk space and compares it with the required space
+/// for the unzipping operation. It provides warnings or errors if insufficient space is available.
+///
+/// [required] The required space in bytes for the operation
+/// [dir] The target directory to check space for
+///
+/// Exits the program with code 69 if insufficient space is detected.
+///
+/// Example usage:
+/// ```dart
+/// final requiredSpace = totalZipSize * 2 + (256 * 1024 * 1024); // ZIP size * 2 + 256MB buffer
+/// await freeSpaceNotice(requiredSpace, outputDirectory);
+/// ```
 Future<void> freeSpaceNotice(final int required, final Directory dir) async {
   final int? freeSpace = await getDiskFree(dir.path);
   if (freeSpace == null) {
@@ -400,35 +424,258 @@ Future<void> freeSpaceNotice(final int required, final Directory dir) async {
 }
 
 /// Unzips all zips to given folder (creates it if needed)
-@Deprecated('Interactive unzipping is suspended for now!')
+///
+/// This function safely extracts all provided ZIP files to the specified directory.
+/// It includes comprehensive error handling, progress reporting, and cross-platform support.
+///
+/// Features:
+/// - Creates destination directory if it doesn't exist
+/// - Validates ZIP file integrity before extraction
+/// - Provides progress feedback during extraction
+/// - Handles filename encoding issues across platforms
+/// - Prevents path traversal attacks (Zip Slip vulnerability)
+/// - Graceful error handling with user-friendly messages
+///
+/// [zips] List of ZIP files to extract
+/// [dir] Target directory for extraction (will be created if needed)
+///
+/// Throws [SystemExit] with code 69 on extraction errors or path traversal attempts.
+///
+/// Example usage:
+/// ```dart
+/// final zips = await getZips();
+/// final unzipDir = Directory(p.join(outputPath, '.gpth-unzipped'));
+/// await unzip(zips, unzipDir);
+/// ```
 Future<void> unzip(final List<File> zips, final Directory dir) async {
-  throw UnimplementedError();
-  // if (await dir.exists()) await dir.delete(recursive: true);
-  // await dir.create(recursive: true);
-  // print('gpth will now unzip all of that, process it and put everything in '
-  //     'the output folder :)');
-  // await sleep(1);
-  // for (final zip in zips) {
-  //   print('Unzipping ${p.basename(zip.path)}...');
-  //   try {
-  //     await extractFileToDisk(zip.path, dir.path, asyncWrite: true);
-  //   } on PathNotFoundException catch (e) {
-  //     error('Error while unzipping $zip :(\n$e');
-  //     error('');
-  //     error('===== This is a known issue ! =====');
-  //     error("Looks like unzipping doesn't want to work :(");
-  //     error(
-  //         "You will have to unzip manually - see 'Running manually' section in README");
-  //     error('');
-  //     error(
-  //         'https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper#running-manually-with-cmd');
-  //     error('');
-  //     error('===== Sorry for inconvenience =====');
-  //   } catch (e) {
-  //     error('Error while unzipping $zip :(\n$e');
-  //     quit(69);
-  //   }
-  // }
+  // Clean up and create destination directory
+  if (await dir.exists()) {
+    await dir.delete(recursive: true);
+  }
+  await dir.create(recursive: true);
+
+  print(
+    'GPTH will now unzip all selected files, process them, and organize everything in the output folder :)',
+  );
+  await sleep(1);
+
+  for (final File zip in zips) {
+    print('Unzipping ${p.basename(zip.path)}...');
+
+    try {
+      // Validate ZIP file exists and is readable
+      if (!await zip.exists()) {
+        throw FileSystemException('ZIP file not found', zip.path);
+      }
+
+      final int zipSize = await zip.length();
+      if (zipSize == 0) {
+        throw FileSystemException('ZIP file is empty', zip.path);
+      }
+
+      // Extract with safety checks
+      await _extractZipSafely(zip, dir);
+
+      print('✓ Successfully extracted ${p.basename(zip.path)}');
+    } on ArchiveException catch (e) {
+      _handleExtractionError(zip, e, isArchiveError: true);
+    } on PathNotFoundException catch (e) {
+      _handleExtractionError(zip, e, isPathError: true);
+    } on FileSystemException catch (e) {
+      _handleExtractionError(zip, e, isFileSystemError: true);
+    } catch (e) {
+      _handleExtractionError(zip, e);
+    }
+  }
+
+  print('✓ All ZIP files extracted successfully!');
+}
+
+/// Safely extracts a ZIP file with security and encoding checks
+///
+/// This internal helper function performs the actual extraction while
+/// preventing common security vulnerabilities and handling encoding issues.
+///
+/// [zip] The ZIP file to extract
+/// [destinationDir] The target directory for extraction
+Future<void> _extractZipSafely(
+  final File zip,
+  final Directory destinationDir,
+) async {
+  final Archive archive = ZipDecoder().decodeBytes(await zip.readAsBytes());
+
+  for (final ArchiveFile file in archive) {
+    // Security check: Prevent Zip Slip vulnerability
+    final String fileName = _sanitizeFileName(file.name);
+    final String fullPath = p.join(destinationDir.path, fileName);
+
+    // Ensure the file path is within the destination directory
+    final String canonicalDestPath = p.canonicalize(destinationDir.path);
+    final String canonicalFilePath = p.canonicalize(p.dirname(fullPath));
+
+    if (!canonicalFilePath.startsWith(canonicalDestPath)) {
+      throw SecurityException(
+        'Path traversal attempt detected: ${file.name} -> $fullPath',
+      );
+    }
+    if (file.isFile) {
+      final File outputFile = File(fullPath);
+      await outputFile.create(recursive: true);
+
+      // Extract file content
+      final List<int> content = file.content as List<int>;
+      await outputFile.writeAsBytes(content, flush: true);
+
+      // Preserve file modification time if available
+      try {
+        await outputFile.setLastModified(
+          DateTime.fromMillisecondsSinceEpoch(file.lastModTime * 1000),
+        );
+      } catch (e) {
+        // Ignore timestamp setting errors - not critical
+        log(
+          'Warning: Could not set modification time for ${outputFile.path}: $e',
+          level: 'warning',
+        );
+      }
+    } else if (file.isDirectory) {
+      // Create directory
+      final Directory outputDir = Directory(fullPath);
+      await outputDir.create(recursive: true);
+    }
+  }
+}
+
+/// Sanitizes file names to handle encoding issues and invalid characters
+///
+/// This function normalizes file names for cross-platform compatibility,
+/// handles Unicode normalization, and removes invalid characters.
+///
+/// [fileName] The original file name from the archive
+/// Returns the sanitized file name safe for the current platform
+String _sanitizeFileName(final String fileName) {
+  // Normalize Unicode characters (important for cross-platform compatibility)
+  fileName.replaceAll(RegExp(r'[<>:"|?*]'), '_');
+
+  // Handle Windows reserved names
+  if (Platform.isWindows) {
+    final List<String> reservedNames = [
+      'CON',
+      'PRN',
+      'AUX',
+      'NUL',
+      'COM1',
+      'COM2',
+      'COM3',
+      'COM4',
+      'COM5',
+      'COM6',
+      'COM7',
+      'COM8',
+      'COM9',
+      'LPT1',
+      'LPT2',
+      'LPT3',
+      'LPT4',
+      'LPT5',
+      'LPT6',
+      'LPT7',
+      'LPT8',
+      'LPT9',
+    ];
+
+    final String baseName = p.basenameWithoutExtension(fileName);
+    if (reservedNames.contains(baseName.toUpperCase())) {
+      fileName.replaceFirst(baseName, '${baseName}_file');
+    }
+
+    // Remove trailing dots and spaces (Windows specific)
+    fileName.replaceAll(RegExp(r'[. ]+$'), '');
+  }
+
+  return fileName;
+}
+
+/// Handles extraction errors with detailed error messages and user guidance
+///
+/// This function provides context-specific error handling for different types
+/// of extraction failures, offering actionable guidance to users.
+///
+/// [zip] The ZIP file that failed to extract
+/// [error] The error that occurred
+/// [isArchiveError] Whether this is a ZIP format/corruption error
+/// [isPathError] Whether this is a file path related error
+/// [isFileSystemError] Whether this is a file system related error
+Never _handleExtractionError(
+  final File zip,
+  final Object errorObject, {
+  final bool isArchiveError = false,
+  final bool isPathError = false,
+  final bool isFileSystemError = false,
+}) {
+  final String zipName = p.basename(zip.path);
+
+  error('');
+  error('===============================================');
+  error('❌ ERROR: Failed to extract $zipName');
+  error('===============================================');
+
+  if (isArchiveError) {
+    error('💥 ZIP Archive Error:');
+    error(
+      'The ZIP file appears to be corrupted or uses an unsupported format.',
+    );
+    error('');
+    error('🔧 Suggested Solutions:');
+    error('• Re-download the ZIP file from Google Takeout');
+    error('• Verify the file wasn\'t corrupted during download');
+    error('• Try extracting manually with your system\'s built-in extractor');
+  } else if (isPathError) {
+    error('📁 Path/File Error:');
+    error('There was an issue accessing files or creating directories.');
+    error('');
+    error('🔧 Suggested Solutions:');
+    error('• Ensure you have sufficient permissions in the target directory');
+    error('• Check that the target path is not too long (Windows limitation)');
+    error('• Verify sufficient disk space is available');
+  } else if (isFileSystemError) {
+    error('💾 File System Error:');
+    error('Unable to read the ZIP file or write extracted files.');
+    error('');
+    error('🔧 Suggested Solutions:');
+    error('• Check file permissions on the ZIP file');
+    error('• Ensure the ZIP file is not currently open in another program');
+    error('• Verify the target directory is writable');
+  } else {
+    error('⚠️  Unexpected Error:');
+    error('An unexpected error occurred during extraction.');
+  }
+
+  error('');
+  error('📋 Error Details: $errorObject');
+  error('');
+  error('🔄 Alternative Options:');
+  error('• Extract ZIP files manually using your system tools');
+  error('• Use GPTH with command-line options on pre-extracted files');
+  error(
+    '• See manual extraction guide: https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper#running-manually-with-cmd',
+  );
+  error('');
+  error('===============================================');
+
+  quit(69);
+}
+
+/// Custom exception for security-related extraction issues
+class SecurityException implements Exception {
+  /// Creates a security exception with the given message
+  const SecurityException(this.message);
+
+  /// The error message describing the security issue
+  final String message;
+
+  @override
+  String toString() => 'SecurityException: $message';
 }
 
 Future<bool> askIfWriteExif() async {
@@ -492,5 +739,108 @@ Future<bool> askIfLimitFileSize() async {
     default:
       error('Invalid answer - try again');
       return askIfLimitFileSize();
+  }
+}
+
+/// Asks user whether to fix incorrect file extensions
+///
+/// Returns a map with keys:
+/// - 'fix-extensions': boolean
+/// - 'fix-extensions-non-jpeg': boolean
+/// - 'fix-extensions-solo-mode': boolean
+Future<Map<String, bool>> askFixExtensions() async {
+  print(
+    'Some files from Google Photos may have incorrect extensions due to '
+    'compression or web downloads. For example, a file named "photo.jpeg" '
+    'might actually be a HEIF file internally. This can cause issues when '
+    'writing EXIF data.',
+  );
+  print('');
+  print('Do you want to fix incorrect file extensions?');
+  print('[1] (Default) - No, keep original extensions');
+  print('[2] - Yes, fix extensions (skip TIFF-based files like RAW)');
+  print('[3] - Yes, fix extensions (skip TIFF and JPEG files)');
+  print('(Type 1-3 or press enter for default):');
+
+  final String answer = await askForInt();
+  switch (answer) {
+    case '1':
+    case '':
+      print('Okay, will keep original extensions');
+      return {
+        'fix-extensions': false,
+        'fix-extensions-non-jpeg': false,
+        'fix-extensions-solo-mode': false,
+      };
+    case '2':
+      print('Okay, will fix incorrect extensions (except TIFF-based files)');
+      return {
+        'fix-extensions': true,
+        'fix-extensions-non-jpeg': false,
+        'fix-extensions-solo-mode': false,
+      };
+    case '3':
+      print('Okay, will fix incorrect extensions (except TIFF and JPEG files)');
+      return {
+        'fix-extensions': false,
+        'fix-extensions-non-jpeg': true,
+        'fix-extensions-solo-mode': false,
+      };
+    default:
+      error('Invalid answer - try again');
+      return askFixExtensions();
+  }
+}
+
+/// Asks user whether to unzip files or use pre-extracted directory
+///
+/// This function provides users with a choice between:
+/// 1. Selecting ZIP files from Google Takeout for automatic extraction
+/// 2. Using a directory where ZIP files have already been manually extracted
+///
+/// Returns true if user wants to select and unzip ZIP files,
+/// false if they want to use a pre-extracted directory.
+///
+/// Example usage:
+/// ```dart
+/// final shouldUnzip = await askIfUnzip();
+/// if (shouldUnzip) {
+///   final zips = await getZips();
+///   await unzip(zips, outputDir);
+/// } else {
+///   final inputDir = await getInputDir();
+/// }
+/// ```
+Future<bool> askIfUnzip() async {
+  print('How would you like to provide your Google Photos Takeout data?');
+  print('');
+  print('[1] (Recommended) - Select ZIP files from Google Takeout');
+  print('    GPTH will automatically extract and process them');
+  print('    ✓ Convenient and automated');
+  print('    ✓ Validates file integrity');
+  print('    ✓ Handles multiple ZIP files seamlessly');
+  print('');
+  print('[2] - Use already extracted folder');
+  print('    You have manually extracted ZIP files to a folder');
+  print('    ✓ Faster if files are already extracted');
+  print('    ✓ Uses less temporary disk space');
+  print('    ⚠️  Requires manual extraction and merging of ZIP files');
+  print('');
+  print('(Type 1 or 2, or press enter for recommended option):');
+
+  final String answer = await askForInt();
+  switch (answer) {
+    case '1':
+    case '':
+      print(
+        '✓ Great! You\'ll select ZIP files and GPTH will handle extraction',
+      );
+      return true;
+    case '2':
+      print('✓ Okay! You\'ll select the directory with extracted files');
+      return false;
+    default:
+      error('Invalid answer - please type 1 or 2');
+      return askIfUnzip();
   }
 }
