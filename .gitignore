@@ -14,3 +14,4 @@ pubspec.lock
 /test/generated
 /test/debug*
 .DS_Store
+.env
