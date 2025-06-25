@@ -51,6 +51,7 @@ Future<DateTime?> exifDateTimeExtractor(final File file) async {
     'image/x-nikon-nef',
     'image/x-nikon-nrw',
     'image/x-fuji-raf',
+    'image/x-panasonic-rw2',
     'image/x-adobe-dng',
     'image/x-raw',
     'image/tiff-fx',
