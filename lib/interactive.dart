@@ -232,7 +232,7 @@ Future<num> askDivideDates() async {
   print('[1] (default) - one big folder');
   print('[2] - year folders');
   print('[3] - year/month folders');
-  print('[3] - year/month/day folders');
+  print('[4] - year/month/day folders');
   print('(Type a number or press enter for default):');
   final String answer = await askForInt();
   switch (answer) {
