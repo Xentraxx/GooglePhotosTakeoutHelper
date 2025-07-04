@@ -87,7 +87,7 @@ Future<DateTime?> exifDateTimeExtractor(final File file) async {
     );
   } else if (exifToolInstalled) {
     log(
-      "$mimeType is a weird mime type! Please create an issue if you get this error message, as we currently can't handle it.",
+      "$mimeType is a weird mime type! If you didn't use the '--fix-extensions' flag, using it might fix the issue. If you used it, we currently can't handle this mimeType. Please create an issue in this case.",
       level: 'error',
     );
   } else {
