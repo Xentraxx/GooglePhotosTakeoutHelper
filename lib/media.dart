@@ -1,11 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'utils.dart';
-
-//Order is important!
-///This is the extraction method through which a Media got its dateTime.
-enum DateTimeExtractionMethod { json, exif, guess, jsonTryHard, none }
+import 'package:gpth/utils.dart';
 
 /// Abstract of a *media* - a photo or video
 /// Main thing is the [file] - this should not change
@@ -16,13 +12,6 @@ enum DateTimeExtractionMethod { json, exif, guess, jsonTryHard, none }
 /// you find a duplicate, use one that has lower [dateTakenAccuracy] number.
 /// this and [dateTaken] should either both be null or both filled
 class Media {
-  Media(
-    this.files, {
-    this.dateTaken,
-    this.dateTakenAccuracy,
-    this.dateTimeExtractionMethod,
-  });
-
   /// First file with media, used in early stage when albums are not merged
   ///
   /// BE AWARE OF HOW YOU USE IT
@@ -55,22 +44,27 @@ class Media {
   /// higher the worse
   int? dateTakenAccuracy;
 
-  /// The method/extractor that produced the DateTime ('json', 'exif', 'guess', 'jsonTryHard', 'none')
-  DateTimeExtractionMethod? dateTimeExtractionMethod;
-
   //cache
   Digest? _hash;
 
   /// will be used for finding duplicates/albums
-  /// WARNING: Returns same value for files > [defaultMaxFileSize]
-  Digest get hash => _hash ??=
-      ((firstFile.lengthSync() > defaultMaxFileSize) && enforceMaxFileSize)
-      ? Digest(<int>[0])
+  /// WARNING: Returns same value for files > [maxFileSize]
+  Digest get hash => _hash ??= firstFile.lengthSync() > maxFileSize
+      ? Digest([0])
       : sha256.convert(firstFile.readAsBytesSync());
 
+  /// Flag indicating if photo was shared from partner
+  bool isPartnerShared = false;
+
+  Media(
+    this.files, {
+    this.dateTaken,
+    this.dateTakenAccuracy,
+    this.isPartnerShared = false,
+  });
+
   @override
-  String toString() =>
-      'Media('
+  String toString() => 'Media('
       '$firstFile, '
       'dateTaken: $dateTaken'
       '${files.keys.length > 1 ? ', albums: ${files.keys}' : ''}'
