@@ -220,7 +220,7 @@ class InteractivePresenter with LoggerMixin {
   /// Prompts user to select output directory
   Future<void> promptForOutputDirectory() async {
     print(
-      'Select the output directory, where GPTH should move/copy your photos to.',
+      'Select the output directory, where GPTH should move your photos to.',
     );
     if (enableSleep) await _sleep(1);
   }
@@ -360,7 +360,6 @@ class InteractivePresenter with LoggerMixin {
     if (exifToolInstalled) {
       print(
         'This mode will write Exif data (dates/times/coordinates) back to your files. '
-        'Note that this mode will alter your original files, regardless of the "copy" mode.'
         'Do you want to continue with writing exif data enabled?',
       );
     } else {
@@ -370,7 +369,6 @@ class InteractivePresenter with LoggerMixin {
         'To achieve the best results, we strongly recommend to download Exiftool and place it next to this executable or in your \$PATH.'
         'If you plan on using this mode, close the program, install exiftool and come back.'
         'Please read the README.md to learn how to get Exiftool for your platform.'
-        'Note that this mode will alter your original files, regardless of the "copy" mode.'
         'Do you want to continue with writing exif data enabled?',
       );
     }
