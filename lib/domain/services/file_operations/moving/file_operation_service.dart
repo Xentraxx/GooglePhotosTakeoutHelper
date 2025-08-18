@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
+
+import '../../core/logging_service.dart';
 import '../../core/service_container.dart';
 
 /// High-performance file operation service with optimized I/O and concurrency control
 ///
 /// This service provides efficient file operations with streaming for large files,
 /// proper concurrency control, and cross-platform optimizations.
-class FileOperationService {
+class FileOperationService with LoggerMixin {
   static const int _maxConcurrentOperations = 4;
 
   final _operationSemaphore = _Semaphore(_maxConcurrentOperations);
@@ -168,11 +171,15 @@ class FileOperationService {
       }
       // Error code 0 means success, so we ignore it
     } catch (e) {
-      // For other exceptions, we can log and continue
-      print(
-        "[Warning]: Can't set modification time on $file: $e. "
-        'This happens on Windows sometimes. Can be ignored.',
-      );
+      // For other exceptions, check if it's the Windows "success" quirk
+      final errorMessage = e.toString();
+      if (errorMessage.contains('The operation completed successfully')) {
+        // This is a Windows quirk where it reports success as an error - ignore it
+        return;
+      }
+
+      // For genuine errors, we can log and continue
+      logError("Can't set modification time on $file: $e.");
     }
   }
 

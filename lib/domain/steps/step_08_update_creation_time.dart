@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:console_bars/console_bars.dart';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart';
 
@@ -183,7 +184,12 @@ class UpdateCreationTimeStep extends ProcessingStep {
       return 0;
     }
 
-    print('Found ${allFiles.length} files to update creation times...');
+    // Initialize progress bar - always visible
+    final progressBar = FillingBar(
+      desc: 'Updating creation times',
+      total: allFiles.length,
+      width: 50,
+    );
 
     int successCount = 0;
     int errorCount = 0;
@@ -192,10 +198,6 @@ class UpdateCreationTimeStep extends ProcessingStep {
     for (int i = 0; i < allFiles.length; i++) {
       final File file = allFiles[i];
 
-      // Show progress every 100 files
-      if (i % 100 == 0) {
-        print('Processing file ${i + 1} of ${allFiles.length}...');
-      }
 
       try {
         if (await _updateFileCreationTimeWin32(file)) {
@@ -211,8 +213,15 @@ class UpdateCreationTimeStep extends ProcessingStep {
         }
       }
 
+      // Update progress bar
+      progressBar.update(i + 1);
+      if (i + 1 == allFiles.length) {
+        print(''); // Add a newline after progress bar completion
+      }
+
       // Early exit if too many errors (prevents infinite retry scenarios)
       if (errorCount > 100) {
+        print(''); // Ensure we're on a new line after progress bar
         print(
           '⚠️  Too many errors ($errorCount), stopping creation time updates',
         );
