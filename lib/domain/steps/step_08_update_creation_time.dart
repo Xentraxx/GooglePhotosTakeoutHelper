@@ -198,7 +198,6 @@ class UpdateCreationTimeStep extends ProcessingStep {
     for (int i = 0; i < allFiles.length; i++) {
       final File file = allFiles[i];
 
-
       try {
         if (await _updateFileCreationTimeWin32(file)) {
           successCount++;

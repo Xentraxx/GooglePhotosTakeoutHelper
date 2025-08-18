@@ -2,15 +2,24 @@
 
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
+// 'dart:math' previously used for substring length guarding; no longer needed
 
 import 'package:exif_reader/exif_reader.dart';
 import 'package:mime/mime.dart';
 
 import '../../../../infrastructure/exiftool_service.dart';
 import '../../../../shared/constants.dart';
+import '../../../../shared/constants/exif_constants.dart';
 import '../../core/global_config_service.dart';
 import '../../core/logging_service.dart';
+
+// Helper struct to keep parsed DateTime along with source tag name
+// Kept private to this file.
+class _ParsedTag {
+  _ParsedTag({required this.tag, required this.dateTime});
+  final String tag;
+  final DateTime dateTime;
+}
 
 /// Service for extracting dates from EXIF data
 class ExifDateExtractor with LoggerMixin {
@@ -56,31 +65,9 @@ class ExifDateExtractor with LoggerMixin {
 
     //We use the native way for all supported mimeTypes of exif_reader for speed and performance. We trust the list at https://pub.dev/packages/exif_reader
     //We also know that the mimeTypes for RAW can never happen because the lookupMimeType() does not support them. However, leaving there in here for now cause they don't hurt.
-    final supportedNativeMimeTypes = {
-      'image/jpeg',
-      'image/tiff',
-      'image/heic',
-      'image/png',
-      'image/webp',
-      'image/jxl',
-      'image/x-sony-arw',
-      'image/x-canon-cr2',
-      'image/x-canon-cr3',
-      'image/x-canon-crw',
-      'image/x-nikon-nef',
-      'image/x-nikon-nrw',
-      'image/x-panasonic-rw2',
-      'image/x-fuji-raf',
-      'image/x-adobe-dng',
-      'image/x-raw',
-      'image/tiff-fx',
-      'image/x-portable-anymap',
-    };
 
     DateTime?
-    result; //this variable should be filled. That's the goal from here on.
-
-    // For video files, we should use exiftool directly
+    result; //this variable should be filled. That's the goal from here on.    // For video files, we should use exiftool directly
     if (mimeType?.startsWith('video/') == true) {
       if (globalConfig.exifToolInstalled) {
         result = await _exifToolExtractor(file);
@@ -94,14 +81,18 @@ class ExifDateExtractor with LoggerMixin {
       return null;
     }
 
-    if (supportedNativeMimeTypes.contains(mimeType)) {
+    if (supportedNativeExifMimeTypes.contains(mimeType)) {
       result = await _nativeExif_readerExtractor(file);
       if (result != null) {
         return result;
       } else {
         //If we end up here, we have a mimeType which should be supported by exif_reader, but the read failed regardless.
-        //Most probably the file does not contain any DateTime in exif. So we return null.
-        return null;
+        logWarning(
+          'Native exif_reader failed to extract DateTime from ${file.path} with MIME type $mimeType. '
+          'This format should be supported by exif_reader library. If you see this warning frequently, '
+          'please create an issue on GitHub. Falling back to ExifTool if available.',
+        );
+        // Continue to ExifTool fallback instead of returning null
       }
     }
     //At this point either we didn't do anything because the mimeType is unknown (null) or not supported by the native method.
@@ -116,7 +107,7 @@ class ExifDateExtractor with LoggerMixin {
     //This logic below is only to give a tailored error message because if you get here, sorry, then result stayed empty and we just don't support the file type.
     if (mimeType == 'image/jpeg') {
       logWarning(
-        '${file.path} has a mimeType of $mimeType. However, could not read it with exif_reader. This means, the file is probably corrupt',
+        '${file.path} has a mimeType of $mimeType. However, could not read it with exif_reader. This means, the file is probably corrupt.',
       );
     } else if (globalConfig.exifToolInstalled) {
       logError(
@@ -146,36 +137,66 @@ class ExifDateExtractor with LoggerMixin {
 
     try {
       final tags = await exiftool!.readExifData(file);
-      final dynamic datetimeValue =
-          tags['DateTimeOriginal'] ??
-          tags['MediaCreateDate'] ??
-          tags['CreationDate'] ??
-          tags['TrackCreateDate'] ??
-          tags['CreateDate'] ??
-          tags['DateTimeDigitized'] ??
-          tags['GPSDateStamp'] ??
-          tags['DateTime'];
+      // Collect and parse all candidate date tag values and pick the oldest one
+      final List<String> candidateKeys = [
+        'DateTimeOriginal',
+        'DateTime',
+        'CreateDate',
+        'DateCreated',
+        'CreationDate',
+        'MediaCreateDate',
+        'TrackCreateDate',
+        'EncodedDate',
+        'MetadataDate',
+        'ModifyDate',
+      ];
 
-      if (datetimeValue == null) {
+      final List<_ParsedTag> parsedDates = <_ParsedTag>[];
+
+      for (final key in candidateKeys) {
+        final dynamic value = tags[key];
+        if (value == null) continue;
+
+        String datetime = value.toString();
+
+        // Skip obviously invalid date patterns
+        if (datetime.startsWith('0000:00:00') ||
+            datetime.startsWith('0000-00-00')) {
+          logInfo(
+            "ExifTool returned invalid date '$datetime' for ${file.path}. Skipping this tag.",
+          );
+          continue;
+        }
+
+        // Normalize separators and prepare for parsing while preserving timezone
+        datetime = datetime
+            .replaceAll('-', ':')
+            .replaceAll('/', ':')
+            .replaceAll('.', ':')
+            .replaceAll('\\', ':')
+            .replaceAll(': ', ':0')
+            .substring(0, math.min(datetime.length, 19))
+            .replaceFirst(':', '-')
+            .replaceFirst(':', '-');
+
+        final DateTime? parsed = DateTime.tryParse(datetime);
+        if (parsed != null) {
+          parsedDates.add(_ParsedTag(tag: key, dateTime: parsed));
+        }
+      }
+
+      if (parsedDates.isEmpty) {
         logWarning(
-          "Exiftool was not able to extract an acceptable DateTime for ${file.path}.\n\tThose Tags are accepted: 'DateTimeOriginal', 'MediaCreateDate', 'CreationDate','TrackCreateDate','. The file has those Tags: ${tags.toString()}",
+          "Exiftool was not able to extract an acceptable DateTime for ${file.path}.\n\tThose Tags are accepted: 'DateTimeOriginal','DateTime','CreateDate','DateCreated','CreationDate','MediaCreateDate','TrackCreateDate','EncodedDate','MetadataDate','ModifyDate','FileModifyDate'. The file has those Tags: ${tags.toString()}",
         );
         return null;
       }
 
-      String datetime = datetimeValue.toString();
-      // Normalize separators and parse
-      datetime = datetime
-          .replaceAll('-', ':')
-          .replaceAll('/', ':')
-          .replaceAll('.', ':')
-          .replaceAll('\\', ':')
-          .replaceAll(': ', ':0')
-          .substring(0, math.min(datetime.length, 19))
-          .replaceFirst(':', '-')
-          .replaceFirst(':', '-');
+      // Choose the oldest (earliest) DateTime and remember the tag
+      parsedDates.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
+      final _ParsedTag chosen = parsedDates.first;
+      final DateTime parsedDateTime = chosen.dateTime;
 
-      final DateTime? parsedDateTime = DateTime.tryParse(datetime);
       if (parsedDateTime == DateTime.parse('2036-01-01T23:59:59.000000Z')) {
         //we keep this for safety for this edge case: https://ffmpeg.org/pipermail/ffmpeg-user/2023-April/056265.html
         logWarning(
@@ -183,7 +204,10 @@ class ExifDateExtractor with LoggerMixin {
         );
         return null;
       } else {
-        //Successfully extracted DateTime
+        //Successfully extracted DateTime; log which tag supplied it
+        logInfo(
+          'ExifTool chose tag ${chosen.tag} with value $parsedDateTime for ${file.path}',
+        );
         return parsedDateTime;
       }
     } catch (e) {
@@ -200,34 +224,63 @@ class ExifDateExtractor with LoggerMixin {
   /// [file] File to extract DateTime from
   /// Returns parsed DateTime or null if extraction fails
   Future<DateTime?> _nativeExif_readerExtractor(final File file) async {
-    // Read only the first 64KB which should contain EXIF APP1/APP2 segments.
-    const int exifScanWindow = 64 * 1024; // 64KB
-    final int fileLength = await file.length();
-    final int end = fileLength < exifScanWindow ? fileLength : exifScanWindow;
-    final bytesBuilder = BytesBuilder(copy: false);
-    // ignore: prefer_foreach
-    await for (final chunk in file.openRead(0, end)) {
-      bytesBuilder.add(chunk);
-    }
-    final tags = await readExifFromBytes(bytesBuilder.takeBytes());
-    String? datetime;
-    // try if any of these exists
-    datetime ??= tags['Image DateTime']?.printable;
-    datetime ??= tags['EXIF DateTimeOriginal']?.printable;
-    datetime ??= tags['EXIF DateTimeDigitized']?.printable;
-    if (datetime == null || datetime.isEmpty) return null;
-    // Normalize separators and parse
-    datetime = datetime
-        .replaceAll('-', ':')
-        .replaceAll('/', ':')
-        .replaceAll('.', ':')
-        .replaceAll('\\', ':')
-        .replaceAll(': ', ':0')
-        .substring(0, math.min(datetime.length, 19))
-        .replaceFirst(':', '-')
-        .replaceFirst(':', '-');
+    final bytes = await file.readAsBytes();
+    // this returns empty {} if file doesn't have exif so don't worry
+    final tags = await readExifFromBytes(bytes);
 
-    final DateTime? parsedDateTime = DateTime.tryParse(datetime);
+    final Map<String, String?> candidateTags = {
+      'EXIF DateTimeOriginal': tags['EXIF DateTimeOriginal']?.printable,
+      'Image DateTime': tags['Image DateTime']?.printable,
+      'EXIF CreateDate': tags['EXIF CreateDate']?.printable,
+      'EXIF DateCreated': tags['EXIF DateCreated']?.printable,
+      'EXIF CreationDate': tags['EXIF CreationDate']?.printable,
+      'EXIF MediaCreateDate': tags['EXIF MediaCreateDate']?.printable,
+      'EXIF TrackCreateDate': tags['EXIF TrackCreateDate']?.printable,
+      'EXIF EncodedDate': tags['EXIF EncodedDate']?.printable,
+      'EXIF MetadataDate': tags['EXIF MetadataDate']?.printable,
+      'EXIF ModifyDate': tags['EXIF ModifyDate']?.printable,
+    };
+
+    final List<_ParsedTag> parsedDates = <_ParsedTag>[];
+
+    for (final entry in candidateTags.entries) {
+      final String key = entry.key;
+      final String? value = entry.value;
+      if (value == null || value.isEmpty) continue;
+
+      String datetime = value;
+
+      // Skip obviously invalid date patterns
+      if (datetime.startsWith('0000:00:00') ||
+          datetime.startsWith('0000-00-00')) {
+        logInfo(
+          "exif_reader returned invalid date '$datetime' for ${file.path}. Skipping this tag.",
+        );
+        continue;
+      }
+
+      datetime = datetime
+          .replaceAll('-', ':')
+          .replaceAll('/', ':')
+          .replaceAll('.', ':')
+          .replaceAll('\\', ':')
+          .replaceAll(': ', ':0')
+          .substring(0, math.min(datetime.length, 19))
+          .replaceFirst(':', '-')
+          .replaceFirst(':', '-');
+
+      final DateTime? parsed = DateTime.tryParse(datetime);
+      if (parsed != null) {
+        parsedDates.add(_ParsedTag(tag: key, dateTime: parsed));
+      }
+    }
+
+    if (parsedDates.isEmpty) return null;
+
+    parsedDates.sort((final a, final b) => a.dateTime.compareTo(b.dateTime));
+    final _ParsedTag chosen = parsedDates.first;
+    final DateTime parsedDateTime = chosen.dateTime;
+
     if (parsedDateTime == DateTime.parse('2036-01-01T23:59:59.000000Z')) {
       //we keep this for safety for this edge case: https://ffmpeg.org/pipermail/ffmpeg-user/2023-April/056265.html
       logWarning(
@@ -235,7 +288,9 @@ class ExifDateExtractor with LoggerMixin {
       );
       return null;
     } else {
-      //Successfully extracted DateTime
+      logInfo(
+        'exif_reader chose tag ${chosen.tag} with value $parsedDateTime for ${file.path}',
+      );
       return parsedDateTime;
     }
   }
