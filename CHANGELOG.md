@@ -1,3 +1,67 @@
+## 4.2.0 (Unreleased) – Incremental Enhancements & New Date Strategy
+
+### ✨ New / Improved Features
+- Parent folder date extraction strategy (feature #28) – derives capture date from enclosing folder names when metadata is missing
+- Display ExifTool version in startup diagnostics for clearer environment visibility
+- Automatic use of `exiftool -fast` flag (issue #64) for quicker metadata reads on large libraries
+- Streamlined ZIP handling: simplified, fully streaming unzip implementation (lower memory footprint)
+
+### ⚡ Performance
+- Optimized file reading path for MIME / EXIF detection (reduced I/O + memory)
+- Further logging efficiency and progress bar refinements (Step 8 progress bar, suppressed false timestamp warnings)
+
+### 🛠 Fixes
+- Date division now applied only to `ALL_PHOTOS`, not album folders (issue #55)
+- Fixed issues #61 and #62 (album / path related edge cases)
+- Additional cleanup of deprecated copy mode remnants
+- More resilient handling when symlinks / test fixtures are present
+
+### 🧹 Maintenance / Refactor
+- Removed unused `fuzzysearch` dependency
+- LoggerMixin integration into ExifTool service
+- Continued internal simplifications & dead code removal
+
+### ✅ Stability & Tests
+- Extended test coverage for new parent-folder date strategy & edge cases
+- Adjusted tests for symlink detection and timestamp handling
+
+---
+
+## 4.1.0 – Performance, EXIF Enhancements & Logging Unification
+
+### ✨ Features
+- Panasonic RAW support added
+- EXIF validation layer introduced (early detection of malformed or missing metadata)
+- Unified logging service + extended structured logging across steps
+- Enhanced final output summary & statistics (hash caching, clearer step logs)
+
+### ⚡ Performance Improvements
+- Step 5 optimization (~30% faster – issue #44)
+- Hash calculation caching (speeds up duplicate detection & integrity checks)
+- General performance improvements across duplicate detection, moving logic & EXIF operations
+
+### 🛠 Bug Fixes
+- Resolved race conditions & file synchronization issues (Windows + cross-platform)
+- Fixed issues #39, #44, #45, #46, #47, #50 (duplicate detection, logging, performance & EXIF edge cases)
+- Corrected coordinates EXIF writing edge cases
+- Fixed crash on unsupported AVI variants & refined AVI EXIF write skips
+- Stabilized album creation logic & moving modes (all strategies fully implemented)
+- Fixed “nothing” album mode to prevent silent loss of album-only photos
+- Improved free space detection on Unix with fallbacks
+
+### 🔧 Refactoring & Cleanup
+- Large scale removal of legacy, deprecated & wrapper layers (post-architecture hardening)
+- Removed obsolete utilities and abstraction layers; simplified structure
+- Centralized and clarified interactive mode logic & prompts
+- Extensive test reorganization (more e2e + issue-focused tests)
+
+### ✅ Quality & Tooling
+- Expanded e2e and unit test coverage (new tests for moving modes, logging, album handling)
+- Improved logging granularity for Steps 1–8 (duplicate detection, date extraction, finalization)
+- Enhanced issue templates & project metadata
+
+---
+
 ## 4.0.9-Xentraxx - Major Architecture Refactor
 
 ### 🛡️ **BREAKING CHANGE: Copy Mode Completely Removed**

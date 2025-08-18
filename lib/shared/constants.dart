@@ -5,7 +5,7 @@
 library;
 
 /// Application version
-const String version = '4.1.0-Xentraxx';
+const String version = '4.2.0-Xentraxx';
 
 /// Default width for progress bars in console output
 const int defaultBarWidth = 40;
