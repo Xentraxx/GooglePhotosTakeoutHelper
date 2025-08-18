@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:coordinate_converter/coordinate_converter.dart';
 import 'package:gpth/domain/services/core/global_config_service.dart';
+import 'package:gpth/domain/services/core/logging_service.dart';
 import 'package:gpth/domain/services/metadata/exif_writer_service.dart';
 import 'package:gpth/infrastructure/exiftool_service.dart';
 import 'package:test/test.dart';
@@ -15,7 +16,7 @@ import 'package:test/test.dart';
 import '../setup/test_setup.dart';
 
 /// Mock ExifTool service for testing
-class MockExifToolService implements ExifToolService {
+class MockExifToolService with LoggerMixin implements ExifToolService {
   bool shouldFail = false;
   Map<String, dynamic>? lastWrittenData;
   File? lastWrittenFile;
