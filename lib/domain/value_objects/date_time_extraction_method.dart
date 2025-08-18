@@ -16,6 +16,9 @@ enum DateTimeExtractionMethod {
   /// Extracted from JSON with tryhard mode
   jsonTryHard,
 
+  /// Extracted from parent folder year pattern
+  folderYear,
+
   /// No date extraction performed
   none,
 }
@@ -34,6 +37,8 @@ extension DateTimeExtractionMethodExtensions on DateTimeExtractionMethod {
         return 3;
       case DateTimeExtractionMethod.jsonTryHard:
         return 4;
+      case DateTimeExtractionMethod.folderYear:
+        return 5;
       case DateTimeExtractionMethod.none:
         return 99;
     }
@@ -53,6 +58,8 @@ extension DateTimeExtractionMethodExtensions on DateTimeExtractionMethod {
         return 'filename guess';
       case DateTimeExtractionMethod.jsonTryHard:
         return 'JSON tryhard';
+      case DateTimeExtractionMethod.folderYear:
+        return 'folder year';
       case DateTimeExtractionMethod.none:
         return 'No extraction';
     }

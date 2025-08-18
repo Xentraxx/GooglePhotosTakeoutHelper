@@ -62,8 +62,8 @@ class MediaEntityCollection with LoggerMixin {
       DateTimeExtractionMethod.json, // JSON extractor (first priority)
       DateTimeExtractionMethod.exif, // EXIF extractor (second priority)
       DateTimeExtractionMethod.guess, // Filename guess extractor (if enabled)
-      DateTimeExtractionMethod
-          .jsonTryHard, // JSON tryhard extractor (last resort)
+      DateTimeExtractionMethod.jsonTryHard, // JSON tryhard extractor
+      DateTimeExtractionMethod.folderYear, // Folder year extractor (fallback)
     ];
 
     for (int i = 0; i < _media.length; i++) {

@@ -140,6 +140,77 @@ void main() {
       });
     });
 
+    group('Folder Year Extractor', () {
+      test('extracts year from "Photos from YYYY" pattern', () async {
+        // Create nested directory structure
+        final photoDir = fixture.createDirectory(
+          'Takeout/Google Photos/Photos from 2005',
+        );
+        final file = File('${photoDir.path}/test_image.jpg');
+        await file.create();
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNotNull);
+        expect(result!.year, equals(2005));
+        expect(result.month, equals(1));
+        expect(result.day, equals(1));
+      });
+
+      test('case insensitive matching for "photos from" pattern', () async {
+        final photoDir = fixture.createDirectory('Takeout/PHOTOS FROM 2010');
+        final file = File('${photoDir.path}/test_image.jpg');
+        await file.create();
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNotNull);
+        expect(result!.year, equals(2010));
+      });
+
+      test('returns null for unrecognized folder patterns', () async {
+        final photoDir = fixture.createDirectory('Takeout/Random Folder Name');
+        final file = File('${photoDir.path}/test_image.jpg');
+        await file.create();
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNull);
+      });
+
+      test('returns null for invalid years', () async {
+        final photoDir = fixture.createDirectory('Takeout/Photos from 1800');
+        final file = File('${photoDir.path}/test_image.jpg');
+        await file.create();
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNull);
+      });
+
+      test('returns null for future years beyond threshold', () async {
+        final futureYear = DateTime.now().year + 5;
+        final photoDir = fixture.createDirectory(
+          'Takeout/Photos from $futureYear',
+        );
+        final file = File('${photoDir.path}/test_image.jpg');
+        await file.create();
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNull);
+      });
+
+      test('handles file system errors gracefully', () async {
+        // Create a file with problematic path
+        final file = File('${fixture.basePath}/nonexistent/folder/test.jpg');
+
+        final result = await folderYearExtractor(file);
+
+        expect(result, isNull);
+      });
+    });
+
     group('JSON Coordinate Extractor', () {
       test('extracts coordinates from JSON with geoData', () async {
         final imageFile = fixture.createImageWithoutExif(

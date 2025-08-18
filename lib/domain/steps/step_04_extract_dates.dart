@@ -33,12 +33,20 @@ import '../models/pipeline_step_model.dart';
 /// - **Reliability**: Moderate - useful when metadata is missing
 /// - **Configuration**: Can be enabled/disabled via `guessFromName` setting
 ///
-/// ### 4. Aggressive JSON Matching (Lowest Priority)
+/// ### 4. Aggressive JSON Matching (Low Priority)
 /// - **Source**: JSON files with similar names or in same directory
 /// - **Accuracy**: Lower - heuristic matching when direct association fails
 /// - **Content**: Best-guess timestamps from related JSON files
 /// - **Format**: Inferred from nearby files with similar naming patterns
 /// - **Reliability**: Last resort when other methods fail
+///
+/// ### 5. Folder Year Extraction (Lowest Priority)
+/// - **Source**: Year patterns in parent folder names
+/// - **Accuracy**: Lowest - assigns January 1st of detected year
+/// - **Content**: Year extracted from folder patterns like "Photos from YYYY"
+/// - **Format**: Folder names containing 4-digit years (2000-current year)
+/// - **Reliability**: Basic fallback when no other date sources exist
+/// - **Use Case**: Google Photos exports with year-based folder organization
 ///
 /// ## Processing Logic
 ///
@@ -52,11 +60,12 @@ import '../models/pipeline_step_model.dart';
 ///
 /// ### Date Accuracy Tracking
 /// Each extracted date is assigned an accuracy level:
-/// - **Level 0**: JSON metadata (most accurate)
-/// - **Level 1**: EXIF data (very accurate)
-/// - **Level 2**: Filename patterns (moderately accurate)
-/// - **Level 3**: Aggressive matching (least accurate)
-/// - **Level 999**: No date found (will use fallback strategies)
+/// - **Level 1**: JSON metadata (most accurate)
+/// - **Level 2**: EXIF data (very accurate)
+/// - **Level 3**: Filename patterns (moderately accurate)
+/// - **Level 4**: Aggressive JSON matching (low accuracy)
+/// - **Level 5**: Folder year extraction (lowest accuracy)
+/// - **Level 99**: No date found (will use fallback strategies)
 ///
 /// ### Statistics Collection
 /// The step tracks detailed statistics:
@@ -72,6 +81,7 @@ import '../models/pipeline_step_model.dart';
 /// - **EXIF Extractor**: Always enabled (high reliability)
 /// - **Filename Extractor**: Controlled by `guessFromName` configuration
 /// - **Aggressive Extractor**: Always enabled as fallback
+/// - **Folder Year Extractor**: Always enabled as final fallback
 ///
 /// ### Processing Behavior
 /// - **Verbose Mode**: Provides detailed progress reporting and statistics
