@@ -22,10 +22,10 @@ class PathGeneratorService {
     final MovingContext context,
   ) {
     final String folderName = albumKey?.trim() ?? 'ALL_PHOTOS';
-    final String dateFolder = _generateDateFolder(
-      dateTaken,
-      context.dateDivision,
-    );
+    // Only apply date division to ALL_PHOTOS, not to Albums
+    final String dateFolder = albumKey == null
+        ? _generateDateFolder(dateTaken, context.dateDivision)
+        : '';
 
     return Directory(
       p.join(context.outputDirectory.path, folderName, dateFolder),
