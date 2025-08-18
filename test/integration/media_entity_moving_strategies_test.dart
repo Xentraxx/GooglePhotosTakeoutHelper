@@ -215,7 +215,7 @@ void main() {
 
         // Verify files exist in both locations
         final allPhotosPath = p.join(outputDir.path, 'ALL_PHOTOS', '2023');
-        final albumPath = p.join(outputDir.path, 'Vacation', '2023');
+        final albumPath = p.join(outputDir.path, 'Vacation');
         expect(Directory(allPhotosPath).existsSync(), isTrue);
         expect(Directory(albumPath).existsSync(), isTrue);
       });

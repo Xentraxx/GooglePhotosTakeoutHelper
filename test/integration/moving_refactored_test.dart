@@ -151,7 +151,7 @@ void main() {
         );
 
         expect(result.path, contains('Vacation Photos'));
-        expect(result.path, contains('2023'));
+        expect(result.path, isNot(contains('2023')));
       });
 
       test(

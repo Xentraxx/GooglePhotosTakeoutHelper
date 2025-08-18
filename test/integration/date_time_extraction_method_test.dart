@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('DateTimeExtractionMethod', () {
     test('should have all expected enum values', () {
-      expect(DateTimeExtractionMethod.values, hasLength(5));
+      expect(DateTimeExtractionMethod.values, hasLength(6));
       expect(
         DateTimeExtractionMethod.values,
         contains(DateTimeExtractionMethod.json),
@@ -20,6 +20,10 @@ void main() {
       expect(
         DateTimeExtractionMethod.values,
         contains(DateTimeExtractionMethod.jsonTryHard),
+      );
+      expect(
+        DateTimeExtractionMethod.values,
+        contains(DateTimeExtractionMethod.folderYear),
       );
       expect(
         DateTimeExtractionMethod.values,
@@ -46,7 +50,8 @@ void main() {
         expect(scores[1], equals(2)); // exif
         expect(scores[2], equals(3)); // guess
         expect(scores[3], equals(4)); // jsonTryHard
-        expect(scores[4], equals(99)); // none
+        expect(scores[4], equals(5)); // yearFolder
+        expect(scores[5], equals(99)); // none
       });
 
       test('should have unique accuracy scores except for edge cases', () {
@@ -118,7 +123,8 @@ void main() {
         expect(descriptions[1], contains('EXIF')); // exif
         expect(descriptions[2], contains('filename')); // guess
         expect(descriptions[3], contains('JSON')); // jsonTryHard
-        expect(descriptions[4], contains('No')); // none
+        expect(descriptions[4], contains('folder')); // folderYear
+        expect(descriptions[5], contains('No')); // none
       });
     });
 
@@ -131,7 +137,8 @@ void main() {
         expect(methods[1], equals(DateTimeExtractionMethod.exif));
         expect(methods[2], equals(DateTimeExtractionMethod.guess));
         expect(methods[3], equals(DateTimeExtractionMethod.jsonTryHard));
-        expect(methods[4], equals(DateTimeExtractionMethod.none));
+        expect(methods[4], equals(DateTimeExtractionMethod.folderYear));
+        expect(methods[5], equals(DateTimeExtractionMethod.none));
       });
 
       test('should support comparison by accuracy', () {

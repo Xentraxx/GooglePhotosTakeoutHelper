@@ -101,7 +101,7 @@ void main() {
       expect(allPhotosDir.existsSync(), isTrue);
 
       // Verify album directory exists
-      final albumDir = Directory('${outputDir.path}/Summer Vacation/2023');
+      final albumDir = Directory('${outputDir.path}/Summer Vacation');
       expect(albumDir.existsSync(), isTrue);
     });
 
