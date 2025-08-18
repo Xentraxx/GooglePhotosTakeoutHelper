@@ -30,7 +30,8 @@ class ExifToolService {
       try {
         final result = await Process.run(name, ['-ver']);
         if (result.exitCode == 0) {
-          print('ExifTool found in PATH: $name');
+          final version = result.stdout.toString().trim();
+          print('ExifTool found in PATH: $name (version $version)');
           return ExifToolService(name);
         }
       } catch (e) {
