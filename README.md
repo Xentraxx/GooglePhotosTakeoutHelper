@@ -27,6 +27,47 @@ When you export photos from Google Photos using [Google Takeout](https://takeout
 - ✅ **Handles special formats** (HEIC, Motion Photos, etc.)
 - ✅ **Fixes mismatches of file name and mime type** if google photos renamed e.g. a .heic to .jpeg (but mime type remains heic) we can fix this mismatch
 
+## Installation & Setup
+
+### 1. Download GPTH
+
+Download the latest executable from [releases](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
+
+**Package Managers:**
+- **Arch Linux**: `yay -S gpth-bin` (Maintained by TheLastGimbus, so this does not work with my fork. Just kept it here in case he merges my fork into the original project)
+
+**Building from Source:**
+```bash
+git clone https://github.com/Xentraxx/GooglePhotosTakeoutHelper.git
+cd GooglePhotosTakeoutHelper
+dart pub get
+dart compile exe bin/gpth.dart -o gpth
+```
+
+### 2. Install Prerequisites
+
+**ExifTool** (required for metadata handling):
+
+- **Windows**: Download from [exiftool.org](https://exiftool.org/) and rename `exiftool(-k).exe` to `exiftool.exe`
+  - Place `exiftool.exe` in your system PATH, or
+  - Place `exiftool.exe` in the same folder as `gpth.exe`
+  ```bash
+  # Or with Chocolatey (automatically adds to PATH):
+  choco install exiftool
+  ```
+- **Mac**: 
+  ```bash
+  brew install exiftool
+  ```
+  - Or download from [exiftool.org](https://exiftool.org/) and place `exiftool` in PATH or same folder as `gpth`
+- **Linux**: 
+  ```bash
+  sudo apt install libimage-exiftool-perl
+  ```
+  - Or download from [exiftool.org](https://exiftool.org/) and place `exiftool` in PATH or same folder as `gpth`
+
+**Note**: If ExifTool is not found in PATH or the same directory as GPTH, the tool will fall back to basic EXIF reading with limited format support. EXIF writing for non-JPEG formats requires ExifTool.
+
 ## Quick Start
 
 ### 1. Get Your Photos from Google Takeout
@@ -63,37 +104,13 @@ The biggest downside is, that you need the processing power to extract on the de
 
 **⚠️ Note that the files will be moved from the input folder during processing, so keep the original ZIPs as backup!**
 
-### 3. Install Prerequisites
+### 3. Run GPTH
 
-**ExifTool** (required for metadata handling):
+**Interactive Mode** (recommended for beginners):
+- Windows: Double-click `gpth.exe`
+- Mac/Linux: Run `./gpth-macos` or `./gpth-linux` in terminal
 
-- **Windows**: Download from [exiftool.org](https://exiftool.org/) and rename `exiftool(-k).exe` to `exiftool.exe`
-  - Place `exiftool.exe` in your system PATH, or
-  - Place `exiftool.exe` in the same folder as `gpth.exe`
-  ```bash
-  # Or with Chocolatey (automatically adds to PATH):
-  choco install exiftool
-  ```
-- **Mac**: 
-  ```bash
-  brew install exiftool
-  ```
-  - Or download from [exiftool.org](https://exiftool.org/) and place `exiftool` in PATH or same folder as `gpth`
-- **Linux**: 
-  ```bash
-  sudo apt install libimage-exiftool-perl
-  ```
-  - Or download from [exiftool.org](https://exiftool.org/) and place `exiftool` in PATH or same folder as `gpth`
-
-**Note**: If ExifTool is not found in PATH or the same directory as GPTH, the tool will fall back to basic EXIF reading with limited format support. EXIF writing for non-JPEG formats requires ExifTool.
-
-### 4. Download and Run GPTH
-
-1. Download the latest executable from [releases](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
-2. **Interactive Mode** (recommended for beginners):
-   - Windows: Double-click `gpth.exe`
-   - Mac/Linux: Run `./gpth-macos` or `./gpth-linux` in terminal
-3. Follow the prompts to select input/output folders and options
+Follow the prompts to select input/output folders and options
 
 ## Album Handling Options
 
@@ -205,7 +222,7 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 | Argument | Description |
 |----------|-------------|
-| `--divide-to-dates` | Folder structure: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day |
+| `--divide-to-dates` | Date-based folder structure for ALL_PHOTOS: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day (albums remain flattened) |
 | `--skip-extras` | Skip extra images like "-edited" versions |
 
 ### Metadata & Processing
@@ -309,6 +326,7 @@ GPTH uses multiple methods to determine correct photo dates:
 2. **EXIF data** from photo files
 3. **Filename patterns** (Screenshot_20190919-053857.jpg, etc.)
 4. **Aggressive matching** for difficult cases
+5. **Folder year extraction** (Photos from 2005 → January 1, 2005)
 
 ### 🔍 Duplicate Detection
 Removes identical files using content hashing, keeping the best copy (shortest filename, most metadata).
@@ -326,22 +344,6 @@ Extracts location data and timestamps from JSON files and writes them to media f
 - Multiple date-based folder structures
 - Preserve or reorganize album structure
 - Move files efficiently from input to organized output structure
-
-## Installation
-
-### Pre-built Binaries
-Download from [releases page](https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases)
-
-### Package Managers
-- **Arch Linux**: `yay -S gpth-bin`
-
-### Building from Source
-```bash
-git clone https://github.com/Xentraxx/GooglePhotosTakeoutHelper.git
-cd GooglePhotosTakeoutHelper
-dart pub get
-dart compile exe bin/gpth.dart -o gpth
-```
 
 ## Troubleshooting
 
