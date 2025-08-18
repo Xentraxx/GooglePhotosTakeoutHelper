@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:exif_reader/exif_reader.dart';
 import 'package:mime/mime.dart';
@@ -199,9 +200,16 @@ class ExifDateExtractor with LoggerMixin {
   /// [file] File to extract DateTime from
   /// Returns parsed DateTime or null if extraction fails
   Future<DateTime?> _nativeExif_readerExtractor(final File file) async {
-    final bytes = await file.readAsBytes();
-    // this returns empty {} if file doesn't have exif so don't worry
-    final tags = await readExifFromBytes(bytes);
+    // Read only the first 64KB which should contain EXIF APP1/APP2 segments.
+    const int exifScanWindow = 64 * 1024; // 64KB
+    final int fileLength = await file.length();
+    final int end = fileLength < exifScanWindow ? fileLength : exifScanWindow;
+    final bytesBuilder = BytesBuilder(copy: false);
+    // ignore: prefer_foreach
+    await for (final chunk in file.openRead(0, end)) {
+      bytesBuilder.add(chunk);
+    }
+    final tags = await readExifFromBytes(bytesBuilder.takeBytes());
     String? datetime;
     // try if any of these exists
     datetime ??= tags['Image DateTime']?.printable;

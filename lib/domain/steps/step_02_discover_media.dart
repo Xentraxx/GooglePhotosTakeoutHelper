@@ -263,11 +263,15 @@ class DiscoverMediaStep extends ProcessingStep {
       await for (final entity in directory.list(recursive: true)) {
         if (entity is File) {
           try {
-            // Try to detect MIME type by reading file content
-            final bytes = await entity.readAsBytes();
+            // Reading first 512 bytes is sufficient for reliable MIME type detection
+            const headerSize = 512; // Read first 512 bytes for MIME detection
+            final fileSize = await entity.length();
+            final bytesToRead = fileSize < headerSize ? fileSize : headerSize;
+
+            final headerBytes = await entity.openRead(0, bytesToRead).first;
             final String? mimeType = lookupMimeType(
               entity.path,
-              headerBytes: bytes,
+              headerBytes: headerBytes,
             );
 
             if (mimeType != null &&
