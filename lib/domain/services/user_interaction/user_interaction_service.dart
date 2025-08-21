@@ -242,11 +242,13 @@ class ConsolidatedInteractiveService with LoggerMixin {
       switch (input) {
         case 'y':
         case 'yes':
+        case '2':
           await _presenter.showUserSelection(input, 'yes, limit file sizes');
           return true;
         case 'n':
         case 'no':
         case '':
+        case '1':
           await _presenter.showUserSelection(
             input,
             'no, don\'t limit file sizes',
