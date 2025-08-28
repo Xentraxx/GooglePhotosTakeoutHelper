@@ -57,7 +57,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
    ```bash
    dart test
    ```
-5. fix link warnings
+5. fix lint warnings
 6. run "dart format ."
 7. Update documentation if needed
 8. Commit your changes with a clear commit message
