@@ -8,21 +8,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/file_operations/moving/file_operation_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/moving_context_model.dart';
-import 'package:gpth/domain/services/file_operations/moving/path_generator_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/duplicate_copy_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/json_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/media_entity_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/media_entity_moving_strategy_factory.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/nothing_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/reverse_shortcut_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/shortcut_moving_strategy.dart';
-import 'package:gpth/domain/services/file_operations/moving/symlink_service.dart';
+import 'package:gpth/gpth-lib.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

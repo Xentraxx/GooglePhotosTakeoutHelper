@@ -2,8 +2,7 @@ library;
 
 import 'dart:io';
 
-import 'package:gpth/domain/services/file_operations/file_extension_corrector_service.dart';
-import 'package:gpth/infrastructure/exiftool_service.dart';
+import 'package:gpth/gpth-lib.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

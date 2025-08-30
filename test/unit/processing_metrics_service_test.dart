@@ -3,10 +3,7 @@
 /// Tests the processing statistics and file count calculations.
 library;
 
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/media_entity_collection.dart';
-import 'package:gpth/domain/services/processing/processing_metrics_service.dart';
-import 'package:gpth/domain/value_objects/media_files_collection.dart';
+import 'package:gpth/gpth-lib.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';

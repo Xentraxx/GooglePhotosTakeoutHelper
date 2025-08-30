@@ -4,10 +4,7 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/services/core/formatting_service.dart';
-import 'package:gpth/domain/value_objects/media_files_collection.dart';
+import 'package:gpth/gpth-lib.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -256,31 +253,31 @@ void main() {
   group('StringUtilityExtensions', () {
     test('replaceLast replaces last occurrence', () {
       const text = 'hello world hello';
-      final result = text.replaceLast('hello', 'hi');
+      final result = text.replaceLastOcurrence('hello', 'hi');
       expect(result, equals('hello world hi'));
     });
 
     test('replaceLast returns same string when pattern not found', () {
       const text = 'hello world';
-      final result = text.replaceLast('xyz', 'abc');
+      final result = text.replaceLastOcurrence('xyz', 'abc');
       expect(result, equals('hello world'));
     });
 
     test('replaceLast handles empty strings', () {
       const text = '';
-      final result = text.replaceLast('hello', 'hi');
+      final result = text.replaceLastOcurrence('hello', 'hi');
       expect(result, equals(''));
     });
 
     test('replaceLast handles single occurrence', () {
       const text = 'hello world';
-      final result = text.replaceLast('hello', 'hi');
+      final result = text.replaceLastOcurrence('hello', 'hi');
       expect(result, equals('hi world'));
     });
 
     test('replaceLast replaces with empty string', () {
       const text = 'hello world hello';
-      final result = text.replaceLast('hello', '');
+      final result = text.replaceLastOcurrence('hello', '');
       expect(result, equals('hello world '));
     });
   });

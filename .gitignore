@@ -15,3 +15,6 @@ pubspec.lock
 /test/generated
 /test/debug*
 .DS_Store
+
+#Github_ignore folder
+.github_ignore

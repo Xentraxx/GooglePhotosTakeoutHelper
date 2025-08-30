@@ -32,11 +32,10 @@ library;
 
 import 'dart:io';
 
-import 'package:emoji_regex/emoji_regex.dart' as r;
+import 'package:emoji_regex/emoji_regex.dart' as regex;
 import 'package:exif_reader/exif_reader.dart';
-import 'package:gpth/domain/services/processing/filename_sanitizer_service.dart';
-import 'package:gpth/infrastructure/exiftool_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth-lib.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -52,7 +51,7 @@ final _filenameSanitizer = FilenameSanitizerService();
 /// Returns true if the text contains any emoji characters.
 /// Used throughout the test suite to verify emoji detection logic.
 bool containsEmoji(final String text) =>
-    r.emojiRegex().hasMatch(text) ||
+    regex.emojiRegex().hasMatch(text) ||
     RegExp(r'\u{FE0F}|\u{FE0E}', unicode: true).hasMatch(text);
 
 /// Helper function to encode emoji in a string (simplified test version).
@@ -394,7 +393,7 @@ void main() {
         // Create emoji folder with image
         const String emojiFolderName = 'test_💖❤️';
         final Directory emojiDir = Directory(
-          p.join(fixture.basePath, emojiFolderName),
+          path.join(fixture.basePath, emojiFolderName),
         );
         emojiDir.createSync(recursive: true);
 
@@ -414,7 +413,7 @@ void main() {
 
         final Directory hexDir = Directory(hexNameDir.path);
         expect(hexDir.existsSync(), isTrue);
-        final File hexImg = File(p.join(hexDir.path, 'img.jpg'));
+        final File hexImg = File(path.join(hexDir.path, 'img.jpg'));
         expect(hexImg.existsSync(), isTrue);
 
         // 2. Read EXIF from image in hex folder
@@ -448,15 +447,15 @@ void main() {
 
         // 4. Create shortcut/symlink to hex folder
         final Directory shortcutTarget = Directory(
-          p.join(fixture.basePath, 'shortcuts'),
+          path.join(fixture.basePath, 'shortcuts'),
         );
         shortcutTarget.createSync();
 
         if (Platform.isWindows) {
           // Test Windows shortcut creation logic
-          final String shortcutPath = p.join(
+          final String shortcutPath = path.join(
             shortcutTarget.path,
-            '${p.basename(hexDir.path)}.lnk',
+            '${path.basename(hexDir.path)}.lnk',
           );
           expect(
             () => File(shortcutPath).writeAsStringSync('dummy'),
@@ -465,7 +464,7 @@ void main() {
         } else {
           // Test Unix symlink creation
           final Link symlink = Link(
-            p.join(shortcutTarget.path, p.basename(hexDir.path)),
+            path.join(shortcutTarget.path, path.basename(hexDir.path)),
           );
           symlink.createSync(hexDir.path);
           expect(symlink.existsSync(), isTrue);
@@ -476,7 +475,7 @@ void main() {
         expect(restoredDir.path, contains('💖❤️'));
         expect(restoredDir.existsSync(), isTrue);
 
-        final File restoredImg = File(p.join(restoredDir.path, 'img.jpg'));
+        final File restoredImg = File(path.join(restoredDir.path, 'img.jpg'));
         expect(restoredImg.existsSync(), isTrue);
 
         // Verify EXIF data is preserved after decode
@@ -491,7 +490,7 @@ void main() {
 
       test('handles emoji files within regular folders', () {
         final normalDir = fixture.createDirectory('normal_folder');
-        final emojiFile = File(p.join(normalDir.path, 'photo_😊.jpg'));
+        final emojiFile = File(path.join(normalDir.path, 'photo_😊.jpg'));
         emojiFile.createSync();
         emojiFile.writeAsBytesSync([1, 2, 3]);
 
@@ -504,17 +503,17 @@ void main() {
         // But the emoji file should still exist
         final files = normalDir.listSync();
         expect(
-          files.any((final f) => p.basename(f.path).contains('😊')),
+          files.any((final f) => path.basename(f.path).contains('😊')),
           isTrue,
         );
       });
 
       test('preserves folder structure during emoji processing', () {
         final parentDir = fixture.createDirectory('parent');
-        final emojiSubDir = Directory(p.join(parentDir.path, 'sub_😊'));
+        final emojiSubDir = Directory(path.join(parentDir.path, 'sub_😊'));
         emojiSubDir.createSync();
 
-        final testFile = File(p.join(emojiSubDir.path, 'test.txt'));
+        final testFile = File(path.join(emojiSubDir.path, 'test.txt'));
         testFile.createSync();
         testFile.writeAsStringSync('test content');
 
@@ -523,7 +522,7 @@ void main() {
         );
         expect(encoded.parent.path, parentDir.path);
 
-        final encodedFile = File(p.join(encoded.path, 'test.txt'));
+        final encodedFile = File(path.join(encoded.path, 'test.txt'));
         expect(encodedFile.existsSync(), isTrue);
         expect(encodedFile.readAsStringSync(), 'test content');
       });
@@ -562,7 +561,7 @@ void main() {
         // This test would need to mock file system operations
         // For now, we'll test that the function doesn't throw
         final nonExistentDir = Directory(
-          p.join(fixture.basePath, 'nonexistent_😊'),
+          path.join(fixture.basePath, 'nonexistent_😊'),
         );
 
         expect(

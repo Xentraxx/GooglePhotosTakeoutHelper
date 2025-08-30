@@ -6,8 +6,9 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:gpth/infrastructure/exiftool_service.dart';
+import 'package:gpth/gpth-lib.dart';
 import 'package:test/test.dart';
+
 import '../setup/test_setup.dart';
 
 void main() {

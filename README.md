@@ -235,7 +235,7 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 | `--guess-from-name`      | Extract dates from filenames (enabled by default)                                                                        |
 | `--update-creation-time` | Sync creation time with modified time (Windows only)                                                                     |
 | `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)                                                                        |
-| `--fileDates`            | Provide a JSON dictionary with the dates per file to void reading it from EXIF when any file does not associated sidecar |
+| `--fileDates`            | Provide a JSON dictionary with the dates per file to avoid reading it from EXIF when any file does not associated sidecar |
 
 > The `--fileDates` argument should be a JSON dictionary that must have as key the full filepath (in unix format) and the value must be a dictionary with at least the key `oldestDate` which contains the date for the given filepath.  
 >
@@ -407,6 +407,20 @@ gpth --input "~/Takeout" --output "~/Photos" --divide-partner-shared
 
 ### Android Users
 Standard file managers reset photo dates when moving files. Use **Simple Gallery** to preserve timestamps.
+
+## 📈 Star History
+<a href="https://www.star-history.com/#Xentraxx/GooglePhotosTakeoutHelper&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date" />
+ </picture>
+</a>
+
+## 👥 Contributors
+<a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Xentraxx/GooglePhotosTakeoutHelper" width="100%"/>
+</a>
 
 ## Support This Project
 

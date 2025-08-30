@@ -62,14 +62,8 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/services/core/formatting_service.dart';
-import 'package:gpth/domain/services/core/logging_service.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/infrastructure/platform_service.dart';
-import 'package:gpth/infrastructure/windows_symlink_service.dart';
-import 'package:gpth/shared/extensions/file_extensions.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth-lib.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -116,7 +110,7 @@ void main() {
         ]);
 
         expect(
-          stream.wherePhotoVideo().map((final f) => p.basename(f.path)),
+          stream.wherePhotoVideo().map((final f) => path.basename(f.path)),
           emitsInOrder(['photo.jpg', 'video.mp4', 'image.png', emitsDone]),
         );
       });
