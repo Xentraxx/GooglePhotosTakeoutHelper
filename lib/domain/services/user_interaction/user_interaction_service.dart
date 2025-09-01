@@ -101,6 +101,15 @@ class ConsolidatedInteractiveService with LoggerMixin {
     while (true) {
       final input = await readUserInput();
       final int? answer = int.tryParse(input);
+
+      // Handle empty input (pressing enter) - default to first option (index 0)
+      if (input.isEmpty) {
+        final String choice = InteractivePresenter.albumOptions.keys.first;
+        final String description = InteractivePresenter.albumOptions[choice]!;
+        await _presenter.showUserSelection('0', '$choice: $description');
+        return choice;
+      }
+
       if (answer != null &&
           answer >= 0 &&
           answer < InteractivePresenter.albumOptions.length) {
@@ -256,7 +265,7 @@ class ConsolidatedInteractiveService with LoggerMixin {
           );
           return false;
         case 'no':
-           await _presenter.showUserSelection(
+          await _presenter.showUserSelection(
             input,
             'no, don\'t limit file sizes',
           );
