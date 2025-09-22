@@ -8,10 +8,12 @@ Transform your chaotic Google Photos Takeout into organized photo libraries with
 
 ## Important Note
 I will only sporadically look at issues and pull requests and will only fix critical bugs.
-The last release here should be stable enough for the average user.
-There are some open issues with enhancements and I am always happy about pull requests.
-Issues which don't include enough information and don't follow the provided format will be closed and not addressed.
-The more info you provide me, the more likely I am to look at it and attempt to fix it/implement your feature.
+The last release here should be stable enough for the average user, but it has some known issues.
+Lucky for you, @jaimetur is also helping very actively and is driving the project further (Thank you!).
+Please strongly consider using the prerelease version https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases/tag/v5.0.5 by jaimetur.
+It has many feature additions and bug fixes implemented and I only want to wait for more feedback before merging it into master.
+Please note that the README.md of this project already relefts the features and flags of v5.0.5 for the convenience of users which don't know how to switch the branch to see the correct README.
+Please give the prerelease a thumbs up if everything has worked well for you and report any issues here.
 
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
 
@@ -76,6 +78,7 @@ dart compile exe bin/gpth.dart -o gpth
 2. Deselect all, then select only **Google Photos**
 3. Download all ZIP files
 
+<!--suppress ALL -->
 <img width="75%" alt="gpth usage image tutorial" src="https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper/assets/40139196/8e85f58c-9958-466a-a176-51af85bb73dd">
 
 ### 2. Choose Your Extraction Method
@@ -116,7 +119,7 @@ Follow the prompts to select input/output folders and options
 
 GPTH offers several ways to handle your Google Photos albums:
 
-### 🔗 Shortcut (Recommended)
+### 1. 🔗 Shortcut (Recommended)
 **What it does:** Creates symbolic links from album folders to files in `ALL_PHOTOS`. The original files are moved to `ALL_PHOTOS`, and symlinks are created in album folders.
 
 **Advantages:**
@@ -132,23 +135,7 @@ GPTH offers several ways to handle your Google Photos albums:
 
 **Best for:** Most users who want space efficiency and better compatibility with modern applications and cloud services.
 
-### 📁 Duplicate Copy
-**What it does:** Creates actual file copies in both `ALL_PHOTOS` and album folders. Each photo appears as a separate physical file in every location.
-
-**Advantages:**
-- Works across all systems and applications
-- Complete independence between folders
-- Safe for moving/copying folders between devices
-- Album photos remain accessible even if `ALL_PHOTOS` is deleted
-
-**Disadvantages:**
-- Uses significantly more disk space (multiplied by number of albums)
-- Slower processing due to file copying
-- Changes to one copy don't affect others
-
-**Best for:** Users who need maximum compatibility, plan to share folders across different systems, or have plenty of disk space.
-
-### 🔄 Reverse Shortcut
+### 2. 🔄 Reverse Shortcut
 **What it does:** The opposite of shortcut mode. Files remain in their original album folders, and shortcuts are created in `ALL_PHOTOS` pointing to the album locations.
 
 **Advantages:**
@@ -163,7 +150,23 @@ GPTH offers several ways to handle your Google Photos albums:
 
 **Best for:** Users who primarily organize and browse photos by albums rather than chronologically.
 
-### 📄 JSON
+### 3. 📁 Duplicate Copy
+**What it does:** Creates actual file copies in both `ALL_PHOTOS` and album folders. Each photo appears as a separate physical file in every location.
+
+**Advantages:**
+- Works across all systems and applications
+- Complete independence between folders
+- Safe for moving/copying folders between devices
+- Album photos remain accessible even if `ALL_PHOTOS` is deleted
+
+**Disadvantages:**
+- ⚠️ Uses significantly more disk space (multiplied by number of albums)
+- Slower processing due to file copying
+- Changes to one copy don't affect others
+
+**Best for:** Users who need maximum compatibility, plan to share folders across different systems, or have plenty of disk space.
+
+### 4. 📄 JSON
 **What it does:** Creates a single `ALL_PHOTOS` folder with all files, plus an `albums-info.json` file containing metadata about which albums each file belonged to.
 
 **Advantages:**
@@ -179,8 +182,8 @@ GPTH offers several ways to handle your Google Photos albums:
 
 **Best for:** Developers, users migrating to photo management software that can read JSON metadata, or those who don't care about visual album organization.
 
-### ❌ Nothing
-**What it does:** Ignores albums entirely and creates only `ALL_PHOTOS` with all files organized chronologically. All files are moved to `ALL_PHOTOS` regardless of their source location.
+### 5. ❌ Nothing
+**What it does:** Doesn't create `Albums` folder. All photos from each album and from year folders are moved to `ALL_PHOTOS` with all files organized chronologically. All files are moved to `ALL_PHOTOS` regardless of their source location. If one file belong to more than 1 albums, then only 1 copy will be kept in `ALL_PHOTOS`
 
 **Advantages:**
 - Simplest processing
@@ -190,16 +193,35 @@ GPTH offers several ways to handle your Google Photos albums:
 - No data loss - all files are moved
 
 **Disadvantages:**
-- Completely loses album organization
-- No way to recover album information later
+- ⚠️ Completely loses album organization
+- ⚠️ No way to recover album information later
 
 **Best for:** Users who don't care about album organization and just want all photos in chronological order.
 
+### 6. 🗑️ Ignore Albums
+**What it does:** Ignores albums entirely and creates only `ALL_PHOTOS` with all files organized chronologically. All files in any Album folder is removed.
+
+**Advantages:**
+- Simplest processing
+- Fastest execution
+- Clean, single-folder result
+- No data loss - all files are moved
+
+**Disadvantages:**
+- ⚠️ Completely loses album organization
+- ⚠️ No way to recover album information later
+
+**Best for:** Users who don't care about album organization and just want all photos in chronological order.
+
+
 ## Important Notes
 
-- **File Movement:** GPTH moves files from the input to output directory to save space. Files are moved, not copied, which means the input directory structure will be modified as files are relocated.
-- **Album-Only Photos:** Some photos exist only in albums (not in year folders). GPTH handles these differently depending on the mode chosen.
-- **Duplicate Handling:** If a photo appears in multiple albums, the behavior varies by mode (shortcuts link to same file, duplicate-copy creates multiple copies, etc.).
+> [!IMPORTANT]  
+> - **File Movement:** GPTH moves files from the input to output directory to save space. Files are moved, not copied, which means the input directory structure will be modified as files are relocated.
+> - **Album-Only Photos:** Some photos exist only in albums (not in year folders). GPTH handles these differently depending on the mode chosen.
+> - **Duplicate Handling:** If a photo appears in multiple albums, the behavior varies by mode (shortcuts link to same file, duplicate-copy creates multiple copies, etc.).
+> - ⚠️ **Special Folders:** Special folders (`Archive`, `Trash`, `Locked Folder`...) will be excluded from any album strategy and will be directly moved to output folder within `Special Folders` subfolder.
+> 
 
 ## Command Line Usage
 
@@ -211,33 +233,35 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 ### Core Arguments
 
-| Argument         | Description                                                                         |
-|------------------|-------------------------------------------------------------------------------------|
-| `--input`, `-i`  | Input folder containing extracted Takeout or your unextracted zip files             |
-| `--output`, `-o` | Output folder for organized photos                                                  |
-| `--albums`       | Album handling: `shortcut`, `duplicate-copy`, `reverse-shortcut`, `json`, `nothing` |
-| `--help`, `-h`   | Show help and exit                                                                  |
+| Argument         | Description                                                                                   |
+|------------------|-----------------------------------------------------------------------------------------------|
+| `--input`, `-i`  | Input folder containing extracted Takeout or your unextracted zip files                       |
+| `--output`, `-o` | Output folder for organized photos                                                            |
+| `--albums`       | Album handling: `shortcut`, `duplicate-copy`, `reverse-shortcut`, `json`, `nothing`, `ignore` |
+| `--keep-input`   | Work on a temporary sibling copy of --input (suffix _tmp), keeping the original untouched     |
+
 
 ### Organization Options
 
-| Argument                  | Description                                                                                                                           |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `--divide-to-dates`       | Date-based folder structure for ALL_PHOTOS: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day (albums remain flattened) |
-| `--divide-partner-shared` | Separate partner shared media into a dedicated `PARTNER_SHARED` folder (works with date division)                                     |
-| `--skip-extras`           | Skip extra images like "-edited" versions                                                                                             |
+| Argument                  | Description                                                                                                                                          |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--divide-to-dates`       | Date-based folder structure for ALL_PHOTOS: `0`=one folder, `1`=by year, `2`=year/month, `3`=year/month/day (albums remain flattened) (default: `2`) |
+| `--divide-partner-shared` | Separate partner shared media into a dedicated `PARTNER_SHARED` folder (works with date division)                                                    |
+| `--skip-extras`           | Skip extra images like "-edited" versions                                                                                                            |
+| `--keep-duplicates`       | Keeps all duplicates files found in `_Duplicates` subfolder within in output folder instead of remove them totally                                   |
 
 ### Metadata & Processing
 
-| Argument                 | Description                                                                                                              |
-|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `--write-exif`           | Write GPS coordinates and dates to EXIF metadata (enabled by default)                                                    |
-| `--transform-pixel-mp`   | Convert Pixel Motion Photos (.MP/.MV) to .mp4                                                                            |
-| `--guess-from-name`      | Extract dates from filenames (enabled by default)                                                                        |
-| `--update-creation-time` | Sync creation time with modified time (Windows only)                                                                     |
-| `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)                                                                        |
-| `--fileDates`            | Provide a JSON dictionary with the dates per file to void reading it from EXIF when any file does not associated sidecar |
+| Argument                 | Description                                                                                                               |
+|--------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `--write-exif`           | Write GPS coordinates and dates to EXIF metadata (enabled by default)                                                     |
+| `--transform-pixel-mp`   | Convert Pixel Motion Photos (.MP/.MV) to .mp4                                                                             |
+| `--guess-from-name`      | Extract dates from filenames (enabled by default)                                                                         |
+| `--update-creation-time` | Sync creation time with modified time (Windows only)                                                                      |
+| `--limit-filesize`       | Skip files larger than 64MB (for low-RAM systems)                                                                         |
+| `--json-dates`           | Provide a JSON dictionary with the dates per file to avoid reading it from EXIF when any file does not associated sidecar |
 
-> The `--fileDates` argument should be a JSON dictionary that must have as key the full filepath (in unix format) and the value must be a dictionary with at least the key `oldestDate` which contains the date for the given filepath.  
+> The `--json-dates` argument should be a JSON dictionary that must have as key the full filepath (in unix format) and the value must be a dictionary with at least the key `oldestDate` which contains the date for the given filepath.  
 >
 > Example:
 > ```
@@ -255,9 +279,11 @@ gpth --input "/path/to/takeout" --output "/path/to/organized" --albums "shortcut
 
 Google Photos has an option of 'data saving' which will compress images to JPEG format but retain the original filename extension. Additionally, some web-downloaded images may have incorrect extensions (e.g., a file named `.jpeg` may actually be `.heif` internally).
 
-GPTH natively writes EXIF data to files with JPEG signatures, while other formats require ExifTool. Files with mismatched extensions can cause ExifTool to fail, so GPTH provides several extension fixing strategies:
+GPTH natively writes EXIF data to files with JPEG signatures, while other formats require ExifTool. Files with mismatched extensions can cause ExifTool to fail, so GPTH provides several extension fixing strategies.
 
-| Mode                            | Description                                           | Technical Details                                                                                                                                                   | When to Use                                                                                                   |
+You can configure extension fixing behavior with:
+
+| Argument                        | Description                                           | Technical Details                                                                                                                                                   | When to Use                                                                                                   |
 |---------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | `--fix-extensions=none`         | **Disable extension fixing entirely**                 | Files keep their original extensions regardless of content type. EXIF writing may fail for mismatched files.                                                        | When you're certain all extensions are correct, or when you want to preserve original filenames at all costs. |
 | `--fix-extensions=standard`     | **Default: Fix extensions but skip TIFF-based files** | Renames files where extension doesn't match MIME type, but avoids TIFF-based formats (like RAW files from cameras) which are often misidentified by MIME detection. | **Recommended for most users**. Balances safety with effectiveness. Good for typical Google Photos exports.   |
@@ -295,22 +321,15 @@ GPTH natively writes EXIF data to files with JPEG signatures, while other format
 - `standard` mode renames to: `image.png.jpg`
 - `conservative` mode: **Skips** (avoids touching JPEG content)
 
-You can configure extension fixing behavior with:
-
-| Argument                        | Description                                                                                        |
-|---------------------------------|----------------------------------------------------------------------------------------------------|
-| `--fix-extensions=none`         | Disable extension fixing entirely                                                                  |
-| `--fix-extensions=standard`     | **Default**: Fix extensions but skip TIFF-based files (like RAW formats) to avoid potential issues |
-| `--fix-extensions=conservative` | Fix extensions but skip both TIFF-based and JPEG files for maximum safety                          |
-| `--fix-extensions=solo`         | Fix extensions then exit immediately (standalone mode for preprocessing files)                     |
-
 ### Other Options
 
-| Argument          | Description                                              |
-|-------------------|----------------------------------------------------------|
-| `--interactive`   | Force interactive mode                                   |
-| `--verbose`, `-v` | Show detailed logging output                             |
-| `--fix`           | Special mode: fix dates in any folder (not just Takeout) |
+| Argument           | Description                                              |
+|--------------------|----------------------------------------------------------|
+| `--interactive`    | Force interactive mode                                   |
+| `--save-log`, `-l` | Save a log file into output folder (enabled by default)  |
+| `--verbose`, `-v`  | Show detailed logging output                             |
+| `--fix`            | Special mode: fix dates in any folder (not just Takeout) |
+| `--help`, `-h`     | Show help and exit                                       |
 
 ### Example Commands
 
@@ -378,6 +397,9 @@ gpth --input "~/Takeout" --output "~/Photos" --divide-partner-shared
 - Preserve or reorganize album structure
 - Move files efficiently from input to organized output structure
 
+## Changelog
+- Find the whole changelog file [here](CHANGELOG.md)
+
 ## Troubleshooting
 
 ### Common Issues
@@ -407,6 +429,20 @@ gpth --input "~/Takeout" --output "~/Photos" --divide-partner-shared
 
 ### Android Users
 Standard file managers reset photo dates when moving files. Use **Simple Gallery** to preserve timestamps.
+
+## 📈 Star History
+<a href="https://www.star-history.com/#Xentraxx/GooglePhotosTakeoutHelper&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Xentraxx/GooglePhotosTakeoutHelper&type=Date" />
+ </picture>
+</a>
+
+## 👥 Contributors
+<a href="https://github.com/Xentraxx/GooglePhotosTakeoutHelper/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Xentraxx/GooglePhotosTakeoutHelper" width="100%"/>
+</a>
 
 ## Support This Project
 
