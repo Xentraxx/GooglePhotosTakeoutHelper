@@ -12,7 +12,7 @@ The last release here should be stable enough for the average user, but it has s
 Lucky for you, @jaimetur is also helping very actively and is driving the project further (Thank you!).
 Please strongly consider using the prerelease version https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases/tag/v5.0.5 by jaimetur.
 It has many feature additions and bug fixes implemented and I only want to wait for more feedback before merging it into master.
-Please note that the README.md of this project already relefts the features and flags of v5.0.5 for the convenience of users which don't know how to switch the branch to see the correct README.
+Please note that the README.md of this project already reflects the features and flags of v5.0.5 for the convenience of users which don't know how to switch the branch to see the correct README.
 Please give the prerelease a thumbs up if everything has worked well for you and report any issues here.
 
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
