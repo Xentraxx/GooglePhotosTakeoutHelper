@@ -6,13 +6,6 @@
 
 Transform your chaotic Google Photos Takeout into organized photo libraries with proper dates, albums, and metadata.
 
-## Important Note
-I will only sporadically look at issues and pull requests and will only fix critical bugs.
-The last release here should be stable enough for the average user.
-There are some open issues with enhancements and I am always happy about pull requests.
-Issues which don't include enough information and don't follow the provided format will be closed and not addressed.
-The more info you provide me, the more likely I am to look at it and attempt to fix it/implement your feature.
-
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
 
 ## What This Tool Does

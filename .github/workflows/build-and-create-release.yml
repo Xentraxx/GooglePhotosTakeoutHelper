@@ -144,7 +144,7 @@ jobs:
     runs-on: ${{ fromJson('{
       "linux-x64":"ubuntu-22.04", 
       "linux-arm64":"ubuntu-22.04-arm",
-      "macos-x64":"macos-13",
+      "macos-x64":"macos-15-intel",
       "macos-arm64":"macos-latest",
       "windows-x64":"windows-latest",
       "windows-arm64":"windows-11-arm"}')
