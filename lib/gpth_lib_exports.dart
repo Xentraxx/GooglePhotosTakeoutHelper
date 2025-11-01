@@ -23,6 +23,7 @@ export 'common/services/core_services/global_config_service.dart';
 export 'common/services/core_services/global_pools.dart';
 export 'common/services/core_services/logging_service.dart';
 export 'common/services/core_services/processing_metrics_service.dart';
+export 'common/services/core_services/progress_saver_service.dart';
 // modules from common/services/file_operations_services
 export 'common/services/file_operations_services/file_extensions_service.dart';
 export 'common/services/file_operations_services/file_system_service.dart';

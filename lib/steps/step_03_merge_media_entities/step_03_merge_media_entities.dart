@@ -147,14 +147,48 @@ class MergeMediaEntitiesStep extends ProcessingStep with LoggerMixin {
 
   @override
   Future<StepResult> execute(final ProcessingContext context) async {
-    final totalSw = Stopwatch()..start();
+    const int stepId = 3;
+    // -------- Resume check: if step 3 is already completed, load and return stored result --------
+    try {
+      final progress = await StepProgressLoader.readProgressJson(context);
+      if (progress != null &&
+          StepProgressLoader.isStepCompleted(
+            progress,
+            stepId,
+            context: context,
+          )) {
+        final dur = StepProgressLoader.readDurationForStep(progress, stepId);
+        final data = StepProgressLoader.readResultDataForStep(progress, stepId);
+        final msg = StepProgressLoader.readMessageForStep(progress, stepId);
+        StepProgressLoader.updateMediaEntityCollection(
+          context,
+          progress['media_entity_collection_object'],
+          progressJson: progress,
+        );
+        logPrint(
+          '[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json',
+        );
+        return StepResult.success(
+          stepName: name,
+          duration: dur,
+          data: data,
+          message: msg.isEmpty
+              ? 'Resume: loaded Step $stepId results from progress.json'
+              : msg,
+        );
+      }
+    } catch (_) {
+      // If resume fails, continue with normal execution
+    }
+
+    final stopWatch = Stopwatch()..start();
 
     try {
       if (context.mediaCollection.isEmpty) {
-        totalSw.stop();
-        return StepResult.success(
+        stopWatch.stop();
+        final stepResult = StepResult.success(
           stepName: name,
-          duration: totalSw.elapsed,
+          duration: stopWatch.elapsed,
           data: {
             'duplicatesRemoved': 0,
             'remainingMedia': 0,
@@ -163,6 +197,14 @@ class MergeMediaEntitiesStep extends ProcessingStep with LoggerMixin {
           },
           message: 'No media to process.',
         );
+        // Persist progress.json only on success (do NOT save on failure)
+        await StepProgressSaver.saveProgress(
+          context: context,
+          stepId: stepId,
+          duration: stopWatch.elapsed,
+          stepResult: stepResult,
+        );
+        return stepResult;
       }
 
       // Wrapper orchestration only: delegate all business logic to the service.
@@ -175,10 +217,10 @@ class MergeMediaEntitiesStep extends ProcessingStep with LoggerMixin {
             context,
           ); // This is the method that contains all the logic for this step
 
-      totalSw.stop();
-      return StepResult.success(
+      stopWatch.stop();
+      final stepResult = StepResult.success(
         stepName: name,
-        duration: totalSw.elapsed,
+        duration: stopWatch.elapsed,
         data: {
           'entitiesMerged': s.entitiesMerged,
           'remainingMedia': s.remainingMedia,
@@ -203,11 +245,21 @@ class MergeMediaEntitiesStep extends ProcessingStep with LoggerMixin {
         },
         message: s.message,
       );
+
+      // Persist progress.json only on success (do NOT save on failure)
+      await StepProgressSaver.saveProgress(
+        context: context,
+        stepId: stepId,
+        duration: stopWatch.elapsed,
+        stepResult: stepResult,
+      );
+
+      return stepResult;
     } catch (e) {
-      totalSw.stop();
+      stopWatch.stop();
       return StepResult.failure(
         stepName: name,
-        duration: totalSw.elapsed,
+        duration: stopWatch.elapsed,
         error: e is Exception ? e : Exception(e.toString()),
         message: 'Failed to remove duplicates: $e',
       );

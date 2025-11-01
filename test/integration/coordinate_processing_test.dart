@@ -24,8 +24,6 @@
 /// - Verification of coordinate accuracy through read-back testing
 /// - Performance testing with large coordinate datasets
 /// - Logging verification for coordinate writing operations
-// ignore_for_file: prefer_expression_function_bodies
-
 library;
 
 import 'dart:convert';
@@ -450,6 +448,7 @@ class MockExifToolService extends ExifToolService {
   }
 
   @override
+  // ignore: prefer_expression_function_bodies
   Future<Map<String, dynamic>> readExifData(final File file) async {
     // Simulate no existing GPS coordinates
     return {};

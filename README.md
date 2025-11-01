@@ -6,13 +6,6 @@
 
 Transform your chaotic Google Photos Takeout into organized photo libraries with proper dates, albums, and metadata.
 
-## Important Note
-I will only sporadically look at issues and pull requests and will only fix critical bugs.
-The last release here should be stable enough for the average user.
-There are some open issues with enhancements and I am always happy about pull requests.
-Issues which don't include enough information and don't follow the provided format will be closed and not addressed.
-The more info you provide me, the more likely I am to look at it and attempt to fix it/implement your feature.
-
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
 
 ## What This Tool Does
@@ -394,6 +387,16 @@ gpth --input "~/Takeout" --output "~/Photos" --divide-partner-shared
 - Multiple date-based folder structures
 - Preserve or reorganize album structure
 - Move files efficiently from input to organized output structure
+- Group Special Folders (`Trash`, `Archive`, `Locked Folder`) into `Special Folder` directory
+- Group Untitled Albums into `Untitled Albums` directory
+
+### 🔄 Auto-Resume Capability
+- The tool detects if a previous execution was interrupted, and if so, when running again over the same output folder, it tries to resume from the step where it was interrupted.
+- For this function to work, the input and ouput folders should be the same as the previous execution.
+
+> [!IMPORTANT]  
+> - This feature only works if you maitain your input and output folder from previous execution and if the files in your input folder are not in Zip format.
+> - If you used the flag `--keep-input` in your first execution, then for the resume to take effect you need to use as input folder the folder where your input was cloned (tipically with the same name as your input folder and a suffix like `_tmp`).
 
 ## Changelog
 - Find the whole changelog file [here](CHANGELOG.md)

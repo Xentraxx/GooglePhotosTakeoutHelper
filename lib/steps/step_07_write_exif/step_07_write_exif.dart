@@ -169,17 +169,51 @@ class WriteExifStep extends ProcessingStep with LoggerMixin {
 
   @override
   Future<StepResult> execute(final ProcessingContext context) async {
-    final sw = Stopwatch()..start();
+    const int stepId = 7;
+    // -------- Resume check: if step 7 is already completed, load and return stored result --------
+    try {
+      final progress = await StepProgressLoader.readProgressJson(context);
+      if (progress != null &&
+          StepProgressLoader.isStepCompleted(
+            progress,
+            stepId,
+            context: context,
+          )) {
+        final dur = StepProgressLoader.readDurationForStep(progress, stepId);
+        final data = StepProgressLoader.readResultDataForStep(progress, stepId);
+        final msg = StepProgressLoader.readMessageForStep(progress, stepId);
+        StepProgressLoader.updateMediaEntityCollection(
+          context,
+          progress['media_entity_collection_object'],
+          progressJson: progress,
+        );
+        logPrint(
+          '[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json',
+        );
+        return StepResult.success(
+          stepName: name,
+          duration: dur,
+          data: data,
+          message: msg.isEmpty
+              ? 'Resume: loaded Step $stepId results from progress.json'
+              : msg,
+        );
+      }
+    } catch (_) {
+      // If resume fails, continue with normal execution
+    }
+
+    final stopWatch = Stopwatch()..start();
 
     try {
       logPrint(
-        '[Step 7/8] Writing EXIF data on physical files in output (this may take a while)...',
+        '[Step $stepId/8] Writing EXIF data on physical files in output (this may take a while)...',
       );
       if (!context.config.writeExif) {
-        sw.stop();
-        return StepResult.success(
+        stopWatch.stop();
+        final stepResult = StepResult.success(
           stepName: name,
-          duration: sw.elapsed,
+          duration: stopWatch.elapsed,
           data: {
             'coordinatesWritten': 0,
             'dateTimesWritten': 0,
@@ -187,6 +221,15 @@ class WriteExifStep extends ProcessingStep with LoggerMixin {
           },
           message: 'EXIF writing skipped per configuration',
         );
+        // Persist progress.json only on success (do NOT save on failure)
+        await StepProgressSaver.saveProgress(
+          context: context,
+          stepId: stepId,
+          duration: stopWatch.elapsed,
+          stepResult: stepResult,
+        );
+
+        return stepResult;
       }
 
       // Use the new service-level orchestrator to run the whole logic.
@@ -202,10 +245,10 @@ class WriteExifStep extends ProcessingStep with LoggerMixin {
       // Dump internal writer stats (resets counters) exactly as before.
       WriteExifAuxiliaryService.dumpWriterStats(logger: this);
 
-      sw.stop();
-      return StepResult.success(
+      stopWatch.stop();
+      final stepResult = StepResult.success(
         stepName: name,
-        duration: sw.elapsed,
+        duration: stopWatch.elapsed,
         data: {
           'coordinatesWritten': outcome.coordinatesWritten,
           'dateTimesWritten': outcome.dateTimesWritten,
@@ -215,14 +258,27 @@ class WriteExifStep extends ProcessingStep with LoggerMixin {
         },
         message: 'Wrote EXIF data to ${outcome.filesTouched} files',
       );
+
+      // Persist progress.json only on success (do NOT save on failure)
+      await StepProgressSaver.saveProgress(
+        context: context,
+        stepId: stepId,
+        duration: stopWatch.elapsed,
+        stepResult: stepResult,
+      );
+
+      return stepResult;
     } catch (e) {
-      sw.stop();
+      stopWatch.stop();
       if (!WriteExifProcessingService.shouldSilenceExiftoolError(e)) {
-        logError('[Step 7/8] Failed to write EXIF data: $e', forcePrint: true);
+        logError(
+          '[Step $stepId/8] Failed to write EXIF data: $e',
+          forcePrint: true,
+        );
       }
       return StepResult.failure(
         stepName: name,
-        duration: sw.elapsed,
+        duration: stopWatch.elapsed,
         error: e is Exception ? e : Exception(e.toString()),
         message: 'Failed to write EXIF data',
       );

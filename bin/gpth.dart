@@ -153,7 +153,7 @@ Future<void> main(final List<String> arguments) async {
     // the new log file inside that directory. This avoids file-lock errors on Windows.
     final Directory preCleanOut = Directory(config.outputPath);
     if (await preCleanOut.exists()) {
-      final bool needsClean = !await _isOutputDirectoryEmpty(
+      final bool needsClean = await _needsCleanOutputDirectory(
         preCleanOut,
         config,
       );
@@ -1043,7 +1043,7 @@ Future<ProcessingResult> _executeProcessing(
       forcePrint: true,
     );
   } else {
-    logWarning(
+    logDebug(
       'Skipping clone input folder (--keep-input = ${config.keepInput}, inputExtractedFromZip = $inputExtractedFromZipFlag).',
       forcePrint: true,
     );
@@ -1061,7 +1061,7 @@ Future<ProcessingResult> _executeProcessing(
   // Skip internal cleaning if it was already done before logger creation
   if (!precleanedOutput) {
     if (await outputDir.exists() &&
-        !await _isOutputDirectoryEmpty(outputDir, runtimeConfig)) {
+        await _needsCleanOutputDirectory(outputDir, runtimeConfig)) {
       if (runtimeConfig.isInteractiveMode) {
         if (await ServiceContainer.instance.interactiveService
             .askForCleanOutput()) {
@@ -1093,28 +1093,34 @@ Future<ProcessingResult> _executeProcessing(
 
 /// **OUTPUT DIRECTORY VALIDATION**
 ///
-/// Checks if the output directory is empty or only contains the input folder.
-/// This prevents accidental data loss by ensuring the user is aware of existing
-/// content that might be overwritten during processing.
+/// Determines whether the output directory **requires cleaning** before processing.
 ///
-/// **VALIDATION LOGIC:**
-/// - Considers directory empty if it has no files/folders
-/// - Allows input folder to exist inside output folder (common scenario)
-/// - Uses absolute paths to handle relative path edge cases
-/// - Provides basis for cleanup confirmation prompts
+/// **Decision rules:**
+/// - Returns **false** immediately if a `progress.json` exists in `outputDir` (resume mode enabled).
+/// - Otherwise, returns **true** if `outputDir` contains any entry **other than** the configured input folder.
+/// - Returns **false** if `outputDir` is empty or contains **only** the input folder.
 ///
-/// @param outputDir The output directory to check
-/// @param config Processing configuration with input path
-/// @returns true if directory is empty (safe to proceed)
-Future<bool> _isOutputDirectoryEmpty(
+/// **Rationale:**
+/// - Having `progress.json` indicates the directory holds a valid resume state; we avoid forcing a clean.
+/// - We ignore the input folder living inside the output directory (common layout).
+/// - Absolute paths are compared to avoid relative-path edge cases.
+///
+/// @param outputDir The output directory to inspect.
+/// @param config The processing configuration (used to resolve `inputPath`).
+/// @returns `true` if cleaning is required; `false` otherwise (or if `progress.json` exists).
+Future<bool> _needsCleanOutputDirectory(
   final Directory outputDir,
   final ProcessingConfig config,
-) => outputDir
-    .list()
-    .where(
-      (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
-    )
-    .isEmpty;
+) async {
+  final File progressFile = File(path.join(outputDir.path, 'progress.json'));
+  if (await progressFile.exists()) return false;
+  return !(await outputDir
+      .list()
+      .where(
+        (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
+      )
+      .isEmpty);
+}
 
 /// **OUTPUT DIRECTORY CLEANUP**
 ///
@@ -1135,13 +1141,17 @@ Future<void> _cleanOutputDirectory(
   final Directory outputDir,
   final ProcessingConfig config,
 ) async {
-  // Skip deleting any file/directory whose basename contains "PhotoMigrator" (case-insensitive).
+  // Skip deleting any file/directory whose basename contains "PhotoMigrator" (case-insensitive)
+  // or is exactly "progress.json" (case-insensitive).
   await for (final file in outputDir.list().where(
     (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
   )) {
-    final basename = path.basename(file.path);
-    if (basename.toLowerCase().contains('photomigrator')) {
-      continue; // Avoid remove PhotoMigrator Logs stored in Output folder.
+    final basename = path.basename(file.path).toLowerCase();
+    if (basename.contains('photomigrator')) {
+      continue; // Avoid removing PhotoMigrator Logs stored in Output folder.
+    }
+    if (basename == 'progress.json') {
+      continue; // Avoid removing progress.json file.
     }
     await file.delete(recursive: true);
   }

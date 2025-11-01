@@ -94,7 +94,41 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
 
   @override
   Future<StepResult> execute(final ProcessingContext context) async {
-    final stopwatch = Stopwatch()..start();
+    const int stepId = 2;
+    // -------- Resume check: if step 2 is already completed, load and return stored result --------
+    try {
+      final progress = await StepProgressLoader.readProgressJson(context);
+      if (progress != null &&
+          StepProgressLoader.isStepCompleted(
+            progress,
+            stepId,
+            context: context,
+          )) {
+        final dur = StepProgressLoader.readDurationForStep(progress, stepId);
+        final data = StepProgressLoader.readResultDataForStep(progress, stepId);
+        final msg = StepProgressLoader.readMessageForStep(progress, stepId);
+        StepProgressLoader.updateMediaEntityCollection(
+          context,
+          progress['media_entity_collection_object'],
+          progressJson: progress,
+        );
+        logPrint(
+          '[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json',
+        );
+        return StepResult.success(
+          stepName: name,
+          duration: dur,
+          data: data,
+          message: msg.isEmpty
+              ? 'Resume: loaded Step $stepId results from progress.json'
+              : msg,
+        );
+      }
+    } catch (_) {
+      // If resume fails, continue with normal execution
+    }
+
+    final stopWatch = Stopwatch()..start();
 
     try {
       logPrint('[Step 2/8] Discovering media files (this may take a while)...');
@@ -105,10 +139,12 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
 
       final totalFiles = result.yearFolderFiles + result.albumFolderFiles;
 
-      stopwatch.stop();
-      return StepResult.success(
+      stopWatch.stop();
+
+      // Build the StepResult first
+      final stepResult = StepResult.success(
         stepName: name,
-        duration: stopwatch.elapsed,
+        duration: stopWatch.elapsed,
         data: {
           'yearFolderFiles': result.yearFolderFiles,
           'albumFolderFiles': result.albumFolderFiles,
@@ -116,14 +152,24 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
           'extrasSkipped': result.extrasSkipped,
         },
         message:
-            'Discovered $totalFiles media files (${result.yearFolderFiles} from year folders, ${result.albumFolderFiles} from albums)'
-            '${result.extrasSkipped > 0 ? ', skipped ${result.extrasSkipped} extra files' : ''}',
+            'Discovered $totalFiles media files (${result.yearFolderFiles} from year folders, ${result.albumFolderFiles} from albums)${result.extrasSkipped > 0 ? ', skipped ${result.extrasSkipped} extra files' : ''}',
       );
+
+      // Persist progress.json only on success (do NOT save on failure)
+      await StepProgressSaver.saveProgress(
+        context: context,
+        stepId: stepId,
+        duration: stopWatch.elapsed,
+        stepResult: stepResult,
+      );
+
+      return stepResult;
     } catch (e) {
-      stopwatch.stop();
+      stopWatch.stop();
+      // Do NOT persist progress on failure. Keep previous progress.json intact.
       return StepResult.failure(
         stepName: name,
-        duration: stopwatch.elapsed,
+        duration: stopWatch.elapsed,
         error: e is Exception ? e : Exception(e.toString()),
         message: 'Failed to discover media files: $e',
       );

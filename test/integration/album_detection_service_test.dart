@@ -2,8 +2,6 @@
 ///
 /// Verifies album detection/normalization and statistics against the
 /// Google Photos Takeout processing model (new data model with FileEntity).
-// ignore_for_file: avoid_redundant_argument_values
-
 library;
 
 import 'dart:io';
@@ -36,9 +34,7 @@ void main() {
       secondaryFiles: const <FileEntity>[],
       albumsMap: const <String, AlbumEntity>{},
       dateTaken: dt,
-      dateAccuracy: null,
       dateTimeExtractionMethod: DateTimeExtractionMethod.none,
-      partnershared: false,
     );
 
     group('Album Detection and Merging', () {

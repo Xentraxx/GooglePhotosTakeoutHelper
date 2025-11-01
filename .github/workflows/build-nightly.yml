@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           # macOS
-          - os: macos-13
+          - os: macos-15-intel
             arch: x86_64
-            runs-on: macos-13
+            runs-on: macos-15-intel
           - os: macos-latest
             arch: arm64
             runs-on: macos-latest
@@ -62,7 +62,7 @@ jobs:
             osname=linux-arm64
           elif [[ "$osname" == "macos-latest" ]]; then
             osname=macos-arm64
-          elif [[ "$osname" == "macos-13" ]]; then
+          elif [[ "$osname" == "macos-15-intel" ]]; then
             osname=macos-x86_64
           elif [[ "$osname" == "windows-latest" ]]; then
             osname=windows-x86_64

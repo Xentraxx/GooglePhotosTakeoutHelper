@@ -19,28 +19,17 @@ const List<String> extraFormats = <String>[
   '-mix',
 
   // Edited Suffixes (language-specific)
-  // EN/US - thanks @DalenW
-  '-edited',
-  // PL
-  '-edytowane',
-  // DE - thanks @cintx
-  '-bearbeitet',
-  // NL - thanks @jaapp
-  '-bewerkt',
-  // JA - thanks @fossamagna
-  '-編集済み',
-  // ZH - Chinese
-  '-编辑',
-  // IT - thanks @rgstori
-  '-modificato',
-  // FR - for @palijn's problems <3
-  '-modifié',
-  // ES - @Sappstal report
-  '-ha editado',
-  // IT
-  '-editado',
-  // CA - @Sappstal report
-  '-editat',
+  '-edited', // EN/US - thanks @DalenW
+  '-edytowane', // PL
+  '-bearbeitet', // DE - thanks @cintx
+  '-bewerkt', // NL - thanks @jaapp
+  '-編集済み', // JA - thanks @fossamagna
+  '-编辑', // ZH - Chinese
+  '-modificato', // IT - thanks @rgstori
+  '-modifié', // FR - for @palijn's problems <3
+  '-ha editado', // ES - @Sappstal report
+  '-editado', // IT
+  '-editat', // CA - @Sappstal report
   // Add more "edited" flags in more languages if you want.
   // They need to be lowercase.
 ];

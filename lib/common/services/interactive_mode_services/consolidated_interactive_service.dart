@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_expression_function_bodies
-
 import 'dart:async';
 import 'dart:io';
 
@@ -792,8 +790,9 @@ class ConsolidatedInteractiveService with LoggerMixin {
 
 /// Extension methods for enum conversion
 extension AlbumBehaviorExtension on AlbumBehavior {
+  // ignore: prefer_expression_function_bodies
   static AlbumBehavior fromString(final String value) {
-    // Delegamos al método del propio enum para mantener una única fuente de verdad
+    // We delegate to the enum's own method to maintain a single source of truth.
     return AlbumBehavior.fromString(value);
   }
 }

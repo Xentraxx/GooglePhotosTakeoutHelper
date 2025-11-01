@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_expression_function_bodies
-
 import 'dart:io';
 
 import 'package:console_bars/console_bars.dart';
@@ -403,10 +401,8 @@ class FixExtensionService with LoggerMixin {
 
   /// Trims only trailing ASCII/Unicode spaces and tabs from a path segment or filename.
   /// We avoid full normalization to keep behavior minimal and predictable.
-  static String _trimRight(final String s) {
-    return s.replaceFirst(
-      RegExp(r'[\u0020\u0009]+$'),
-      '',
-    ); // Remove trailing spaces and tabs (common offenders for folder names)
-  }
+  static String _trimRight(final String s) => s.replaceFirst(
+    RegExp(r'[\u0020\u0009]+$'),
+    '',
+  ); // Remove trailing spaces and tabs (common offenders for folder names)
 }

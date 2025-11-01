@@ -1,3 +1,15 @@
+## 5.0.6
+
+### ✨ **New Features**
+  - Added Auto-Resume support to avoid repeat successful steps when tool is interrupted and executed again on the same output folder. (#87).
+
+### 🚀 **Improvements**
+  - Untitled Albums now are detected and moved to `Untitled Albums` forder. (only if albums strategy is `shortcut`, `reversed-shortcut` or `duplicate-copy`, the rest of albums strategies don't creates albums folders). (#86).
+
+### 🐛 **Bug Fixes**
+  - Minor Bug Fixing.
+
+
 ## 5.0.5
 
 ### ✨ **New Features**
