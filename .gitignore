@@ -27,3 +27,4 @@ pubspec.lock
 
 #Github_ignore folder
 .github_ignore
+progress.json
