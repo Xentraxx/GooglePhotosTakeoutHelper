@@ -1147,10 +1147,12 @@ Future<void> _cleanOutputDirectory(
     (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
   )) {
     final basename = path.basename(file.path).toLowerCase();
-    if (basename.contains('photomigrator'))
+    if (basename.contains('photomigrator')) {
       continue; // Avoid removing PhotoMigrator Logs stored in Output folder.
-    if (basename == 'progress.json')
+    }
+    if (basename == 'progress.json') {
       continue; // Avoid removing progress.json file.
+    }
     await file.delete(recursive: true);
   }
 }

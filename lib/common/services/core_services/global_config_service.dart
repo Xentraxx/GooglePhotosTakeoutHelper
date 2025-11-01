@@ -211,6 +211,7 @@ class GlobalConfigService {
   // Private helpers
   // ───────────────────────────────────────────────────────────────────────────
 
+  // ignore: strict_top_level_inference
   bool _asBool(final v, final bool fallback) {
     if (v is bool) return v;
     if (v is String) {
@@ -221,6 +222,7 @@ class GlobalConfigService {
     return fallback;
   }
 
+  // ignore: strict_top_level_inference
   int _asInt(final v, final int fallback) {
     if (v is int) return v;
     if (v is String) {

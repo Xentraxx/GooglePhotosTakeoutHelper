@@ -22,6 +22,8 @@
 // - On load, rebase to current OS + roots using dataset_root/output_root.
 // - If the context does not provide deserializers, rebuild domain objects here.
 
+// ignore_for_file: strict_top_level_inference
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -114,8 +116,9 @@ class StepProgressSaver with LoggerMixin {
       } catch (_) {}
       if (it == null && mc is Iterable) it = mc;
 
-      if (it != null)
+      if (it != null) {
         return it.map(_serializeMediaEntityCompact).toList(growable: false);
+      }
 
       try {
         final dynamic colJson = mc.toJson?.call();
@@ -258,8 +261,9 @@ class StepProgressSaver with LoggerMixin {
     } catch (_) {}
     try {
       final dynamic sd = album.sourceDirectories;
-      if (sd is Iterable)
+      if (sd is Iterable) {
         dirs = sd.map((final e) => '$e').toList(growable: false);
+      }
     } catch (_) {}
     return <String, dynamic>{'name': name, 'sourceDirectories': dirs};
   }
@@ -307,11 +311,12 @@ class StepProgressSaver with LoggerMixin {
     if (value == null) return null;
     if (value is num || value is String || value is bool) return value;
     if (value is DateTime) return value.toIso8601String();
-    if (value is Duration)
+    if (value is Duration) {
       return <String, dynamic>{
         'iso8601': _formatDurationIso8601(value),
         'seconds': value.inSeconds,
       };
+    }
     if (value is Enum) {
       try {
         return (value as dynamic).name;
@@ -489,6 +494,7 @@ class StepProgressLoader with LoggerMixin {
 
   static bool updateMediaEntityCollection(
     final ProcessingContext context,
+    // ignore: type_annotate_public_apis
     final snapshot, {
     final Map<String, dynamic>? progressJson,
     final bool onlyIfEmpty = true,
@@ -553,8 +559,9 @@ class StepProgressLoader with LoggerMixin {
         restoredList = rebased
             .map((final e) {
               if (e is Map<String, dynamic>) return _buildMediaEntityFromMap(e);
-              if (e is Map)
+              if (e is Map) {
                 return _buildMediaEntityFromMap(Map<String, dynamic>.from(e));
+              }
               return e as MediaEntity;
             })
             .toList(growable: false);
@@ -747,8 +754,6 @@ class StepProgressLoader with LoggerMixin {
         ? f['ranking'] as int
         : (f['ranking'] is num ? (f['ranking'] as num).toInt() : 0);
 
-    const DateAccuracy? fileAcc = null;
-
     final fe = FileEntity(
       sourcePath: src,
       targetPath: tgt,
@@ -821,7 +826,7 @@ class StepProgressLoader with LoggerMixin {
     if (snapshot is List) {
       return snapshot
           .map((final e) {
-            if (e is Map<String, dynamic>)
+            if (e is Map<String, dynamic>) {
               return _rebaseEntity(
                 Map<String, dynamic>.from(e),
                 oldInFs,
@@ -829,7 +834,8 @@ class StepProgressLoader with LoggerMixin {
                 newInPlat,
                 newOutPlat,
               );
-            if (e is Map)
+            }
+            if (e is Map) {
               return _rebaseEntity(
                 Map<String, dynamic>.from(e),
                 oldInFs,
@@ -837,6 +843,7 @@ class StepProgressLoader with LoggerMixin {
                 newInPlat,
                 newOutPlat,
               );
+            }
             return e;
           })
           .toList(growable: false);
@@ -903,24 +910,27 @@ class StepProgressLoader with LoggerMixin {
       return f;
     }
 
-    if (out['primaryFile'] is Map)
+    if (out['primaryFile'] is Map) {
       out['primaryFile'] = rebaseFile(
         Map<String, dynamic>.from(out['primaryFile'] as Map),
       );
+    }
     List<dynamic> reb(final List<dynamic> list) => list
         .map(
           (final e) => e is Map ? rebaseFile(Map<String, dynamic>.from(e)) : e,
         )
         .toList(growable: false);
 
-    if (out['secondaryFiles'] is List)
+    if (out['secondaryFiles'] is List) {
       out['secondaryFiles'] = reb(
         List<dynamic>.from(out['secondaryFiles'] as List),
       );
-    if (out['duplicatesFiles'] is List)
+    }
+    if (out['duplicatesFiles'] is List) {
       out['duplicatesFiles'] = reb(
         List<dynamic>.from(out['duplicatesFiles'] as List),
       );
+    }
 
     return out;
   }

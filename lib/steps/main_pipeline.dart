@@ -147,22 +147,24 @@ class ProcessingPipeline with LoggerMixin {
 
         // Stop processing if a critical step fails
         if (!result.isSuccess && _isCriticalStep(step)) {
-          if (config.verbose)
+          if (config.verbose) {
             logDebug(
               '\n⚠️  Critical step failed, stopping pipeline execution',
               forcePrint: true,
             );
+          }
           break;
         }
 
         // Stop after extension fixing in solo mode
         if (step is FixExtensionsStep &&
             !config.shouldContinueAfterExtensionFix) {
-          if (config.verbose)
+          if (config.verbose) {
             logDebug(
               '\n⚠️  Extension fixing solo mode complete, stopping pipeline execution',
               forcePrint: true,
             );
+          }
           break;
         }
       } catch (e) {
@@ -176,11 +178,12 @@ class ProcessingPipeline with LoggerMixin {
 
         stepResults.add(failureResult);
 
-        if (config.verbose)
+        if (config.verbose) {
           logDebug(
             '❌ ${step.name} failed with unexpected error: $e',
             forcePrint: true,
           );
+        }
 
         // Stop on critical step failure
         if (_isCriticalStep(step)) break;

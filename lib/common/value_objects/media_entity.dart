@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_getters_setters
+
 import 'dart:io';
 import 'package:gpth/gpth_lib_exports.dart';
 
@@ -200,8 +202,9 @@ class MediaEntity {
   /// Returns a copy swapping the given `secondary` with the current `primary`.
   /// The former primary becomes a secondary; normalization is applied afterward.
   MediaEntity swapPrimaryWithSecondary(final FileEntity secondary) {
-    if (!secondaryFiles.any((final f) => _sameIdentity(f, secondary)))
+    if (!secondaryFiles.any((final f) => _sameIdentity(f, secondary))) {
       return this;
+    }
     final all = getAllFiles();
     // Promote the provided secondary by lowering its ranking to beat all others.
     final promoted = _withRankingAdjusted(secondary, -1);

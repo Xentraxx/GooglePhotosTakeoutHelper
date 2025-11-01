@@ -111,8 +111,9 @@ class DiscoverMediaService with LoggerMixin {
         onEach: () {
           if (bar != null) {
             progressed++;
-            if ((progressed % 500) == 0 || progressed == plannedTotal)
+            if ((progressed % 500) == 0 || progressed == plannedTotal) {
               bar.update(progressed);
+            }
           }
         },
       )) {
@@ -145,8 +146,9 @@ class DiscoverMediaService with LoggerMixin {
         onEach: () {
           if (bar != null) {
             progressed++;
-            if ((progressed % 500) == 0 || progressed == plannedTotal)
+            if ((progressed % 500) == 0 || progressed == plannedTotal) {
               bar.update(progressed);
+            }
           }
         },
       )) {

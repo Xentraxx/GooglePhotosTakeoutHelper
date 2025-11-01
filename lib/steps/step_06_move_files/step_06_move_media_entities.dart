@@ -1,4 +1,6 @@
 // Step 6 (wrapper) - MoveMediaEntitiesStep
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'package:gpth/gpth_lib_exports.dart';
 
 /// Step 6: Move files to output directory

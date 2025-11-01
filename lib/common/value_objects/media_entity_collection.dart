@@ -1,3 +1,5 @@
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'dart:collection';
 import 'dart:io';
 import 'package:gpth/gpth_lib_exports.dart';

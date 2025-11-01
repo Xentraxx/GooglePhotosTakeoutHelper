@@ -99,7 +99,7 @@ class ExifGpsExtractor with LoggerMixin {
 
     if (supportedNativeExifMimeTypes.contains(mimeType)) {
       final sw = Stopwatch()..start();
-      final m = await _nativeExif_readerGpsExtractor(file);
+      final m = await nativeExifReaderGpsExtractor(file);
       nativeDur += sw.elapsed;
 
       if (m != null) {
@@ -137,7 +137,7 @@ class ExifGpsExtractor with LoggerMixin {
     return null;
   }
 
-  Future<Map<String, dynamic>?> _nativeExif_readerGpsExtractor(
+  Future<Map<String, dynamic>?> nativeExifReaderGpsExtractor(
     final File file,
   ) async {
     try {

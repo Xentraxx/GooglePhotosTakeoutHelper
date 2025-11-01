@@ -96,8 +96,9 @@ class FixExtensionService with LoggerMixin {
     if (actualMimeType == 'image/tiff') return false;
 
     // Check if extension matches content
-    if (actualMimeType == extensionMimeType)
+    if (actualMimeType == extensionMimeType) {
       return false; // Extension is correct
+    }
 
     // Log special cases
     if (extensionMimeType == 'video/mp4' &&
@@ -400,10 +401,8 @@ class FixExtensionService with LoggerMixin {
 
   /// Trims only trailing ASCII/Unicode spaces and tabs from a path segment or filename.
   /// We avoid full normalization to keep behavior minimal and predictable.
-  static String _trimRight(final String s) {
-    return s.replaceFirst(
-      RegExp(r'[\u0020\u0009]+$'),
-      '',
-    ); // Remove trailing spaces and tabs (common offenders for folder names)
-  }
+  static String _trimRight(final String s) => s.replaceFirst(
+    RegExp(r'[\u0020\u0009]+$'),
+    '',
+  ); // Remove trailing spaces and tabs (common offenders for folder names)
 }

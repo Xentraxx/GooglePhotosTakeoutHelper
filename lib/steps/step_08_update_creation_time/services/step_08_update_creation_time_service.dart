@@ -343,8 +343,9 @@ class UpdateCreationTimeService with LoggerMixin {
   DynamicLibrary? _loadLibC() {
     try {
       if (Platform.isLinux) return DynamicLibrary.open('libc.so.6');
-      if (Platform.isMacOS)
+      if (Platform.isMacOS) {
         return DynamicLibrary.process(); // libc is in the default namespace on macOS
+      }
       if (Platform.isAndroid) return DynamicLibrary.open('libc.so');
       return null;
     } catch (_) {

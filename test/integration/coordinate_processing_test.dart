@@ -448,6 +448,7 @@ class MockExifToolService extends ExifToolService {
   }
 
   @override
+  // ignore: prefer_expression_function_bodies
   Future<Map<String, dynamic>> readExifData(final File file) async {
     // Simulate no existing GPS coordinates
     return {};

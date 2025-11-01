@@ -425,8 +425,9 @@ class MoveMediaEntityService with LoggerMixin {
         );
       });
       final extra = failures - 5;
-      if (extra > 0)
+      if (extra > 0) {
         logError('[Step 6/8]   ... and $extra more errors', forcePrint: true);
+      }
     }
   }
 

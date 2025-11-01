@@ -307,8 +307,9 @@ class MergeMediaEntitiesService with LoggerMixin {
       // - Big/video files suffer with high seek concurrency. We reduce workers for those,
       //   and use higher concurrency for small files to fully utilize I/O.
       int quickWorkersFor(final int sz, final bool isVideo) {
-        if (isVideo || sz >= (64 << 20))
+        if (isVideo || sz >= (64 << 20)) {
           return 2; // ≥ 64MiB or video → very low concurrency
+        }
         if (sz >= (8 << 20)) return 4; // 8–64 MiB
         if (sz >= (1 << 20)) return 8; // 1–8 MiB
         return 24; // < 1 MiB
@@ -1011,8 +1012,9 @@ class MergeMediaEntitiesService with LoggerMixin {
         onRemoved: () {
           duplicateFilesRemoved++;
           doneIO++;
-          if ((doneIO % 250) == 0 || doneIO == duplicateFiles.length)
+          if ((doneIO % 250) == 0 || doneIO == duplicateFiles.length) {
             pbarIO.update(doneIO);
+          }
         },
       );
       stdout.writeln();

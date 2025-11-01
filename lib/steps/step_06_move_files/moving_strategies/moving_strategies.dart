@@ -1,3 +1,5 @@
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:gpth/gpth_lib_exports.dart';
@@ -55,8 +57,9 @@ class IgnoreAlbumsMovingStrategy extends MoveMediaEntityStrategy {
     }
 
     for (final fe in files) {
-      if (specialHandled.contains(fe))
+      if (specialHandled.contains(fe)) {
         continue; // skip already handled as Special Folder
+      }
       if (fe.isCanonical == true) {
         final sw = Stopwatch()..start();
         final File src = fe.asFile();
@@ -231,8 +234,9 @@ class NothingMovingStrategy extends MoveMediaEntityStrategy {
 
     // Delete all secondaries
     for (final sec in secondaries) {
-      if (specialHandled.contains(sec))
+      if (specialHandled.contains(sec)) {
         continue; // skip already moved to Special Folders
+      }
       final dsw = Stopwatch()..start();
       final File src = sec.asFile();
       try {
@@ -424,8 +428,9 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
 
         // Secondary entries: only NON-CANONICAL that belonged to this album
         for (final sec in secondaries) {
-          if (specialHandled.contains(sec))
+          if (specialHandled.contains(sec)) {
             continue; // do not include Special Folder files
+          }
           if (sec.isCanonical == true) continue;
           if (!MovingStrategyUtils.fileBelongsToAlbum(entity, sec, albumName)) {
             continue;
@@ -445,8 +450,9 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
 
     // Delete all secondaries from source (CANONICAL: no JSON entry; NON-CANONICAL: entry already recorded above)
     for (final sec in secondaries) {
-      if (specialHandled.contains(sec))
+      if (specialHandled.contains(sec)) {
         continue; // already moved to Special Folders
+      }
       final dsw = Stopwatch()..start();
       final File srcSec = sec.asFile();
       try {

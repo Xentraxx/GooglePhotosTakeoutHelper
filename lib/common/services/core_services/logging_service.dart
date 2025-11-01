@@ -384,8 +384,9 @@ class LoggingService {
   /// Converts an absolute Windows path to extended-length form (\\?\ or \\?\UNC\)
   String _toExtendedWindowsPath(final String absPath) {
     // Already extended or device path
-    if (absPath.startsWith(r'\\?\') || absPath.startsWith(r'\\.\'))
+    if (absPath.startsWith(r'\\?\') || absPath.startsWith(r'\\.\')) {
       return absPath;
+    }
     // UNC path
     if (absPath.startsWith(r'\\')) return r'\\?\UNC\' + absPath.substring(2);
     return r'\\?\' + absPath;
