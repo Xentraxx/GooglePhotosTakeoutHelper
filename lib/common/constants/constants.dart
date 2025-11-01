@@ -9,59 +9,59 @@ const String version = '5.0.6';
 
 /// Special folders
 const List<String> specialFolders = <String>[
-  'locked folder',  // EN only
-  'archive',        // EN
-  'trash',          // EN
-  'archivo',        // ES
-  'papelera',       // ES (trash)
-  'arquivo',        // PT
-  'lixeira',        // PT (trash)
-  'archivio',       // IT
-  'cestino',        // IT (trash)
-  'archive',        // FR
-  'corbeille',      // FR (trash)
-  'archiv',         // DE
-  'papierkorb',     // DE (trash)
-  'archief',        // NL
-  'prullenbak',     // NL (trash)
-  'архив',          // RU
-  'корзина',        // RU (trash)
-  'archiwum',       // PL
-  'kosz',           // PL (trash)
-  '档案',            // ZH (archive)
-  '回收站',          // ZH (trash)
-  'アーカイブ',       // JA
-  'ゴミ箱',          // JA (trash)
-  'arxiu',          // CA
-  'paperera',       // CA (trash)
+  'locked folder', // EN only
+  'archive', // EN
+  'trash', // EN
+  'archivo', // ES
+  'papelera', // ES (trash)
+  'arquivo', // PT
+  'lixeira', // PT (trash)
+  'archivio', // IT
+  'cestino', // IT (trash)
+  'archive', // FR
+  'corbeille', // FR (trash)
+  'archiv', // DE
+  'papierkorb', // DE (trash)
+  'archief', // NL
+  'prullenbak', // NL (trash)
+  'архив', // RU
+  'корзина', // RU (trash)
+  'archiwum', // PL
+  'kosz', // PL (trash)
+  '档案', // ZH (archive)
+  '回收站', // ZH (trash)
+  'アーカイブ', // JA
+  'ゴミ箱', // JA (trash)
+  'arxiu', // CA
+  'paperera', // CA (trash)
 ];
 
 /// Untitled albums folders
 const List<String> untitledAlbums = <String>[
-  'untitled',       // EN
-  'unknown',        // EN
-  'desconocido',    // ES
-  'sin título',     // ES
-  'desconhecido',   // PT
-  'sem título',     // PT
-  'sconosciuto',    // IT
-  'senza titolo',   // IT
-  'inconnu',        // FR
-  'sans titre',     // FR
-  'unbekannt',      // DE
-  'ohne titel',     // DE
-  'onbekend',       // NL
-  'zonder titel',   // NL
-  'неизвестный',    // RU
-  'без названия',   // RU
-  'nieznany',       // PL
-  'bez tytułu',     // PL
-  '未知',            // ZH
-  '无标题',           // ZH
-  '不明',            // JA
-  '無題',            // JA
-  'desconegut',     // CA
-  'sense títol',    // CA
+  'untitled', // EN
+  'unknown', // EN
+  'desconocido', // ES
+  'sin título', // ES
+  'desconhecido', // PT
+  'sem título', // PT
+  'sconosciuto', // IT
+  'senza titolo', // IT
+  'inconnu', // FR
+  'sans titre', // FR
+  'unbekannt', // DE
+  'ohne titel', // DE
+  'onbekend', // NL
+  'zonder titel', // NL
+  'неизвестный', // RU
+  'без названия', // RU
+  'nieznany', // PL
+  'bez tytułu', // PL
+  '未知', // ZH
+  '无标题', // ZH
+  '不明', // JA
+  '無題', // JA
+  'desconegut', // CA
+  'sense títol', // CA
 ];
 
 /// File extensions for additional media formats not covered by MIME types

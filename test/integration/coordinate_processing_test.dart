@@ -69,71 +69,87 @@ void main() {
     });
 
     group('JSON Coordinate Extraction', () {
-      test('extracts valid coordinates from comprehensive JSON metadata', () async {
-        final testCases = [
-          {
-            'name': 'New York City',
-            'lat': 40.7589,
-            'lng': -73.9851,
-            'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.west},
-          },
-          {
-            'name': 'Sydney, Australia',
-            'lat': -33.865143,
-            'lng': 151.2099,
-            'expectedDir': {'lat': DirectionY.south, 'lng': DirectionX.east},
-          },
-          {
-            'name': 'London, UK',
-            'lat': 51.5074,
-            'lng': -0.1278,
-            'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.west},
-          },
-          {
-            'name': 'Tokyo, Japan',
-            'lat': 35.6762,
-            'lng': 139.6503,
-            'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.east},
-          },
-        ];
+      test(
+        'extracts valid coordinates from comprehensive JSON metadata',
+        () async {
+          final testCases = [
+            {
+              'name': 'New York City',
+              'lat': 40.7589,
+              'lng': -73.9851,
+              'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.west},
+            },
+            {
+              'name': 'Sydney, Australia',
+              'lat': -33.865143,
+              'lng': 151.2099,
+              'expectedDir': {'lat': DirectionY.south, 'lng': DirectionX.east},
+            },
+            {
+              'name': 'London, UK',
+              'lat': 51.5074,
+              'lng': -0.1278,
+              'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.west},
+            },
+            {
+              'name': 'Tokyo, Japan',
+              'lat': 35.6762,
+              'lng': 139.6503,
+              'expectedDir': {'lat': DirectionY.north, 'lng': DirectionX.east},
+            },
+          ];
 
-        for (final testCase in testCases) {
-          final file = fixture.createImageWithoutExif('${testCase['name']}_test.jpg');
-          final jsonFile = File('${file.path}.json');
+          for (final testCase in testCases) {
+            final file = fixture.createImageWithoutExif(
+              '${testCase['name']}_test.jpg',
+            );
+            final jsonFile = File('${file.path}.json');
 
-          await jsonFile.writeAsString(
-            jsonEncode({
-              'title': 'Test - ${testCase['name']}',
-              'photoTakenTime': {
-                'timestamp': '1609459200',
-                'formatted': '01.01.2021, 00:00:00 UTC',
-              },
-              'geoData': {
-                'latitude': testCase['lat'],
-                'longitude': testCase['lng'],
-                'altitude': 100.0,
-                'latitudeSpan': 0.0,
-                'longitudeSpan': 0.0,
-              },
-            }),
-          );
+            await jsonFile.writeAsString(
+              jsonEncode({
+                'title': 'Test - ${testCase['name']}',
+                'photoTakenTime': {
+                  'timestamp': '1609459200',
+                  'formatted': '01.01.2021, 00:00:00 UTC',
+                },
+                'geoData': {
+                  'latitude': testCase['lat'],
+                  'longitude': testCase['lng'],
+                  'altitude': 100.0,
+                  'latitudeSpan': 0.0,
+                  'longitudeSpan': 0.0,
+                },
+              }),
+            );
 
-          final coordinates = await jsonCoordinatesExtractor(file);
+            final coordinates = await jsonCoordinatesExtractor(file);
 
-          expect(coordinates, isNotNull, reason: 'Failed to extract coordinates for ${testCase['name']}');
-          expect(coordinates!.toDD().latitude, closeTo(testCase['lat'] as double, 0.0001));
-          expect(coordinates.toDD().longitude, closeTo(testCase['lng'] as double, 0.0001));
+            expect(
+              coordinates,
+              isNotNull,
+              reason: 'Failed to extract coordinates for ${testCase['name']}',
+            );
+            expect(
+              coordinates!.toDD().latitude,
+              closeTo(testCase['lat'] as double, 0.0001),
+            );
+            expect(
+              coordinates.toDD().longitude,
+              closeTo(testCase['lng'] as double, 0.0001),
+            );
 
-          final expectedDirs = testCase['expectedDir'] as Map<String, dynamic>;
-          expect(coordinates.latDirection, expectedDirs['lat']);
-          expect(coordinates.longDirection, expectedDirs['lng']);
+            final expectedDirs =
+                testCase['expectedDir'] as Map<String, dynamic>;
+            expect(coordinates.latDirection, expectedDirs['lat']);
+            expect(coordinates.longDirection, expectedDirs['lng']);
 
-          // ignore: avoid_print
-          print('✓ ${testCase['name']}: ${coordinates.toString()}');
+            // ignore: avoid_print
+            print('✓ ${testCase['name']}: ${coordinates.toString()}');
 
-          await jsonFile.delete();
-        }
-      });
+            await jsonFile.delete();
+          }
+        },
+      );
 
       test('handles edge cases and invalid coordinates', () async {
         final edgeCases = [
@@ -175,7 +191,9 @@ void main() {
         ];
 
         for (final edgeCase in edgeCases) {
-          final file = fixture.createImageWithoutExif('${edgeCase['name']}_test.jpg');
+          final file = fixture.createImageWithoutExif(
+            '${edgeCase['name']}_test.jpg',
+          );
           final jsonFile = File('${file.path}.json');
 
           await jsonFile.writeAsString(
@@ -194,13 +212,19 @@ void main() {
           final coordinates = await jsonCoordinatesExtractor(file);
 
           if (edgeCase['shouldExtract'] as bool) {
-            expect(coordinates, isNotNull, reason: edgeCase['reason'] as String);
+            expect(
+              coordinates,
+              isNotNull,
+              reason: edgeCase['reason'] as String,
+            );
             // ignore: avoid_print
             print('✓ ${edgeCase['name']}: Valid coordinates extracted');
           } else {
             expect(coordinates, isNull, reason: edgeCase['reason'] as String);
             // ignore: avoid_print
-            print('✓ ${edgeCase['name']}: Correctly rejected invalid coordinates');
+            print(
+              '✓ ${edgeCase['name']}: Correctly rejected invalid coordinates',
+            );
           }
 
           await jsonFile.delete();
@@ -240,7 +264,9 @@ void main() {
         ];
 
         for (final testFile in testFiles) {
-          final file = fixture.createImageWithoutExif(testFile['name'] as String);
+          final file = fixture.createImageWithoutExif(
+            testFile['name'] as String,
+          );
           final jsonFile = File('${file.path}.json');
 
           final jsonData = <String, dynamic>{
@@ -323,7 +349,9 @@ void main() {
         );
 
         // IMPORTANT: wrap with FileEntity
-        final mediaEntity = MediaEntity.single(file: FileEntity(sourcePath: textFile.path));
+        final mediaEntity = MediaEntity.single(
+          file: FileEntity(sourcePath: textFile.path),
+        );
         collection.add(mediaEntity);
 
         // Updated API: no inputPath/outputPath named parameters
@@ -340,54 +368,67 @@ void main() {
     });
 
     group('Coordinate Accuracy and Precision', () {
-      test('maintains coordinate precision through conversion pipeline', () async {
-        final precisionTests = [
-          {'name': 'high_precision', 'lat': 40.758896123456789, 'lng': -73.985130987654321},
-          {'name': 'low_precision', 'lat': 40.7589, 'lng': -73.9851},
-          {'name': 'very_small_values', 'lat': 0.000001, 'lng': 0.000001},
-        ];
+      test(
+        'maintains coordinate precision through conversion pipeline',
+        () async {
+          final precisionTests = [
+            {
+              'name': 'high_precision',
+              'lat': 40.758896123456789,
+              'lng': -73.985130987654321,
+            },
+            {'name': 'low_precision', 'lat': 40.7589, 'lng': -73.9851},
+            {'name': 'very_small_values', 'lat': 0.000001, 'lng': 0.000001},
+          ];
 
-        for (final test in precisionTests) {
-          final file = fixture.createImageWithoutExif('${test['name']}_precision.jpg');
-          final jsonFile = File('${file.path}.json');
+          for (final test in precisionTests) {
+            final file = fixture.createImageWithoutExif(
+              '${test['name']}_precision.jpg',
+            );
+            final jsonFile = File('${file.path}.json');
 
-          await jsonFile.writeAsString(
-            jsonEncode({
-              'title': 'Precision test - ${test['name']}',
-              'geoData': {
-                'latitude': test['lat'],
-                'longitude': test['lng'],
-                'altitude': 100.0,
-                'latitudeSpan': 0.0,
-                'longitudeSpan': 0.0,
-              },
-            }),
-          );
+            await jsonFile.writeAsString(
+              jsonEncode({
+                'title': 'Precision test - ${test['name']}',
+                'geoData': {
+                  'latitude': test['lat'],
+                  'longitude': test['lng'],
+                  'altitude': 100.0,
+                  'latitudeSpan': 0.0,
+                  'longitudeSpan': 0.0,
+                },
+              }),
+            );
 
-          final coordinates = await jsonCoordinatesExtractor(file);
+            final coordinates = await jsonCoordinatesExtractor(file);
 
-          if (coordinates != null) {
-            final originalLat = test['lat'] as double;
-            final originalLng = test['lng'] as double;
-            final extractedDD = coordinates.toDD();
+            if (coordinates != null) {
+              final originalLat = test['lat'] as double;
+              final originalLng = test['lng'] as double;
+              final extractedDD = coordinates.toDD();
 
-            expect(extractedDD.latitude, closeTo(originalLat, 0.000001));
-            expect(extractedDD.longitude, closeTo(originalLng, 0.000001));
+              expect(extractedDD.latitude, closeTo(originalLat, 0.000001));
+              expect(extractedDD.longitude, closeTo(originalLng, 0.000001));
 
-            // ignore: avoid_print
-            print('✓ ${test['name']}: Precision maintained');
-            // ignore: avoid_print
-            print('  Original: ($originalLat, $originalLng)');
-            // ignore: avoid_print
-            print('  Extracted: (${extractedDD.latitude}, ${extractedDD.longitude})');
-          } else {
-            // ignore: avoid_print
-            print('⚠ ${test['name']}: Coordinates not extracted (may be invalid)');
+              // ignore: avoid_print
+              print('✓ ${test['name']}: Precision maintained');
+              // ignore: avoid_print
+              print('  Original: ($originalLat, $originalLng)');
+              // ignore: avoid_print
+              print(
+                '  Extracted: (${extractedDD.latitude}, ${extractedDD.longitude})',
+              );
+            } else {
+              // ignore: avoid_print
+              print(
+                '⚠ ${test['name']}: Coordinates not extracted (may be invalid)',
+              );
+            }
+
+            await jsonFile.delete();
           }
-
-          await jsonFile.delete();
-        }
-      });
+        },
+      );
     });
   });
 }
@@ -397,7 +438,10 @@ class MockExifToolService extends ExifToolService {
   MockExifToolService() : super('mock_exiftool_path');
 
   @override
-  Future<void> writeExifDataSingle(final File file, final Map<String, dynamic> data) async {
+  Future<void> writeExifDataSingle(
+    final File file,
+    final Map<String, dynamic> data,
+  ) async {
     // Simulate successful write
     // ignore: avoid_print
     print('[MOCK] Writing EXIF data to ${file.path}: $data');

@@ -34,9 +34,7 @@ void main() {
       secondaryFiles: const <FileEntity>[],
       albumsMap: const <String, AlbumEntity>{},
       dateTaken: dt,
-      dateAccuracy: null,
       dateTimeExtractionMethod: DateTimeExtractionMethod.none,
-      partnershared: false,
     );
 
     group('Album Detection and Merging', () {

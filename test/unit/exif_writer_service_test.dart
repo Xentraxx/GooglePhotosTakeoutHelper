@@ -74,7 +74,10 @@ class MockExifToolService extends ExifToolService {
   }
 
   @override
-  Future<String> executeExifToolCommand(final List<String> args, {final Duration? timeout}) async {
+  Future<String> executeExifToolCommand(
+    final List<String> args, {
+    final Duration? timeout,
+  }) async {
     if (shouldFail) {
       throw Exception('Mock ExifTool command failure');
     }
@@ -254,23 +257,20 @@ void main() {
 
         mockExifTool.shouldFail = false;
 
-        final result = await service.writeDateTimeNativeJpeg(
-          file,
-          dateTime,
-        );
+        final result = await service.writeDateTimeNativeJpeg(file, dateTime);
 
         expect(result, isA<bool>());
       });
 
       test('writeGpsNativeJpeg returns bool', () async {
         final file = fixture.createImageWithExif('test.jpg');
-        final ddCoordinates = DDCoordinates(latitude: 40.713, longitude: -74.006);
+        final ddCoordinates = DDCoordinates(
+          latitude: 40.713,
+          longitude: -74.006,
+        );
         final coordinates = DMSCoordinates.fromDD(ddCoordinates);
 
-        final result = await service.writeGpsNativeJpeg(
-          file,
-          coordinates,
-        );
+        final result = await service.writeGpsNativeJpeg(file, coordinates);
 
         expect(result, isA<bool>());
       });
@@ -288,10 +288,7 @@ void main() {
           longDirection: DirectionX.east,
         );
 
-        final result = await service.writeGpsNativeJpeg(
-          file,
-          coordinates,
-        );
+        final result = await service.writeGpsNativeJpeg(file, coordinates);
 
         expect(result, isA<bool>());
         // Log for manual inspection in CI output
@@ -334,7 +331,9 @@ void main() {
         ];
 
         for (final coords in cases) {
-          final file = fixture.createImageWithoutExif('case_${coords.hashCode}.jpg');
+          final file = fixture.createImageWithoutExif(
+            'case_${coords.hashCode}.jpg',
+          );
           final ok = await service.writeGpsNativeJpeg(file, coords);
           expect(ok, isA<bool>());
           // ignore: avoid_print
@@ -355,30 +354,30 @@ void main() {
           longDirection: DirectionX.west,
         );
 
-        final result = await service.writeGpsNativeJpeg(
-          file,
-          coordinates,
-        );
+        final result = await service.writeGpsNativeJpeg(file, coordinates);
 
         expect(result, isFalse);
       });
     });
 
     group('error handling', () {
-      test('exiftool write error bubbles as false in high-level wrapper', () async {
-        final file = fixture.createImageWithExif('test.jpg');
-        final exifData = {'DateTimeOriginal': '2023:01:01 12:00:00'};
+      test(
+        'exiftool write error bubbles as false in high-level wrapper',
+        () async {
+          final file = fixture.createImageWithExif('test.jpg');
+          final exifData = {'DateTimeOriginal': '2023:01:01 12:00:00'};
 
-        mockExifTool.shouldFail = true;
+          mockExifTool.shouldFail = true;
 
-        final ok = await service.writeTagsWithExifToolSingle(
-          file,
-          exifData,
-          isDate: true,
-        );
+          final ok = await service.writeTagsWithExifToolSingle(
+            file,
+            exifData,
+            isDate: true,
+          );
 
-        expect(ok, isFalse);
-      });
+          expect(ok, isFalse);
+        },
+      );
     });
   });
 }

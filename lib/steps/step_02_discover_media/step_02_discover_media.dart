@@ -98,13 +98,31 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
     // -------- Resume check: if step 2 is already completed, load and return stored result --------
     try {
       final progress = await StepProgressLoader.readProgressJson(context);
-      if (progress != null && StepProgressLoader.isStepCompleted(progress, stepId, context: context)) {
+      if (progress != null &&
+          StepProgressLoader.isStepCompleted(
+            progress,
+            stepId,
+            context: context,
+          )) {
         final dur = StepProgressLoader.readDurationForStep(progress, stepId);
         final data = StepProgressLoader.readResultDataForStep(progress, stepId);
         final msg = StepProgressLoader.readMessageForStep(progress, stepId);
-        StepProgressLoader.updateMediaEntityCollection(context, progress['media_entity_collection_object'], progressJson: progress);
-        logPrint('[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json');
-        return StepResult.success(stepName: name, duration: dur, data: data, message: msg.isEmpty ? 'Resume: loaded Step $stepId results from progress.json' : msg);
+        StepProgressLoader.updateMediaEntityCollection(
+          context,
+          progress['media_entity_collection_object'],
+          progressJson: progress,
+        );
+        logPrint(
+          '[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json',
+        );
+        return StepResult.success(
+          stepName: name,
+          duration: dur,
+          data: data,
+          message: msg.isEmpty
+              ? 'Resume: loaded Step $stepId results from progress.json'
+              : msg,
+        );
       }
     } catch (_) {
       // If resume fails, continue with normal execution
@@ -115,7 +133,9 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
     try {
       logPrint('[Step 2/8] Discovering media files (this may take a while)...');
 
-      final result = await const DiscoverMediaService().discover(context);  // This is the method that contains all the logic for this step
+      final result = await const DiscoverMediaService().discover(
+        context,
+      ); // This is the method that contains all the logic for this step
 
       final totalFiles = result.yearFolderFiles + result.albumFolderFiles;
 
@@ -131,11 +151,17 @@ class DiscoverMediaStep extends ProcessingStep with LoggerMixin {
           'totalFiles': totalFiles,
           'extrasSkipped': result.extrasSkipped,
         },
-        message: 'Discovered $totalFiles media files (${result.yearFolderFiles} from year folders, ${result.albumFolderFiles} from albums)${result.extrasSkipped > 0 ? ', skipped ${result.extrasSkipped} extra files' : ''}',
+        message:
+            'Discovered $totalFiles media files (${result.yearFolderFiles} from year folders, ${result.albumFolderFiles} from albums)${result.extrasSkipped > 0 ? ', skipped ${result.extrasSkipped} extra files' : ''}',
       );
 
       // Persist progress.json only on success (do NOT save on failure)
-      await StepProgressSaver.saveProgress(context: context, stepId: stepId, duration: stopWatch.elapsed, stepResult: stepResult);
+      await StepProgressSaver.saveProgress(
+        context: context,
+        stepId: stepId,
+        duration: stopWatch.elapsed,
+        stepResult: stepResult,
+      );
 
       return stepResult;
     } catch (e) {

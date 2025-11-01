@@ -207,17 +207,22 @@ void main() {
           expect(File('$symlinkPath.lnk').existsSync(), isFalse);
 
           // Create the link (native symlink if possible; .lnk fallback otherwise)
-          await windowsSymlinkService.createSymlink(symlinkPath, targetFile.path);
+          await windowsSymlinkService.createSymlink(
+            symlinkPath,
+            targetFile.path,
+          );
 
           // Postcondition: either the native symlink exists OR the .lnk fallback exists
           final existsNative = File(symlinkPath).existsSync();
           final existsShortcut = File('$symlinkPath.lnk').existsSync();
-          expect(existsNative || existsShortcut, isTrue, reason: 'Expected a native symlink or a .lnk fallback to exist');
+          expect(
+            existsNative || existsShortcut,
+            isTrue,
+            reason: 'Expected a native symlink or a .lnk fallback to exist',
+          );
         },
         skip: !Platform.isWindows ? 'Windows only test' : null,
       );
-
     });
-
   });
 }

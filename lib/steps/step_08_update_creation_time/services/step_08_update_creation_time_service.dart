@@ -16,10 +16,15 @@ import 'package:win32/win32.dart';
 /// - Cross-platform handling remains the same (Windows vs POSIX).
 class UpdateCreationTimeService with LoggerMixin {
   /// Run the full update process and return a summary compatible with the former step output.
-  Future<UpdateCreationTimeSummary> updateCreationTimes(final ProcessingContext context) async {
+  Future<UpdateCreationTimeSummary> updateCreationTimes(
+    final ProcessingContext context,
+  ) async {
     if (!context.config.updateCreationTime) {
       const reason = 'disabled in configuration';
-      logWarning('[Step 8/8] Skipping creation time update ($reason).', forcePrint: true);
+      logWarning(
+        '[Step 8/8] Skipping creation time update ($reason).',
+        forcePrint: true,
+      );
       return const UpdateCreationTimeSummary(
         updatedCount: 0,
         failedCount: 0,
@@ -68,7 +73,7 @@ class UpdateCreationTimeService with LoggerMixin {
       desc: '[ INFO  ] [Step 8/8] Updating creation times',
       total: filesToTouch.length,
       width: 50,
-      percentage: true
+      percentage: true,
     );
 
     int updated = 0;
@@ -109,15 +114,20 @@ class UpdateCreationTimeService with LoggerMixin {
         } else {
           failedPhysical++;
         }
-        logWarning('[Step 8/8] Timestamp update failed for ${f.file.path}: $e', forcePrint: true);
+        logWarning(
+          '[Step 8/8] Timestamp update failed for ${f.file.path}: $e',
+          forcePrint: true,
+        );
       }
       progressBar.update(i + 1);
     }
 
-    print('');  // print to force new line after progress bar
+    print(''); // print to force new line after progress bar
 
     // Explicit summary line (with per-type breakdown)
-    logPrint('[Step 8/8] Update Creation Time Summary → updated: $updated (physical=$updatedPhysical, shortcuts=$updatedShortcuts), failed: $failed (physical=$failedPhysical, shortcuts=$failedShortcuts)');
+    logPrint(
+      '[Step 8/8] Update Creation Time Summary → updated: $updated (physical=$updatedPhysical, shortcuts=$updatedShortcuts), failed: $failed (physical=$failedPhysical, shortcuts=$failedShortcuts)',
+    );
 
     return UpdateCreationTimeSummary(
       updatedCount: updated,
@@ -141,9 +151,17 @@ class UpdateCreationTimeService with LoggerMixin {
     required final bool isShortcut,
   }) {
     if (Platform.isWindows) {
-      return _setFileTimesToDateTakenWindows(filePath, dateTaken, isShortcut: isShortcut);
+      return _setFileTimesToDateTakenWindows(
+        filePath,
+        dateTaken,
+        isShortcut: isShortcut,
+      );
     } else {
-      return _setFileTimesToDateTakenPosix(filePath, dateTaken, isShortcut: isShortcut);
+      return _setFileTimesToDateTakenPosix(
+        filePath,
+        dateTaken,
+        isShortcut: isShortcut,
+      );
     }
   }
 
@@ -182,7 +200,10 @@ class UpdateCreationTimeService with LoggerMixin {
         if (fileHandle == INVALID_HANDLE_VALUE) {
           // Log GetLastError for diagnostics (helped catch \\?\ misuse).
           final int err = GetLastError();
-          logWarning('[Step 8/8] CreateFile failed for "$extended" (error=$err)', forcePrint: true);
+          logWarning(
+            '[Step 8/8] CreateFile failed for "$extended" (error=$err)',
+            forcePrint: true,
+          );
           return false;
         }
 
@@ -194,14 +215,18 @@ class UpdateCreationTimeService with LoggerMixin {
           _writeDateTimeToFileTimePtr(pWrite, dateTaken.toUtc());
 
           // Set CreationTime and LastWriteTime = dateTaken; keep LastAccessTime unchanged (nullptr)
-          final bool setOk = SetFileTime(fileHandle, pCreation, nullptr, pWrite) != FALSE;
+          final bool setOk =
+              SetFileTime(fileHandle, pCreation, nullptr, pWrite) != FALSE;
           return setOk;
         } finally {
           CloseHandle(fileHandle);
         }
       });
     } catch (e) {
-      logWarning('[Step 8/8] Windows timestamp update failed for "$filePath": $e', forcePrint: true);
+      logWarning(
+        '[Step 8/8] Windows timestamp update failed for "$filePath": $e',
+        forcePrint: true,
+      );
       return false;
     }
   }
@@ -230,7 +255,9 @@ class UpdateCreationTimeService with LoggerMixin {
       // typedef int utimensat(int dirfd, const char *pathname, const struct timespec times[2], int flags);
       _Utimensat? utimensat;
       try {
-        utimensat = libc.lookup<NativeFunction<_UtimensatNative>>('utimensat').asFunction<_Utimensat>();
+        utimensat = libc
+            .lookup<NativeFunction<_UtimensatNative>>('utimensat')
+            .asFunction<_Utimensat>();
       } catch (_) {
         utimensat = null;
       }
@@ -253,10 +280,15 @@ class UpdateCreationTimeService with LoggerMixin {
 
         // NOTE: We set BOTH atime and mtime to dateTaken for simplicity/cross-tool consistency.
         final int sec = dateTaken.toUtc().millisecondsSinceEpoch ~/ 1000;
-        final int nsec = (dateTaken.toUtc().microsecondsSinceEpoch % 1000000) * 1000;
+        final int nsec =
+            (dateTaken.toUtc().microsecondsSinceEpoch % 1000000) * 1000;
 
-        times[0]..tvSec = sec..tvNsec = nsec;
-        times[1]..tvSec = sec..tvNsec = nsec;
+        times[0]
+          ..tvSec = sec
+          ..tvNsec = nsec;
+        times[1]
+          ..tvSec = sec
+          ..tvNsec = nsec;
 
         const int atFdcwd = -100;
         const int atSymlinkNofollow = 0x100;
@@ -274,7 +306,10 @@ class UpdateCreationTimeService with LoggerMixin {
         }
       });
     } catch (e) {
-      logWarning('[Step 8/8] POSIX timestamp update failed for "$filePath": $e', forcePrint: true);
+      logWarning(
+        '[Step 8/8] POSIX timestamp update failed for "$filePath": $e',
+        forcePrint: true,
+      );
       return false;
     }
   }
@@ -293,8 +328,12 @@ class UpdateCreationTimeService with LoggerMixin {
 
   /// Write a DateTime (UTC) into a FILETIME pointer.
   /// FILETIME = 100-nanosecond intervals since January 1, 1601 (UTC).
-  void _writeDateTimeToFileTimePtr(final Pointer<FILETIME> p, final DateTime utc) {
-    const int epochDiff100ns = 116444736000000000; // between 1601-01-01 and 1970-01-01
+  void _writeDateTimeToFileTimePtr(
+    final Pointer<FILETIME> p,
+    final DateTime utc,
+  ) {
+    const int epochDiff100ns =
+        116444736000000000; // between 1601-01-01 and 1970-01-01
     final int ftTicks = utc.millisecondsSinceEpoch * 10000 + epochDiff100ns;
     p.ref
       ..dwHighDateTime = (ftTicks >> 32) & 0xFFFFFFFF
@@ -304,7 +343,8 @@ class UpdateCreationTimeService with LoggerMixin {
   DynamicLibrary? _loadLibC() {
     try {
       if (Platform.isLinux) return DynamicLibrary.open('libc.so.6');
-      if (Platform.isMacOS) return DynamicLibrary.process(); // libc is in the default namespace on macOS
+      if (Platform.isMacOS)
+        return DynamicLibrary.process(); // libc is in the default namespace on macOS
       if (Platform.isAndroid) return DynamicLibrary.open('libc.so');
       return null;
     } catch (_) {
@@ -325,18 +365,20 @@ final class _Timespec extends Struct {
   external int tvNsec;
 }
 
-typedef _UtimensatNative = Int32 Function(
-  Int32 dirfd,
-  Pointer<Utf8> pathname,
-  Pointer<_Timespec> times,
-  Int32 flags,
-);
-typedef _Utimensat = int Function(
-  int dirfd,
-  Pointer<Utf8> pathname,
-  Pointer<_Timespec> times,
-  int flags,
-);
+typedef _UtimensatNative =
+    Int32 Function(
+      Int32 dirfd,
+      Pointer<Utf8> pathname,
+      Pointer<_Timespec> times,
+      Int32 flags,
+    );
+typedef _Utimensat =
+    int Function(
+      int dirfd,
+      Pointer<Utf8> pathname,
+      Pointer<_Timespec> times,
+      int flags,
+    );
 
 class _ToTouch {
   _ToTouch(this.file, this.dateTaken, {required this.isShortcut});

@@ -340,7 +340,9 @@ void main() {
       /// Validates graceful handling of non-existent directories to
       /// prevent crashes during filesystem scanning.
       test('handles non-existent directories gracefully', () {
-        final nonExistent = Directory(path.join(fixture.basePath, 'nonexistent'));
+        final nonExistent = Directory(
+          path.join(fixture.basePath, 'nonexistent'),
+        );
 
         expect(() => isYearFolder(nonExistent), returnsNormally);
         expect(isYearFolder(nonExistent), isFalse);

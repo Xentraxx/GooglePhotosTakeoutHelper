@@ -24,7 +24,9 @@ class ZipExtractionService with LoggerMixin {
   }) : _presenter = presenter ?? InteractivePresenterService();
 
   final InteractivePresenterService _presenter;
-  final LoggingService _logger = LoggingService(saveLog: ServiceContainer.instance.globalConfig.saveLog);
+  final LoggingService _logger = LoggingService(
+    saveLog: ServiceContainer.instance.globalConfig.saveLog,
+  );
 
   /// When true, the extractor logs suspicious entry names (e.g., ones containing '¥', 'Ñ', 'ñ', '~')
   /// with their code points before and after sanitization to diagnose mojibake issues.
@@ -84,7 +86,9 @@ class ZipExtractionService with LoggerMixin {
         // Log file size for large files
         if (zipSize > 1024 * 1024 * 1024) {
           // > 1GB
-          logInfo('Processing large ZIP file: ${p.basename(zip.path)} (${zipSize ~/ (1024 * 1024)}MB)');
+          logInfo(
+            'Processing large ZIP file: ${p.basename(zip.path)} (${zipSize ~/ (1024 * 1024)}MB)',
+          );
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -96,7 +100,9 @@ class ZipExtractionService with LoggerMixin {
         // ─────────────────────────────────────────────────────────────────────
         final extracted = await _extractZipWithStrategy(zip, dir);
         if (!extracted) {
-          logWarning('No external extractor succeeded; falling back to native streamed extractor (safety fallback).');
+          logWarning(
+            'No external extractor succeeded; falling back to native streamed extractor (safety fallback).',
+          );
           await _extractZipStreamed(zip, dir);
         }
 
@@ -131,16 +137,22 @@ class ZipExtractionService with LoggerMixin {
           _logger.error('');
           _logger.error('❌ MEMORY EXHAUSTION ERROR');
           _logger.error('ZIP file too large: ${p.basename(zip.path)}');
-          _logger.error('Available memory insufficient for processing this file.');
+          _logger.error(
+            'Available memory insufficient for processing this file.',
+          );
           _logger.error('');
           _logger.error('🔧 SOLUTIONS:');
-          _logger.error('1. Extract ZIP files manually using your system tools');
+          _logger.error(
+            '1. Extract ZIP files manually using your system tools',
+          );
           _logger.error('2. Use smaller ZIP files (split large exports)');
           _logger.error('3. Run GPTH on the manually extracted folder');
           _logger.error('4. Increase available memory and try again');
           _logger.error('');
           _logger.error('Manual extraction guide:');
-          _logger.error('https://github.com/Xentraxx/GooglePhotosTakeoutHelper#manual-extraction');
+          _logger.error(
+            'https://github.com/Xentraxx/GooglePhotosTakeoutHelper#manual-extraction',
+          );
           logWarning('Continuing with remaining ZIP files...');
         } else {
           try {
@@ -173,7 +185,10 @@ class ZipExtractionService with LoggerMixin {
       // macOS / Linux (Try with Unzip first)
       // 1) Try unzip with UTF-8 override (-O UTF-8)
       try {
-        final ok = await _timed('unzip', () => _tryExtractWithUnzip(zip, destinationDir));
+        final ok = await _timed(
+          'unzip',
+          () => _tryExtractWithUnzip(zip, destinationDir),
+        );
         if (ok) {
           logDebug('Extraction succeeded for $zipName using Unzip extractor');
           return true;
@@ -188,12 +203,17 @@ class ZipExtractionService with LoggerMixin {
     // macOS / Linux / Windows (If Unzip fails or isWindows, try with 7-zip and then Native
     // 2) Try 7-Zip (force UTF-8 code page)
     try {
-      final ok = await _timed('7-Zip', () => _tryExtractWith7zip(zip, destinationDir));
+      final ok = await _timed(
+        '7-Zip',
+        () => _tryExtractWith7zip(zip, destinationDir),
+      );
       if (ok) {
         logDebug('Extraction succeeded for $zipName using 7-Zip extractor');
         return true;
       } else {
-        logWarning('7-Zip failed or not found for $zipName, trying Native extractor...');
+        logWarning(
+          '7-Zip failed or not found for $zipName, trying Native extractor...',
+        );
       }
     } catch (e) {
       logWarning('7-Zip extraction threw an error for $zipName: $e');
@@ -209,7 +229,9 @@ class ZipExtractionService with LoggerMixin {
         logDebug('Extraction succeeded for $zipName using Native extractor');
         return true;
       } else {
-        logWarning('Native extractor failed for $zipName, extraction unsuccessful.');
+        logWarning(
+          'Native extractor failed for $zipName, extraction unsuccessful.',
+        );
       }
     } catch (e) {
       logWarning('Native extractor threw an error for $zipName: $e');
@@ -227,11 +249,15 @@ class ZipExtractionService with LoggerMixin {
     try {
       final ok = await action();
       sw.stop();
-      logDebug('[$label] completed in ${sw.elapsed.inMilliseconds} ms (success=$ok)');
+      logDebug(
+        '[$label] completed in ${sw.elapsed.inMilliseconds} ms (success=$ok)',
+      );
       return ok;
     } catch (e) {
       sw.stop();
-      logDebug('[$label] failed in ${sw.elapsed.inMilliseconds} ms with error: $e');
+      logDebug(
+        '[$label] failed in ${sw.elapsed.inMilliseconds} ms with error: $e',
+      );
       rethrow;
     }
   }
@@ -243,9 +269,13 @@ class ZipExtractionService with LoggerMixin {
     final File zip,
     final Directory destinationDir,
   ) async {
-    final String? sevenZip = Platform.isWindows ? await _find7zipWindows() : await _whichFirst(['7z', '7za', '7zz']);
+    final String? sevenZip = Platform.isWindows
+        ? await _find7zipWindows()
+        : await _whichFirst(['7z', '7za', '7zz']);
     if (sevenZip == null) {
-      logDebug('7-Zip not found; skipping 7-Zip extraction. Hint: add 7-Zip to PATH or place it at ./gpth_tool/7zip/7z.exe');
+      logDebug(
+        '7-Zip not found; skipping 7-Zip extraction. Hint: add 7-Zip to PATH or place it at ./gpth_tool/7zip/7z.exe',
+      );
       return false;
     }
 
@@ -254,16 +284,31 @@ class ZipExtractionService with LoggerMixin {
 
     // 7z x "<zip>" -o"<outDir>" -y -aoa -mmt=on -mcp=65001
     // -mcp=65001 -> force UTF-8 for filenames (helps when archives lack proper UTF-8 flag)
-    final List<String> args = ['x', zipPath, '-o$outDir', '-y', '-aoa', '-mmt=on', '-mcp=65001'];
+    final List<String> args = [
+      'x',
+      zipPath,
+      '-o$outDir',
+      '-y',
+      '-aoa',
+      '-mmt=on',
+      '-mcp=65001',
+    ];
     logDebug('Running 7-Zip: $sevenZip ${args.join(' ')}');
 
     try {
-      final Map<String, String> env = Map<String, String>.from(Platform.environment);
+      final Map<String, String> env = Map<String, String>.from(
+        Platform.environment,
+      );
       if (!Platform.isWindows) {
         env['LANG'] = env['LANG'] ?? 'C.UTF-8';
         env['LC_ALL'] = env['LC_ALL'] ?? 'C.UTF-8';
       }
-      final ProcessResult result = await Process.run(sevenZip, args, runInShell: true, environment: env);
+      final ProcessResult result = await Process.run(
+        sevenZip,
+        args,
+        runInShell: true,
+        environment: env,
+      );
       logDebug('7-Zip exitCode: ${result.exitCode}');
       final String so = (result.stdout ?? '').toString().trim();
       final String se = (result.stderr ?? '').toString().trim();
@@ -295,7 +340,9 @@ class ZipExtractionService with LoggerMixin {
       if (chocolatey != null) p.join(chocolatey, 'bin', '7z.exe'),
       if (scoop != null) p.join(scoop, 'apps', '7zip', 'current', '7z.exe'),
       // Project-relative bundled location (recommended to ship): ./gpth_tool/7zip/7z.exe
-      p.normalize(p.join(Directory.current.path, 'gpth_tool', '7zip', '7z.exe')),
+      p.normalize(
+        p.join(Directory.current.path, 'gpth_tool', '7zip', '7z.exe'),
+      ),
     ];
 
     for (final path in candidates) {
@@ -329,10 +376,17 @@ class ZipExtractionService with LoggerMixin {
     logDebug('Running unzip: $unzipCmd ${args.join(' ')}');
 
     try {
-      final Map<String, String> env = Map<String, String>.from(Platform.environment);
+      final Map<String, String> env = Map<String, String>.from(
+        Platform.environment,
+      );
       env['LANG'] = env['LANG'] ?? 'C.UTF-8';
       env['LC_ALL'] = env['LC_ALL'] ?? 'C.UTF-8';
-      final ProcessResult result = await Process.run(unzipCmd, args, runInShell: true, environment: env);
+      final ProcessResult result = await Process.run(
+        unzipCmd,
+        args,
+        runInShell: true,
+        environment: env,
+      );
       logDebug('unzip exitCode: ${result.exitCode}');
       final String so = (result.stdout ?? '').toString().trim();
       final String se = (result.stderr ?? '').toString().trim();
@@ -349,7 +403,9 @@ class ZipExtractionService with LoggerMixin {
   Future<String?> _which(final String cmd) async {
     try {
       if (Platform.isWindows) {
-        final ProcessResult res = await Process.run('where', [cmd], runInShell: true);
+        final ProcessResult res = await Process.run('where', [
+          cmd,
+        ], runInShell: true);
         if (res.exitCode == 0) {
           final String out = (res.stdout ?? '').toString().trim();
           if (out.isNotEmpty) {
@@ -358,7 +414,9 @@ class ZipExtractionService with LoggerMixin {
           }
         }
       } else {
-        final ProcessResult res = await Process.run('which', [cmd], runInShell: true);
+        final ProcessResult res = await Process.run('which', [
+          cmd,
+        ], runInShell: true);
         if (res.exitCode == 0) {
           final String out = (res.stdout ?? '').toString().trim();
           return out.isEmpty ? null : out;
@@ -413,7 +471,9 @@ class ZipExtractionService with LoggerMixin {
       final fixedCp437 = _attemptCp437FromLatin1(fixedUtf8);
 
       // Diagnostics: log fixed form(s)
-      if (enableNameDiagnostics && fixedCp437 != entry.name && _looksSuspicious(fixedCp437)) {
+      if (enableNameDiagnostics &&
+          fixedCp437 != entry.name &&
+          _looksSuspicious(fixedCp437)) {
         _logNameDiagnostics('fixed', fixedCp437);
       }
 
@@ -429,7 +489,9 @@ class ZipExtractionService with LoggerMixin {
       // Zip Slip protection
       final String entryDirCanonical = p.canonicalize(p.dirname(fullPath));
       if (!entryDirCanonical.startsWith(destCanonical)) {
-        throw SecurityException('Path traversal attempt detected: ${entry.name} -> $fullPath');
+        throw SecurityException(
+          'Path traversal attempt detected: ${entry.name} -> $fullPath',
+        );
       }
 
       if (entry.isFile) {
@@ -447,9 +509,13 @@ class ZipExtractionService with LoggerMixin {
 
         // Preserve file modification time if available
         try {
-          await File(fullPath).setLastModified(DateTime.fromMillisecondsSinceEpoch(entry.lastModTime * 1000));
+          await File(fullPath).setLastModified(
+            DateTime.fromMillisecondsSinceEpoch(entry.lastModTime * 1000),
+          );
         } catch (e) {
-          logWarning('Warning: Could not set modification time for $fullPath: $e');
+          logWarning(
+            'Warning: Could not set modification time for $fullPath: $e',
+          );
         }
       } else if (entry.isDirectory) {
         final Directory outDir = Directory(fullPath);
@@ -470,13 +536,16 @@ class ZipExtractionService with LoggerMixin {
     final runes = name.runes.toList();
     final buffer = StringBuffer();
 
-    bool isLatinUpper(final int r) => (r >= 0x41 && r <= 0x5A) || r == 0x00D1; // A-Z or Ñ
+    bool isLatinUpper(final int r) =>
+        (r >= 0x41 && r <= 0x5A) || r == 0x00D1; // A-Z or Ñ
     for (int i = 0; i < runes.length; i++) {
       final r = runes[i];
       if (r == 0x00A5) {
         final prev = i > 0 ? runes[i - 1] : null;
         final next = i + 1 < runes.length ? runes[i + 1] : null;
-        final upperContext = (prev != null && isLatinUpper(prev)) || (next != null && isLatinUpper(next));
+        final upperContext =
+            (prev != null && isLatinUpper(prev)) ||
+            (next != null && isLatinUpper(next));
         buffer.write(upperContext ? 'Ñ' : 'ñ');
       } else {
         buffer.write(String.fromCharCode(r));
@@ -497,7 +566,8 @@ class ZipExtractionService with LoggerMixin {
       final decoded = utf8.decode(bytes, allowMalformed: true);
 
       // Accept only if it actually removes mojibake markers and keeps length sensible.
-      final looksBetter = (decoded != name) && !decoded.contains('Ã') && !decoded.contains('Â');
+      final looksBetter =
+          (decoded != name) && !decoded.contains('Ã') && !decoded.contains('Â');
       return looksBetter ? decoded : name;
     } catch (_) {
       return name;
@@ -511,7 +581,11 @@ class ZipExtractionService with LoggerMixin {
   /// Also maps a few other common bytes for í/ó/ú/Ñ when they appear as Latin-1 symbols.
   String _attemptCp437FromLatin1(final String name) {
     // Fast path: only run if we detect likely CP437-bytes-shown-as-Latin1.
-    final bool likely = name.contains('\u00A0') || name.contains('\u00A4') || name.contains('¢') || name.contains('£');
+    final bool likely =
+        name.contains('\u00A0') ||
+        name.contains('\u00A4') ||
+        name.contains('¢') ||
+        name.contains('£');
     if (!likely) return name;
 
     // Minimal targeted map for Spanish letters (extend if more cases appear).
@@ -578,9 +652,28 @@ class ZipExtractionService with LoggerMixin {
       // Windows reserved device names — we keep original behavior (apply on last segment).
       if (Platform.isWindows && i == rawSegments.length - 1) {
         final List<String> reservedNames = <String>[
-          'CON', 'PRN', 'AUX', 'NUL',
-          'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-          'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+          'CON',
+          'PRN',
+          'AUX',
+          'NUL',
+          'COM1',
+          'COM2',
+          'COM3',
+          'COM4',
+          'COM5',
+          'COM6',
+          'COM7',
+          'COM8',
+          'COM9',
+          'LPT1',
+          'LPT2',
+          'LPT3',
+          'LPT4',
+          'LPT5',
+          'LPT6',
+          'LPT7',
+          'LPT8',
+          'LPT9',
         ];
         final String baseName = p.basenameWithoutExtension(seg);
         final String ext = p.extension(seg);
@@ -602,13 +695,23 @@ class ZipExtractionService with LoggerMixin {
   /// Returns true if the name contains characters that usually indicate encoding issues.
   // ignore: prefer_expression_function_bodies
   bool _looksSuspicious(final String name) {
-    return name.contains('¥') || name.contains('�') || name.contains('~') || name.contains('Ã') || name.contains('Â') || name.contains('\u00A0') || name.contains('\u00A4');
+    return name.contains('¥') ||
+        name.contains('�') ||
+        name.contains('~') ||
+        name.contains('Ã') ||
+        name.contains('Â') ||
+        name.contains('\u00A0') ||
+        name.contains('\u00A4');
     // The tilde (~) often appears in DOS 8.3 short names (e.g., RESIDE~4).
   }
 
   /// Logs the name with code points for diagnostics.
   void _logNameDiagnostics(final String stage, final String name) {
-    final codePoints = name.runes.map((final r) => 'U+${r.toRadixString(16).toUpperCase().padLeft(4, '0')}').join(' ');
+    final codePoints = name.runes
+        .map(
+          (final r) => 'U+${r.toRadixString(16).toUpperCase().padLeft(4, '0')}',
+        )
+        .join(' ');
     logInfo('[NameDiag][$stage] "$name"  ->  $codePoints', forcePrint: true);
   }
 
@@ -629,19 +732,27 @@ class ZipExtractionService with LoggerMixin {
 
     if (isArchiveError) {
       logError('💥 ZIP Archive Error:');
-      logError('The ZIP file appears to be corrupted or uses an unsupported format.');
+      logError(
+        'The ZIP file appears to be corrupted or uses an unsupported format.',
+      );
       logError('');
       logError('🔧 Suggested Solutions:');
       logError('• Re-download the ZIP file from Google Takeout');
       logError('• Verify the file wasn\'t corrupted during download');
-      logError('• Try extracting manually with your system\'s built-in extractor');
+      logError(
+        '• Try extracting manually with your system\'s built-in extractor',
+      );
     } else if (isPathError) {
       logError('📁 Path/File Error:');
       logError('There was an issue accessing files or creating directories.');
       logError('');
       logError('🔧 Suggested Solutions:');
-      logError('• Ensure you have sufficient permissions in the target directory');
-      logError('• Check that the target path is not too long (Windows limitation)');
+      logError(
+        '• Ensure you have sufficient permissions in the target directory',
+      );
+      logError(
+        '• Check that the target path is not too long (Windows limitation)',
+      );
       logError('• Verify sufficient disk space is available');
     } else if (isFileSystemError) {
       logError('💾 File System Error:');
@@ -649,7 +760,9 @@ class ZipExtractionService with LoggerMixin {
       logError('');
       logError('🔧 Suggested Solutions:');
       logError('• Check file permissions on the ZIP file');
-      logError('• Ensure the ZIP file is not currently open in another program');
+      logError(
+        '• Ensure the ZIP file is not currently open in another program',
+      );
       logError('• Verify the target directory is writable');
     } else {
       logError('⚠️  Unexpected Error:');
@@ -662,7 +775,9 @@ class ZipExtractionService with LoggerMixin {
     logError('🔄 Alternative Options:');
     logError('• Extract ZIP files manually using your system tools');
     logError('• Use GPTH with command-line options on pre-extracted files');
-    logError('• See manual extraction guide: https://github.com/Xentraxx/GooglePhotosTakeoutHelper?tab=readme-ov-file#command-line-usage');
+    logError(
+      '• See manual extraction guide: https://github.com/Xentraxx/GooglePhotosTakeoutHelper?tab=readme-ov-file#command-line-usage',
+    );
     logError('');
     logError('===============================================');
     logError('');

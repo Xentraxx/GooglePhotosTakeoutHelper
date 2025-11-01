@@ -976,8 +976,9 @@ class WriteExifProcessingService with LoggerMixin {
     bool looksLikePath(final String p) {
       final lp = p.toLowerCase();
       if (lp.contains('/') || lp.contains('\\')) return true; // has a separator
-      if (lp.length >= 3 && lp[1] == ':' && (lp[2] == '\\' || lp[2] == '/'))
+      if (lp.length >= 3 && lp[1] == ':' && (lp[2] == '\\' || lp[2] == '/')) {
         return true; // "c:\..."
+      }
       for (final e in exts) {
         if (lp.endsWith(e)) return true;
       }

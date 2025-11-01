@@ -22,7 +22,9 @@ class ConcurrencyManager {
   /// Logger used by ConcurrencyManager. Can be injected at startup to respect
   /// the application's ProcessingConfig (verbosity/colors). Defaults to a
   /// non-verbose logger to preserve previous behavior when not initialized.
-  static LoggingService logger = LoggingService(saveLog: ServiceContainer.instance.globalConfig.saveLog);
+  static LoggingService logger = LoggingService(
+    saveLog: ServiceContainer.instance.globalConfig.saveLog,
+  );
   static const ConcurrencyManager _instance = ConcurrencyManager._internal();
 
   // ============================================================================
@@ -161,9 +163,9 @@ class ConcurrencyManager {
     if (maxValue != null && result > maxValue) result = maxValue;
 
     try {
-      LoggingService(saveLog: ServiceContainer.instance.globalConfig.saveLog).info(
-        'Starting $result threads (custom multiplier $multiplier)',
-      );
+      LoggingService(
+        saveLog: ServiceContainer.instance.globalConfig.saveLog,
+      ).info('Starting $result threads (custom multiplier $multiplier)');
     } catch (_) {}
     return result;
   }

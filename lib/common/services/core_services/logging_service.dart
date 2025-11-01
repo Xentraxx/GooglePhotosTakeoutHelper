@@ -7,8 +7,12 @@ import 'package:gpth/gpth_lib_exports.dart';
 /// that can be easily mocked and configured for different environments.
 class LoggingService {
   /// Creates a new instance of LoggingService
-  LoggingService({this.isVerbose = false, this.enableColors = true, this.saveLog = false, final String? preferredLogDir})
-      : _preferredLogDir = preferredLogDir {
+  LoggingService({
+    this.isVerbose = false,
+    this.enableColors = true,
+    this.saveLog = false,
+    final String? preferredLogDir,
+  }) : _preferredLogDir = preferredLogDir {
     if (saveLog) _initFileSink();
   }
 
@@ -16,9 +20,10 @@ class LoggingService {
   factory LoggingService.fromConfig(final ProcessingConfig config) =>
       LoggingService(
         isVerbose: config.verbose,
-        enableColors: !Platform.isWindows || Platform.environment['TERM'] != null,
+        enableColors:
+            !Platform.isWindows || Platform.environment['TERM'] != null,
         preferredLogDir: config.outputPath,
-        saveLog: config.saveLog
+        saveLog: config.saveLog,
       );
 
   /// Test override for quit/exit to prevent actual process termination in tests
@@ -96,7 +101,8 @@ class LoggingService {
   }) {
     // Persist to file if enabled. For 'debug', only write when verbose is true.
     final String lvl = level.toLowerCase();
-    final bool canWriteFile = _fileSink != null && (lvl != 'debug' || isVerbose);
+    final bool canWriteFile =
+        _fileSink != null && (lvl != 'debug' || isVerbose);
     if (canWriteFile) {
       final String plain = _formatPlainMessage(message, level);
       _writeToFile(plain);
@@ -174,13 +180,16 @@ class LoggingService {
   }
 
   /// Creates a child logger with the same configuration
-  LoggingService copyWith({final bool? isVerbose, final bool? enableColors, final bool? saveLog}) =>
-      LoggingService(
-        isVerbose: isVerbose ?? this.isVerbose,
-        enableColors: enableColors ?? this.enableColors,
-        saveLog: saveLog ?? this.saveLog,
-        preferredLogDir: _preferredLogDir,
-      );
+  LoggingService copyWith({
+    final bool? isVerbose,
+    final bool? enableColors,
+    final bool? saveLog,
+  }) => LoggingService(
+    isVerbose: isVerbose ?? this.isVerbose,
+    enableColors: enableColors ?? this.enableColors,
+    saveLog: saveLog ?? this.saveLog,
+    preferredLogDir: _preferredLogDir,
+  );
 
   /// Gets all collected warning messages
   List<String> get warnings => List.unmodifiable(_warnings);
@@ -221,12 +230,18 @@ class LoggingService {
     }
 
     if (Platform.environment['INTERACTIVE'] == 'true') {
-      print('[gpth ${code != 0 ? 'quitted :(' : 'finished :)'} (code $code) - press enter to close]');
+      print(
+        '[gpth ${code != 0 ? 'quitted :(' : 'finished :)'} (code $code) - press enter to close]',
+      );
       stdin.readLineSync();
     }
     // Best-effort flush/close without awaiting (keep method signature sync)
-    try { _globalSink?.flush(); } catch (_) {}
-    try { _globalSink?.close(); } catch (_) {}
+    try {
+      _globalSink?.flush();
+    } catch (_) {}
+    try {
+      _globalSink?.close();
+    } catch (_) {}
     _fileSink = null;
     _globalSink = null;
     exit(code);
@@ -247,8 +262,11 @@ class LoggingService {
       if (!dir.existsSync()) dir.createSync(recursive: true);
 
       // Use (or set) a global timestamp so every instance writes to the same file
-      final String ts = _globalTimestamp ??= _tsForFilenameStatic(DateTime.now());
-      final String candidatePath = '${dir.path}${Platform.pathSeparator}gpth_v${version}_$ts.log';
+      final String ts = _globalTimestamp ??= _tsForFilenameStatic(
+        DateTime.now(),
+      );
+      final String candidatePath =
+          '${dir.path}${Platform.pathSeparator}gpth_v${version}_$ts.log';
       final File f = File(candidatePath);
 
       // Create file explicitly (Windows/Google Drive can fail with append-open on non-existing files)
@@ -269,7 +287,7 @@ class LoggingService {
           pathUsed = f2.path;
           _globalSink = f2.openWrite();
         } else {
-            rethrow;
+          rethrow;
         }
       }
 
@@ -280,10 +298,18 @@ class LoggingService {
 
       // Session header only once per process
       if (!_sessionHeaderWritten) {
-        _globalSink!.writeln('${_formatAlignedLabel('info')} ===== GPTH Logging started ${_createdAt.toIso8601String()} =====');
-        _globalSink!.writeln('${_formatAlignedLabel('info')} Log file: $_globalLogFilePath');
-        _globalSink!.writeln('${_formatAlignedLabel('info')} Platform: ${Platform.operatingSystem} ${Platform.version.split(' ').first}');
-        _globalSink!.writeln('${_formatAlignedLabel('info')} GPTH Version: $version');
+        _globalSink!.writeln(
+          '${_formatAlignedLabel('info')} ===== GPTH Logging started ${_createdAt.toIso8601String()} =====',
+        );
+        _globalSink!.writeln(
+          '${_formatAlignedLabel('info')} Log file: $_globalLogFilePath',
+        );
+        _globalSink!.writeln(
+          '${_formatAlignedLabel('info')} Platform: ${Platform.operatingSystem} ${Platform.version.split(' ').first}',
+        );
+        _globalSink!.writeln(
+          '${_formatAlignedLabel('info')} GPTH Version: $version',
+        );
         _sessionHeaderWritten = true;
       }
     } catch (e) {
@@ -298,8 +324,11 @@ class LoggingService {
     if (_globalSink == null || _globalLogFilePath == null) {
       try {
         final Directory tmp = Directory.systemTemp;
-        final String ts = _globalTimestamp ??= _tsForFilenameStatic(DateTime.now());
-        final String altPath = '${tmp.path}${Platform.pathSeparator}gpth_v${version}_$ts.log';
+        final String ts = _globalTimestamp ??= _tsForFilenameStatic(
+          DateTime.now(),
+        );
+        final String altPath =
+            '${tmp.path}${Platform.pathSeparator}gpth_v${version}_$ts.log';
         final File alt = File(altPath);
         if (!alt.existsSync()) alt.createSync(recursive: true);
         _globalLogFilePath = alt.absolute.path;
@@ -308,9 +337,15 @@ class LoggingService {
         _logFilePath = _globalLogFilePath;
 
         if (!_sessionHeaderWritten) {
-          _globalSink!.writeln('${_formatAlignedLabel('info')} ===== GPTH Logging started ${_createdAt.toIso8601String()} =====');
-          _globalSink!.writeln('${_formatAlignedLabel('info')} Log file: $_globalLogFilePath');
-          _globalSink!.writeln('${_formatAlignedLabel('info')} Platform: ${Platform.operatingSystem} ${Platform.version.split(' ').first}');
+          _globalSink!.writeln(
+            '${_formatAlignedLabel('info')} ===== GPTH Logging started ${_createdAt.toIso8601String()} =====',
+          );
+          _globalSink!.writeln(
+            '${_formatAlignedLabel('info')} Log file: $_globalLogFilePath',
+          );
+          _globalSink!.writeln(
+            '${_formatAlignedLabel('info')} Platform: ${Platform.operatingSystem} ${Platform.version.split(' ').first}',
+          );
           _sessionHeaderWritten = true;
         }
       } catch (_) {
@@ -349,7 +384,8 @@ class LoggingService {
   /// Converts an absolute Windows path to extended-length form (\\?\ or \\?\UNC\)
   String _toExtendedWindowsPath(final String absPath) {
     // Already extended or device path
-    if (absPath.startsWith(r'\\?\') || absPath.startsWith(r'\\.\')) return absPath;
+    if (absPath.startsWith(r'\\?\') || absPath.startsWith(r'\\.\'))
+      return absPath;
     // UNC path
     if (absPath.startsWith(r'\\')) return r'\\?\UNC\' + absPath.substring(2);
     return r'\\?\' + absPath;
@@ -357,8 +393,12 @@ class LoggingService {
 
   /// Closes the file sink gracefully (optional; console logging unaffected).
   void close() {
-    try { _globalSink?.flush(); } catch (_) {}
-    try { _globalSink?.close(); } catch (_) {}
+    try {
+      _globalSink?.flush();
+    } catch (_) {}
+    try {
+      _globalSink?.close();
+    } catch (_) {}
     _fileSink = null;
     _globalSink = null;
   }
@@ -406,7 +446,8 @@ mixin LoggerMixin {
       logger.debug(message, forcePrint: forcePrint);
 
   /// Prints a plain, aligned INFO line (no ANSI colors) and persists to file if enabled.
-  void logPrint(final String message, {final bool forcePrint = true}) => logger.printPlain(message, forcePrint: forcePrint);
+  void logPrint(final String message, {final bool forcePrint = true}) =>
+      logger.printPlain(message, forcePrint: forcePrint);
 
   /// Builds a sensible default logger if none was injected yet.
   /// Prefers an already-initialized logger from the ServiceContainer to keep

@@ -59,7 +59,11 @@ class MediaEntity {
     // Ensure albumsMap is enriched with non-canonical files discovered in this entity.
     final updatedAlbums = _augmentAlbumsForNonCanonical(
       albumsMap ?? const {},
-      <FileEntity>[normalized.primary, ...normalized.secondaries, ...normalized.duplicates],
+      <FileEntity>[
+        normalized.primary,
+        ...normalized.secondaries,
+        ...normalized.duplicates,
+      ],
     );
 
     return MediaEntity._internal(
@@ -172,16 +176,23 @@ class MediaEntity {
   List<FileEntity> getPrimary() => List<FileEntity>.unmodifiable([primaryFile]);
 
   /// Returns all secondary files.
-  List<FileEntity> getSecondary() => List<FileEntity>.unmodifiable(secondaryFiles);
+  List<FileEntity> getSecondary() =>
+      List<FileEntity>.unmodifiable(secondaryFiles);
 
   /// Returns primary and secondary files (unmodifiable). (excludes duplicates).
-  List<FileEntity> getPrimaryAndSecondary() => List<FileEntity>.unmodifiable([primaryFile, ...secondaryFiles]);
+  List<FileEntity> getPrimaryAndSecondary() =>
+      List<FileEntity>.unmodifiable([primaryFile, ...secondaryFiles]);
 
   /// Returns all duplicate files.
-  List<FileEntity> getDuplicates() => List<FileEntity>.unmodifiable(duplicatesFiles);
+  List<FileEntity> getDuplicates() =>
+      List<FileEntity>.unmodifiable(duplicatesFiles);
 
   /// Returns all files in the entity, including the primary one.
-  List<FileEntity> getAllFiles() => List<FileEntity>.unmodifiable([primaryFile, ...secondaryFiles, ...duplicatesFiles]);
+  List<FileEntity> getAllFiles() => List<FileEntity>.unmodifiable([
+    primaryFile,
+    ...secondaryFiles,
+    ...duplicatesFiles,
+  ]);
 
   /// Returns the best-ranked file (i.e., the current primary).
   FileEntity getBestRankedFile() => primaryFile;
@@ -189,7 +200,8 @@ class MediaEntity {
   /// Returns a copy swapping the given `secondary` with the current `primary`.
   /// The former primary becomes a secondary; normalization is applied afterward.
   MediaEntity swapPrimaryWithSecondary(final FileEntity secondary) {
-    if (!secondaryFiles.any((final f) => _sameIdentity(f, secondary))) return this;
+    if (!secondaryFiles.any((final f) => _sameIdentity(f, secondary)))
+      return this;
     final all = getAllFiles();
     // Promote the provided secondary by lowering its ranking to beat all others.
     final promoted = _withRankingAdjusted(secondary, -1);
@@ -339,7 +351,11 @@ class MediaEntity {
     // Enrich merged album metadata using any non-canonical files present in the merged entity.
     final mergedAlbumsUpdated = _augmentAlbumsForNonCanonical(
       mergedAlbums,
-      <FileEntity>[normalized.primary, ...normalized.secondaries, ...normalized.duplicates],
+      <FileEntity>[
+        normalized.primary,
+        ...normalized.secondaries,
+        ...normalized.duplicates,
+      ],
     );
 
     return MediaEntity._internal(
@@ -403,18 +419,19 @@ class MediaEntity {
     Object.hashAllUnordered(duplicatesFiles.map(_fileIdentityKey)),
   );
 
-@override
-String toString() {
-  final dateInfo = dateTaken != null ? ', dateTaken: $dateTaken' : '';
-  final accuracyInfo = dateAccuracy != null ? ' (${dateAccuracy!.description})' : '';
-  final albumsCount = albumNames.length;
-  final secondaries = secondaryFiles.length;
-  final duplicates = duplicatesFiles.length;
-  // Always print partnerShared in camelCase and include the flag even when false.
-  return 'MediaEntity(${primaryFile.sourcePath}$dateInfo$accuracyInfo, '
-      'dateTaken: $dateTaken, dateAccuracy: $dateAccuracy, albums: $albumsCount, secondaries: $secondaries, duplicates: $duplicates, partnerShared: $partnerShared)';
-}
-
+  @override
+  String toString() {
+    final dateInfo = dateTaken != null ? ', dateTaken: $dateTaken' : '';
+    final accuracyInfo = dateAccuracy != null
+        ? ' (${dateAccuracy!.description})'
+        : '';
+    final albumsCount = albumNames.length;
+    final secondaries = secondaryFiles.length;
+    final duplicates = duplicatesFiles.length;
+    // Always print partnerShared in camelCase and include the flag even when false.
+    return 'MediaEntity(${primaryFile.sourcePath}$dateInfo$accuracyInfo, '
+        'dateTaken: $dateTaken, dateAccuracy: $dateAccuracy, albums: $albumsCount, secondaries: $secondaries, duplicates: $duplicates, partnerShared: $partnerShared)';
+  }
 
   // ===== Private helpers =====
 
@@ -519,12 +536,12 @@ String toString() {
     final FileEntity file,
     final int ranking,
   ) => FileEntity(
-      sourcePath: file.sourcePath,
-      targetPath: file.targetPath,
-      isShortcut: file.isShortcut,
-      dateAccuracy: file.dateAccuracy,
-      ranking: ranking,
-    );
+    sourcePath: file.sourcePath,
+    targetPath: file.targetPath,
+    isShortcut: file.isShortcut,
+    dateAccuracy: file.dateAccuracy,
+    ranking: ranking,
+  );
 
   /// Ranking calculation:
   /// - Prefer year-folder (canonical) over album-folder
@@ -533,7 +550,8 @@ String toString() {
   ///
   /// IMPORTANT: This function now returns a **provisional** value only.
   /// Final ranks are assigned **sequentially (1..N)** inside `_normalizeAndSplit`.
-  static int _computeRanking(final FileEntity f) => 0; // Keep returning 0 to avoid leaking an absolute score. Ordering is decided later.
+  static int _computeRanking(final FileEntity f) =>
+      0; // Keep returning 0 to avoid leaking an absolute score. Ordering is decided later.
 
   /// Comparator: by ranking, then by path (stable)
   static int _byRankingThenPath(final FileEntity a, final FileEntity b) {
@@ -579,9 +597,10 @@ String toString() {
     return <FileEntity>[...forced, ...regular];
   }
 
-  static bool _sameIdentity(final FileEntity a, final FileEntity b) => a.sourcePath == b.sourcePath &&
-        a.targetPath == b.targetPath &&
-        a.isShortcut == b.isShortcut;
+  static bool _sameIdentity(final FileEntity a, final FileEntity b) =>
+      a.sourcePath == b.sourcePath &&
+      a.targetPath == b.targetPath &&
+      a.isShortcut == b.isShortcut;
 
   static String _fileIdentityKey(final FileEntity f) =>
       '${f.isShortcut ? 'S' : 'F'}|${f.targetPath ?? ''}|${f.sourcePath}';
@@ -641,10 +660,11 @@ String toString() {
 
   MediaEntity _copyWithFiles(final _SplitResult norm) {
     // Auto-augment albums metadata with any non-canonical files present in this new shape.
-    final updatedAlbums = _augmentAlbumsForNonCanonical(
-      albumsMap,
-      <FileEntity>[norm.primary, ...norm.secondaries, ...norm.duplicates],
-    );
+    final updatedAlbums = _augmentAlbumsForNonCanonical(albumsMap, <FileEntity>[
+      norm.primary,
+      ...norm.secondaries,
+      ...norm.duplicates,
+    ]);
     return MediaEntity._internal(
       primaryFile: norm.primary,
       secondaryFiles: norm.secondaries,
@@ -810,9 +830,13 @@ class FileEntity {
     // ── Source parent folder checks ────────────────────────────────
     final parent = parentName(source);
     final yearOnlyRe = RegExp(r'^(?:19|20)\d{2}$'); // exact folder "YYYY"
-    final photosFromRe = RegExp(r'photos\s+from\s+(?:19|20)\d{2}', caseSensitive: false); // contains "Photos from YYYY"
+    final photosFromRe = RegExp(
+      r'photos\s+from\s+(?:19|20)\d{2}',
+      caseSensitive: false,
+    ); // contains "Photos from YYYY"
 
-    final fromYearFolder = yearOnlyRe.hasMatch(parent) || photosFromRe.hasMatch(parent);
+    final fromYearFolder =
+        yearOnlyRe.hasMatch(parent) || photosFromRe.hasMatch(parent);
 
     // ── Target directory checks (exclude filename) ─────────────────
     bool toAllPhotos = false;
@@ -829,14 +853,19 @@ class FileEntity {
       final yearOnlySegment = RegExp(r'(?:^|/)(?:19|20)\d{2}(?:/|$)');
 
       // Year/Month structure: .../YYYY/MM/...
-      final yearMonthSlash = RegExp(r'(?:^|/)(?:19|20)\d{2}/(?:0[1-9]|1[0-2])(?:/|$)');
+      final yearMonthSlash = RegExp(
+        r'(?:^|/)(?:19|20)\d{2}/(?:0[1-9]|1[0-2])(?:/|$)',
+      );
 
       // Year-Month segment: .../YYYY-MM/...
-      final yearMonthDash = RegExp(r'(?:^|/)(?:19|20)\d{2}-(?:0[1-9]|1[0-2])(?:/|$)');
+      final yearMonthDash = RegExp(
+        r'(?:^|/)(?:19|20)\d{2}-(?:0[1-9]|1[0-2])(?:/|$)',
+      );
 
-      toYearStructures = yearOnlySegment.hasMatch(dir) ||
-                         yearMonthSlash.hasMatch(dir) ||
-                         yearMonthDash.hasMatch(dir);
+      toYearStructures =
+          yearOnlySegment.hasMatch(dir) ||
+          yearMonthSlash.hasMatch(dir) ||
+          yearMonthDash.hasMatch(dir);
     }
 
     return fromYearFolder || toAllPhotos || toYearStructures;

@@ -46,7 +46,10 @@ class FileOperationService with LoggerMixin {
     } on FileSystemException catch (e) {
       // For unexpected filesystem errors, rethrow a friendly message when it matches typical cross-device hints.
       if (e.osError?.errorCode == 18 || e.message.contains('cross-device')) {
-        throw FileOperationException('Cannot move files across different drives. Please select an output location on the same drive as the input.', originalException: e);
+        throw FileOperationException(
+          'Cannot move files across different drives. Please select an output location on the same drive as the input.',
+          originalException: e,
+        );
       }
       rethrow;
     }
@@ -157,7 +160,9 @@ class FileOperationService with LoggerMixin {
     // Handle Windows date limitations
     DateTime adjustedTime = timestamp;
     if (Platform.isWindows && timestamp.isBefore(DateTime(1970))) {
-      print('[Info]: ${file.path} has date $timestamp, which is before 1970 (not supported on Windows) - will be set to 1970-01-01');
+      print(
+        '[Info]: ${file.path} has date $timestamp, which is before 1970 (not supported on Windows) - will be set to 1970-01-01',
+      );
       adjustedTime = DateTime(1970);
     }
 
@@ -167,7 +172,10 @@ class FileOperationService with LoggerMixin {
       // Sometimes Windows throws error but succeeds anyway
       // Only throw if it's not error code 0
       if (e.errorCode != 0) {
-        throw FileOperationException("Can't set modification time on $file: $e", originalException: e);
+        throw FileOperationException(
+          "Can't set modification time on $file: $e",
+          originalException: e,
+        );
       }
       // Error code 0 means success, so we ignore it
     } catch (e) {
@@ -196,8 +204,12 @@ class FileOperationService with LoggerMixin {
   /// Batch create multiple directories with concurrency control
   Future<void> ensureDirectoriesExist(final List<Directory> directories) async {
     final pool = GlobalPools.poolFor(ConcurrencyOperation.fileIO);
-    final concurrency = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.fileIO);
-    logDebug('Starting $concurrency threads (fileIO directory ensure concurrency)');
+    final concurrency = ConcurrencyManager().concurrencyFor(
+      ConcurrencyOperation.fileIO,
+    );
+    logDebug(
+      'Starting $concurrency threads (fileIO directory ensure concurrency)',
+    );
     await Future.wait(
       directories.map(
         (final dir) => pool.withResource(() => ensureDirectoryExists(dir)),
@@ -212,7 +224,9 @@ class FileOperationService with LoggerMixin {
   }) async {
     final results = <FileOperationResult>[];
     final pool = GlobalPools.poolFor(ConcurrencyOperation.fileIO);
-    final concurrency = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.fileIO);
+    final concurrency = ConcurrencyManager().concurrencyFor(
+      ConcurrencyOperation.fileIO,
+    );
     logDebug('Starting $concurrency threads (fileIO move concurrency)');
     int completed = 0;
 
@@ -222,11 +236,19 @@ class FileOperationService with LoggerMixin {
           final result = await moveFileOptimized(op.source, op.target);
           completed++;
           onProgress?.call(completed, operations.length);
-          return FileOperationResult(success: true, sourceFile: op.source, resultFile: result);
+          return FileOperationResult(
+            success: true,
+            sourceFile: op.source,
+            resultFile: result,
+          );
         } catch (e) {
           completed++;
           onProgress?.call(completed, operations.length);
-          return FileOperationResult(success: false, sourceFile: op.source, error: e.toString());
+          return FileOperationResult(
+            success: false,
+            sourceFile: op.source,
+            error: e.toString(),
+          );
         }
       }),
     );
@@ -292,7 +314,10 @@ class FileOperationService with LoggerMixin {
 
       // Keep relative semantics: skip "." and preserve ".." literally.
       if (seg == '.') continue;
-      if (seg == '..') { norm.add('..'); continue; }
+      if (seg == '..') {
+        norm.add('..');
+        continue;
+      }
 
       // Sanitize segment without altering any non-ASCII characters.
       seg = _sanitizeSegmentPreserveUnicode(seg);
@@ -309,7 +334,9 @@ class FileOperationService with LoggerMixin {
     if (root.isEmpty) return joined;
 
     final bool rootEndsWithSep = root.endsWith('\\') || root.endsWith('/');
-    return rootEndsWithSep ? '$root$joined' : '$root${Platform.pathSeparator}$joined';
+    return rootEndsWithSep
+        ? '$root$joined'
+        : '$root${Platform.pathSeparator}$joined';
   }
 
   /// Sanitizes a single path segment while preserving all Unicode characters.
@@ -331,7 +358,7 @@ class FileOperationService with LoggerMixin {
     int end = units.length;
     while (end > 0) {
       final cu = units[end - 1];
-      if (cu == 0x20 /* ' ' */ || cu == 0x2E /* '.' */) {
+      if (cu == 0x20 /* ' ' */ || cu == 0x2E /* '.' */ ) {
         end--;
         continue;
       }

@@ -153,7 +153,10 @@ Future<void> main(final List<String> arguments) async {
     // the new log file inside that directory. This avoids file-lock errors on Windows.
     final Directory preCleanOut = Directory(config.outputPath);
     if (await preCleanOut.exists()) {
-      final bool needsClean = await _needsCleanOutputDirectory(preCleanOut, config);
+      final bool needsClean = await _needsCleanOutputDirectory(
+        preCleanOut,
+        config,
+      );
       if (needsClean) {
         if (config.isInteractiveMode) {
           if (await ServiceContainer.instance.interactiveService
@@ -1040,7 +1043,10 @@ Future<ProcessingResult> _executeProcessing(
       forcePrint: true,
     );
   } else {
-    logDebug('Skipping clone input folder (--keep-input = ${config.keepInput}, inputExtractedFromZip = $inputExtractedFromZipFlag).', forcePrint: true);
+    logDebug(
+      'Skipping clone input folder (--keep-input = ${config.keepInput}, inputExtractedFromZip = $inputExtractedFromZipFlag).',
+      forcePrint: true,
+    );
   }
 
   // IMPORTANT: from here on, use a runtimeConfig that reflects the effective input dir
@@ -1054,7 +1060,8 @@ Future<ProcessingResult> _executeProcessing(
 
   // Skip internal cleaning if it was already done before logger creation
   if (!precleanedOutput) {
-    if (await outputDir.exists() && await _needsCleanOutputDirectory(outputDir, runtimeConfig)) {
+    if (await outputDir.exists() &&
+        await _needsCleanOutputDirectory(outputDir, runtimeConfig)) {
       if (runtimeConfig.isInteractiveMode) {
         if (await ServiceContainer.instance.interactiveService
             .askForCleanOutput()) {
@@ -1101,15 +1108,19 @@ Future<ProcessingResult> _executeProcessing(
 /// @param outputDir The output directory to inspect.
 /// @param config The processing configuration (used to resolve `inputPath`).
 /// @returns `true` if cleaning is required; `false` otherwise (or if `progress.json` exists).
-Future<bool> _needsCleanOutputDirectory(final Directory outputDir, final ProcessingConfig config) async {
+Future<bool> _needsCleanOutputDirectory(
+  final Directory outputDir,
+  final ProcessingConfig config,
+) async {
   final File progressFile = File(path.join(outputDir.path, 'progress.json'));
   if (await progressFile.exists()) return false;
   return !(await outputDir
       .list()
-      .where((final e) => path.absolute(e.path) != path.absolute(config.inputPath))
+      .where(
+        (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
+      )
       .isEmpty);
 }
-
 
 /// **OUTPUT DIRECTORY CLEANUP**
 ///
@@ -1136,12 +1147,13 @@ Future<void> _cleanOutputDirectory(
     (final e) => path.absolute(e.path) != path.absolute(config.inputPath),
   )) {
     final basename = path.basename(file.path).toLowerCase();
-    if (basename.contains('photomigrator')) continue; // Avoid removing PhotoMigrator Logs stored in Output folder.
-    if (basename == 'progress.json') continue;        // Avoid removing progress.json file.
+    if (basename.contains('photomigrator'))
+      continue; // Avoid removing PhotoMigrator Logs stored in Output folder.
+    if (basename == 'progress.json')
+      continue; // Avoid removing progress.json file.
     await file.delete(recursive: true);
   }
 }
-
 
 /// **FINAL RESULTS DISPLAY**
 ///

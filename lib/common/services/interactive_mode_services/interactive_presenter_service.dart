@@ -69,7 +69,9 @@ class InteractivePresenterService with LoggerMixin {
       'Google Takeout to one nice tidy folder\n',
     );
     await _sleep(3);
-    print('(If any part confuses you, read the guide on: https://github.com/Xentraxx/GooglePhotosTakeoutHelper)');
+    print(
+      '(If any part confuses you, read the guide on: https://github.com/Xentraxx/GooglePhotosTakeoutHelper)',
+    );
     await _sleep(3);
   }
 
@@ -256,7 +258,9 @@ class InteractivePresenterService with LoggerMixin {
 
   /// Prompts user to select output directory
   Future<void> promptForOutputDirectory() async {
-    print('Select the output directory, where GPTH should move your photos to.');
+    print(
+      'Select the output directory, where GPTH should move your photos to.',
+    );
     if (enableSleep) await _sleep(1);
   }
 
@@ -300,19 +304,31 @@ class InteractivePresenterService with LoggerMixin {
   Future<void> promptForAlbumBehavior() async {
     print('What should be done with albums?');
     print('[1] shortcut: [Recommended] Album folders with symlinks to');
-    print('    original photos. Recommended as it provides better compatibility');
+    print(
+      '    original photos. Recommended as it provides better compatibility',
+    );
     print('    with cloud services and takes the least space');
     print('');
-    print('[2] reverse-shortcut: Album folders with ORIGINAL photos. "ALL_PHOTOS" folder');
+    print(
+      '[2] reverse-shortcut: Album folders with ORIGINAL photos. "ALL_PHOTOS" folder',
+    );
     print('    with shortcuts/symlinks to albums. If a photo is in an album,');
-    print('    the original is saved. CAUTION: If a photo is in multiple albums, it will');
-    print('    be duplicated in the other albums, and the shortcuts/symlinks in');
+    print(
+      '    the original is saved. CAUTION: If a photo is in multiple albums, it will',
+    );
+    print(
+      '    be duplicated in the other albums, and the shortcuts/symlinks in',
+    );
     print('    "ALL_PHOTOS" will point only to one album.');
     print('');
     print('[3] duplicate-copy: Album folders with photos copied into them.');
-    print('    This will work across all systems, but may take wayyy more space!!');
+    print(
+      '    This will work across all systems, but may take wayyy more space!!',
+    );
     print('');
-    print('[4] json: Put ALL photos (including Archive and Trash) in one folder and');
+    print(
+      '[4] json: Put ALL photos (including Archive and Trash) in one folder and',
+    );
     print('    make a .json file with info about albums.');
     print('    Use if you\'re a programmer, or just want to get everything,');
     print('    ignoring lack of year-folders etc.');
@@ -321,15 +337,18 @@ class InteractivePresenterService with LoggerMixin {
     print('[5] nothing: Just ignore them and put year-photos into one folder.');
     print('    WARNING: This moves Archive/Trash into ALL_PHOTOS !!!');
     print('');
-    print('[6] ignore: Ignore albums completely. Canonical files go to ALL_PHOTOS;');
-    print('    non-canonical files are deleted (not moved or copied to albums).');
+    print(
+      '[6] ignore: Ignore albums completely. Canonical files go to ALL_PHOTOS;',
+    );
+    print(
+      '    non-canonical files are deleted (not moved or copied to albums).',
+    );
     print('    WARNING: This ignores Archive/Trash !!!');
     print('');
     print('(Type a number or press enter for recommended option):');
 
     if (enableSleep) await _sleep(1);
   }
-
 
   /// Shows an album option to the user
   void showAlbumOption(final int index, final String key, final String value) {
@@ -691,7 +710,9 @@ class InteractivePresenterService with LoggerMixin {
     required final int mediaCount,
   }) async {
     logPrint('\n=== Processing Summary ===');
-    logPrint('Total time: ${totalTime.inMinutes}m ${totalTime.inSeconds % 60}s');
+    logPrint(
+      'Total time: ${totalTime.inMinutes}m ${totalTime.inSeconds % 60}s',
+    );
     logPrint(
       'Steps: $successfulSteps successful, $failedSteps failed, $skippedSteps skipped',
     );
@@ -728,7 +749,9 @@ class InteractivePresenterService with LoggerMixin {
           logPrint('   Duplicates removed: ${data['duplicatesRemoved']} files');
         }
         if (data['uniqueFiles'] != null) {
-          logPrint('   Unique files (Media Entities) remaining: ${data['uniqueFiles']}');
+          logPrint(
+            '   Unique files (Media Entities) remaining: ${data['uniqueFiles']}',
+          );
         }
         break;
 

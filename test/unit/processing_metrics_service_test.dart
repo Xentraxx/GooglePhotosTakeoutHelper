@@ -98,10 +98,7 @@ void main() {
     group('calculateOutputFileCount', () {
       test('calculates correctly for shortcut option (keeping 4)', () async {
         // A: year-only → 1 association
-        final eA = await yearOnly(
-          path: '2023/photo1.jpg',
-          bytes: [1, 1, 1],
-        );
+        final eA = await yearOnly(path: '2023/photo1.jpg', bytes: [1, 1, 1]);
 
         // B: two albums (no year) → 2 associations
         final bytesB = [2, 2, 2];
@@ -120,10 +117,7 @@ void main() {
         final eB = mergedB.single;
 
         // C: year-only → 1 association
-        final eC = await yearOnly(
-          path: '2023/photo3.jpg',
-          bytes: [3, 3, 3],
-        );
+        final eC = await yearOnly(path: '2023/photo3.jpg', bytes: [3, 3, 3]);
 
         final collection = MediaEntityCollection([eA, eB, eC]);
         final result = service.calculateOutputFileCount(collection, 'shortcut');
@@ -134,10 +128,7 @@ void main() {
 
       test('calculates correctly for duplicate-copy option', () async {
         // A: year-only → 1
-        final eA = await yearOnly(
-          path: '2023/photo1.jpg',
-          bytes: [4, 4, 4],
-        );
+        final eA = await yearOnly(path: '2023/photo1.jpg', bytes: [4, 4, 4]);
 
         // B: two albums (no year) → 2
         final bytesB = [5, 5, 5];
@@ -152,12 +143,13 @@ void main() {
         final eB = (await albumSvc.detectAndMergeAlbums([
           MediaEntity.single(file: FileEntity(sourcePath: fB1.path)),
           MediaEntity.single(file: FileEntity(sourcePath: fB2.path)),
-        ]))
-            .single;
+        ])).single;
 
         final collection = MediaEntityCollection([eA, eB]);
-        final result =
-            service.calculateOutputFileCount(collection, 'duplicate-copy');
+        final result = service.calculateOutputFileCount(
+          collection,
+          'duplicate-copy',
+        );
 
         // 1 + 2 = 3
         expect(result, equals(3));
@@ -165,10 +157,7 @@ void main() {
 
       test('calculates correctly for reverse-shortcut option', () async {
         // Same as previous: 1 + 2 = 3
-        final eA = await yearOnly(
-          path: '2023/photo1.jpg',
-          bytes: [6, 6, 6],
-        );
+        final eA = await yearOnly(path: '2023/photo1.jpg', bytes: [6, 6, 6]);
         final bytesB = [7, 7, 7];
         final fB1 = fixture.createFile(
           'Albums/vacation/photo2.jpg',
@@ -181,12 +170,13 @@ void main() {
         final eB = (await albumSvc.detectAndMergeAlbums([
           MediaEntity.single(file: FileEntity(sourcePath: fB1.path)),
           MediaEntity.single(file: FileEntity(sourcePath: fB2.path)),
-        ]))
-            .single;
+        ])).single;
 
         final collection = MediaEntityCollection([eA, eB]);
-        final result =
-            service.calculateOutputFileCount(collection, 'reverse-shortcut');
+        final result = service.calculateOutputFileCount(
+          collection,
+          'reverse-shortcut',
+        );
 
         expect(result, equals(3));
       });
@@ -206,8 +196,7 @@ void main() {
         final eB = (await albumSvc.detectAndMergeAlbums([
           MediaEntity.single(file: FileEntity(sourcePath: fB1.path)),
           MediaEntity.single(file: FileEntity(sourcePath: fB2.path)),
-        ]))
-            .single;
+        ])).single;
         final eC = await yearOnly(path: '2023/photo3.jpg', bytes: [10]);
 
         final collection = MediaEntityCollection([eA, eB, eC]);
@@ -263,10 +252,7 @@ void main() {
         );
 
         // e3: no date
-        final e3 = await yearOnly(
-          path: '2023/photo3.jpg',
-          bytes: [23],
-        );
+        final e3 = await yearOnly(path: '2023/photo3.jpg', bytes: [23]);
 
         final collection = MediaEntityCollection([e1, e2, e3]);
         final stats = service.calculateStatistics(collection);
@@ -330,8 +316,7 @@ void main() {
         final e3 = (await albumSvc.detectAndMergeAlbums([
           MediaEntity.single(file: FileEntity(sourcePath: f1.path)),
           MediaEntity.single(file: FileEntity(sourcePath: f2.path)),
-        ]))
-            .single;
+        ])).single;
 
         final collection = MediaEntityCollection([e1, e2, e3]);
         final stats = service.calculateStatistics(collection);
@@ -367,8 +352,7 @@ void main() {
           MediaEntity.single(file: FileEntity(sourcePath: a.path)),
           MediaEntity.single(file: FileEntity(sourcePath: b.path)),
           MediaEntity.single(file: FileEntity(sourcePath: c.path)),
-        ]))
-            .single;
+        ])).single;
 
         final collection = MediaEntityCollection([e1, e2]);
         final stats = service.calculateStatistics(collection);

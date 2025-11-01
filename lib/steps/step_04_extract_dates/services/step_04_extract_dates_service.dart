@@ -8,7 +8,9 @@ class ExtractDateService with LoggerMixin {
 
   /// Executes the full Step 4 business logic (moved from the wrapper's execute).
   /// Preserves original behavior, logging, progress bar, stats and outputs.
-  Future<ExtractDateSummary> extractDates(final ProcessingContext context) async {
+  Future<ExtractDateSummary> extractDates(
+    final ProcessingContext context,
+  ) async {
     final sw = Stopwatch()..start();
 
     logPrint('[Step 4/8] Extracting metadata (this may take a while)...');
@@ -16,7 +18,9 @@ class ExtractDateService with LoggerMixin {
     final collection = context.mediaCollection;
 
     // Get and print maxConcurrency
-    final maxConcurrency = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.exif);
+    final maxConcurrency = ConcurrencyManager().concurrencyFor(
+      ConcurrencyOperation.exif,
+    );
     logPrint('[Step 4/8] Starting $maxConcurrency threads (exif concurrency)');
 
     // Build extractor callables bound to File (as in your config), but we will decide
@@ -56,11 +60,15 @@ class ExtractDateService with LoggerMixin {
       desc: '[ INFO  ] [Step 4/8] Processing media files',
       total: collection.length,
       width: 50,
-      percentage: true
+      percentage: true,
     );
 
     for (int i = 0; i < collection.length; i += maxConcurrency) {
-      final batch = collection.asList().skip(i).take(maxConcurrency).toList(growable: false);
+      final batch = collection
+          .asList()
+          .skip(i)
+          .take(maxConcurrency)
+          .toList(growable: false);
       final batchStartIndex = i;
 
       final futures = batch.asMap().entries.map((final entry) async {
@@ -70,7 +78,8 @@ class ExtractDateService with LoggerMixin {
 
         // If already has a date, keep it (parity with previous behavior)
         if (media.dateTaken != null) {
-          final method = media.dateTimeExtractionMethod ?? DateTimeExtractionMethod.none;
+          final method =
+              media.dateTimeExtractionMethod ?? DateTimeExtractionMethod.none;
           return {
             'index': actualIndex,
             'mediaFile': media,
@@ -82,8 +91,14 @@ class ExtractDateService with LoggerMixin {
         DateTimeExtractionMethod methodUsed = DateTimeExtractionMethod.none;
 
         // Iterate extractors in priority order
-        for (int extractorIndex = 0; extractorIndex < fileExtractors.length; extractorIndex++) {
-          final method = extractorIndex < extractorMethods.length ? extractorMethods[extractorIndex] : DateTimeExtractionMethod.guess;
+        for (
+          int extractorIndex = 0;
+          extractorIndex < fileExtractors.length;
+          extractorIndex++
+        ) {
+          final method = extractorIndex < extractorMethods.length
+              ? extractorMethods[extractorIndex]
+              : DateTimeExtractionMethod.guess;
           final extractor = fileExtractors[extractorIndex];
 
           try {
@@ -111,26 +126,37 @@ class ExtractDateService with LoggerMixin {
               if (foundDate != null) break;
             }
           } catch (e) {
-            logWarning('Extractor failed for ${_safePath(media.primaryFile.asFile())}: $e', forcePrint: true);
+            logWarning(
+              'Extractor failed for ${_safePath(media.primaryFile.asFile())}: $e',
+              forcePrint: true,
+            );
           }
         }
 
         // Build updated entity with entity-level date/accuracy/method
-        final DateAccuracy acc = accuracyFor(foundDate != null ? methodUsed : DateTimeExtractionMethod.none);
+        final DateAccuracy acc = accuracyFor(
+          foundDate != null ? methodUsed : DateTimeExtractionMethod.none,
+        );
         final MediaEntity updated = media.withDate(
           dateTaken: foundDate ?? media.dateTaken,
           dateAccuracy: acc,
-          dateTimeExtractionMethod: foundDate != null ? methodUsed : DateTimeExtractionMethod.none,
+          dateTimeExtractionMethod: foundDate != null
+              ? methodUsed
+              : DateTimeExtractionMethod.none,
         );
 
         if (foundDate != null) {
-          logDebug('[Step 4/8] Date extracted for ${media.primaryFile.path}: $foundDate (method: ${methodUsed.name}, accuracy: ${acc.value})');
+          logDebug(
+            '[Step 4/8] Date extracted for ${media.primaryFile.path}: $foundDate (method: ${methodUsed.name}, accuracy: ${acc.value})',
+          );
         }
 
         return {
           'index': actualIndex,
           'mediaFile': updated,
-          'extractionMethod': foundDate != null ? methodUsed : DateTimeExtractionMethod.none,
+          'extractionMethod': foundDate != null
+              ? methodUsed
+              : DateTimeExtractionMethod.none,
         };
       });
 
@@ -150,20 +176,34 @@ class ExtractDateService with LoggerMixin {
       }
     }
 
-    print('');  // print to force new line after progress bar
+    print(''); // print to force new line after progress bar
     logPrint('[Step 4/8] Date extraction completed');
 
     // READ-EXIF Telemetry Summary (seconds)
     ExifDateExtractor.dumpStats(
       reset: true,
       loggerMixin: this,
-      exiftoolFallbackEnabled: ServiceContainer.instance.globalConfig.fallbackToExifToolOnNativeMiss == true,
+      exiftoolFallbackEnabled:
+          ServiceContainer
+              .instance
+              .globalConfig
+              .fallbackToExifToolOnNativeMiss ==
+          true,
     );
 
     // Print stats
     logPrint('[Step 4/8] === Date Extraction Summary ===');
-    final byName = <String, int>{for (final e in extractionStats.entries) e.key.name: e.value};
-    const order = ['json', 'exif', 'guess', 'jsonTryHard', 'folderYear', 'none'];
+    final byName = <String, int>{
+      for (final e in extractionStats.entries) e.key.name: e.value,
+    };
+    const order = [
+      'json',
+      'exif',
+      'guess',
+      'jsonTryHard',
+      'folderYear',
+      'none',
+    ];
     for (final k in order) {
       logPrint('[Step 4/8]     $k: ${byName[k] ?? 0} files');
     }
@@ -197,7 +237,7 @@ class ExtractDateSummary {
   final int processedMedia;
 
   Map<String, dynamic> toMap() => {
-        'extractionStats': extractionStats,
-        'processedMedia': processedMedia,
-      };
+    'extractionStats': extractionStats,
+    'processedMedia': processedMedia,
+  };
 }

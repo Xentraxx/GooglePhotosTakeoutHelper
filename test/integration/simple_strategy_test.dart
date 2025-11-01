@@ -72,10 +72,15 @@ void main() {
       final results = <MoveMediaEntityResult>[];
       try {
         print('About to process entity with strategy...');
-        print('Entity primaryFile (effective path): ${entity.primaryFile.path}');
+        print(
+          'Entity primaryFile (effective path): ${entity.primaryFile.path}',
+        );
         print('Entity hasAlbumAssociations: ${entity.hasAlbumAssociations}');
 
-        await for (final result in strategy.processMediaEntity(entity, context)) {
+        await for (final result in strategy.processMediaEntity(
+          entity,
+          context,
+        )) {
           print('Got result: success=${result.success}');
           if (!result.success) {
             print('Error message: ${result.errorMessage}');

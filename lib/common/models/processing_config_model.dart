@@ -47,10 +47,14 @@ class ProcessingConfig {
     this.verbose = false,
     this.isInteractiveMode = false,
     this.dividePartnerShared = false,
-    this.keepInput = false, // keep the original input untouched by working on a temporary copy
-    this.keepDuplicates = false, // keep duplicates files in `_Duplicates` subfolder within output folder
-    this.inputExtractedFromZip = false, // If the input have been extracted from ZIP it will be set to true
-    final String? userInputRoot, // Original root folder selected/provided by the user
+    this.keepInput =
+        false, // keep the original input untouched by working on a temporary copy
+    this.keepDuplicates =
+        false, // keep duplicates files in `_Duplicates` subfolder within output folder
+    this.inputExtractedFromZip =
+        false, // If the input have been extracted from ZIP it will be set to true
+    final String?
+    userInputRoot, // Original root folder selected/provided by the user
   }) : userInputRoot = userInputRoot ?? inputPath;
 
   /// Creates a builder for configuring ProcessingConfig
@@ -353,7 +357,9 @@ enum AlbumBehavior {
   duplicateCopy('duplicate-copy'),
   json('json'),
   nothing('nothing'),
-  ignoreAlbums('ignore'); // NEW: strategy that ignores albums (move canonicals to ALL_PHOTOS, delete non-canonicals)
+  ignoreAlbums(
+    'ignore',
+  ); // NEW: strategy that ignores albums (move canonicals to ALL_PHOTOS, delete non-canonicals)
 
   const AlbumBehavior(this.value);
   final String value;

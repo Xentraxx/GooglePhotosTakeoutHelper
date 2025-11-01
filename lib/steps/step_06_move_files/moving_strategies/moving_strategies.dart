@@ -42,14 +42,21 @@ class IgnoreAlbumsMovingStrategy extends MoveMediaEntityStrategy {
     ];
 
     // Common special folders handling (moved to utils): move to output/Special Folders and exclude from further logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
 
     for (final fe in files) {
-      if (specialHandled.contains(fe)) continue; // skip already handled as Special Folder
+      if (specialHandled.contains(fe))
+        continue; // skip already handled as Special Folder
       if (fe.isCanonical == true) {
         final sw = Stopwatch()..start();
         final File src = fe.asFile();
@@ -167,8 +174,14 @@ class NothingMovingStrategy extends MoveMediaEntityStrategy {
     final List<FileEntity> secondaries = <FileEntity>[...entity.secondaryFiles];
 
     // Common special folders handling: move to Special Folders and exclude from further logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
@@ -218,7 +231,8 @@ class NothingMovingStrategy extends MoveMediaEntityStrategy {
 
     // Delete all secondaries
     for (final sec in secondaries) {
-      if (specialHandled.contains(sec)) continue; // skip already moved to Special Folders
+      if (specialHandled.contains(sec))
+        continue; // skip already moved to Special Folders
       final dsw = Stopwatch()..start();
       final File src = sec.asFile();
       try {
@@ -319,8 +333,14 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
     final bool primaryWasCanonical = primary.isCanonical == true;
 
     // Common special folders handling: move to Special Folders and exclude from JSON logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
@@ -367,23 +387,30 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
         return;
       }
 
-      final String primaryRel =
-          path.relative(movedPrimary.path, from: outDir.path).replaceAll('\\', '/');
+      final String primaryRel = path
+          .relative(movedPrimary.path, from: outDir.path)
+          .replaceAll('\\', '/');
 
       // Build JSON entries per album
       for (final albumName in entity.albumNames) {
-        final Directory albumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-          _pathService,
-          albumName,
-          entity,
-          context,
-        );
-        final String albumRel =
-            path.relative(albumDir.path, from: outDir.path).replaceAll('\\', '/');
+        final Directory albumDir =
+            MovingStrategyUtils.albumDirConsideringUntitled(
+              _pathService,
+              albumName,
+              entity,
+              context,
+            );
+        final String albumRel = path
+            .relative(albumDir.path, from: outDir.path)
+            .replaceAll('\\', '/');
 
         // Primary entry if it was originally non-canonical and belonged to this album
         if (!primaryWasCanonical &&
-            MovingStrategyUtils.fileBelongsToAlbum(entity, primary, albumName)) {
+            MovingStrategyUtils.fileBelongsToAlbum(
+              entity,
+              primary,
+              albumName,
+            )) {
           final String originalBase = path.basename(primary.sourcePath);
           final String albumPathWithFile = '$albumRel/$originalBase';
           (_albumInfo[albumName] ??= <Map<String, String>>[]).add({
@@ -397,7 +424,8 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
 
         // Secondary entries: only NON-CANONICAL that belonged to this album
         for (final sec in secondaries) {
-          if (specialHandled.contains(sec)) continue; // do not include Special Folder files
+          if (specialHandled.contains(sec))
+            continue; // do not include Special Folder files
           if (sec.isCanonical == true) continue;
           if (!MovingStrategyUtils.fileBelongsToAlbum(entity, sec, albumName)) {
             continue;
@@ -417,7 +445,8 @@ class JsonMovingStrategy extends MoveMediaEntityStrategy {
 
     // Delete all secondaries from source (CANONICAL: no JSON entry; NON-CANONICAL: entry already recorded above)
     for (final sec in secondaries) {
-      if (specialHandled.contains(sec)) continue; // already moved to Special Folders
+      if (specialHandled.contains(sec))
+        continue; // already moved to Special Folders
       final dsw = Stopwatch()..start();
       final File srcSec = sec.asFile();
       try {
@@ -563,17 +592,27 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
     final bool primaryWasCanonical = primary.isCanonical == true;
 
     // Common special folders handling: move to Special Folders and exclude from shortcut logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
 
     // Decide which file to move to ALL_PHOTOS (prefer best canonical if exists)
-    final List<FileEntity> canonicals =
-        allFiles.where((final f) => f.isCanonical == true && !specialHandled.contains(f)).toList();
-    final FileEntity chosen =
-        canonicals.isNotEmpty ? _chooseBestRanked(canonicals) : primary;
+    final List<FileEntity> canonicals = allFiles
+        .where(
+          (final f) => f.isCanonical == true && !specialHandled.contains(f),
+        )
+        .toList();
+    final FileEntity chosen = canonicals.isNotEmpty
+        ? _chooseBestRanked(canonicals)
+        : primary;
 
     // Move chosen file to ALL_PHOTOS
     if (!specialHandled.contains(chosen)) {
@@ -628,24 +667,29 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
 
       // Per-entity, per-album registry of basenames already materialized as shortcuts
       // This avoids creating "(1)" when multiple originals share the same name.
-      final Map<String, Set<String>> usedBasenamesPerAlbum = <String, Set<String>>{};
+      final Map<String, Set<String>> usedBasenamesPerAlbum =
+          <String, Set<String>>{};
 
       // Iterate unique album names to avoid duplicate passes on the same album
       for (final albumName in {...entity.albumNames}) {
-        final Directory albumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-          _pathService,
+        final Directory albumDir =
+            MovingStrategyUtils.albumDirConsideringUntitled(
+              _pathService,
+              albumName,
+              entity,
+              context,
+            );
+        final Set<String> usedHere = usedBasenamesPerAlbum.putIfAbsent(
           albumName,
-          entity,
-          context,
+          () => <String>{},
         );
-        final Set<String> usedHere =
-            usedBasenamesPerAlbum.putIfAbsent(albumName, () => <String>{});
 
         // Helper to reuse existing shortcut if a basename already exists in this album
         Future<File?> reuseIfExists(final String desiredName) async {
           final String candidate = path.join(albumDir.path, desiredName);
           // Reuse if something already exists with this name (file/link/dir), or we already created it in this entity.
-          if (usedHere.contains(desiredName) || MovingStrategyUtils._existsAny(candidate)) {
+          if (usedHere.contains(desiredName) ||
+              MovingStrategyUtils._existsAny(candidate)) {
             return File(candidate);
           }
           return null;
@@ -654,7 +698,11 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
         // Primary shortcut if originally non-canonical and belonged to this album
         if (!primaryWasCanonical &&
             !specialHandled.contains(primary) &&
-            MovingStrategyUtils.fileBelongsToAlbum(entity, primary, albumName)) {
+            MovingStrategyUtils.fileBelongsToAlbum(
+              entity,
+              primary,
+              albumName,
+            )) {
           final String desiredName = path.basename(primary.sourcePath);
           final ssw = Stopwatch()..start();
           try {
@@ -692,11 +740,11 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
               // 2) Create the symlink and try to rename to desiredName (will ensure uniqueness on disk)
               final File shortcut =
                   await MovingStrategyUtils.createSymlinkWithPreferredName(
-                _symlinkService,
-                albumDir,
-                movedPrimary,
-                desiredName,
-              );
+                    _symlinkService,
+                    albumDir,
+                    movedPrimary,
+                    desiredName,
+                  );
               ssw.stop();
 
               pendingShortcutSecondaries.add(
@@ -788,11 +836,11 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
               // Otherwise, create a new symlink with the preferred name
               final File shortcut =
                   await MovingStrategyUtils.createSymlinkWithPreferredName(
-                _symlinkService,
-                albumDir,
-                movedPrimary,
-                desiredName,
-              );
+                    _symlinkService,
+                    albumDir,
+                    movedPrimary,
+                    desiredName,
+                  );
               ssw.stop();
 
               if (sec.targetPath == null) {
@@ -847,21 +895,19 @@ class ShortcutMovingStrategy extends MoveMediaEntityStrategy {
     }
   }
 
-
   @override
   void validateContext(final MovingContext context) {}
 
   FileEntity _buildShortcutClone(
     final FileEntity src,
     final String shortcutPath,
-  ) =>
-      FileEntity(
-        sourcePath: src.sourcePath,
-        targetPath: shortcutPath,
-        isShortcut: true,
-        dateAccuracy: src.dateAccuracy,
-        ranking: src.ranking,
-      );
+  ) => FileEntity(
+    sourcePath: src.sourcePath,
+    targetPath: shortcutPath,
+    isShortcut: true,
+    dateAccuracy: src.dateAccuracy,
+    ranking: src.ranking,
+  );
 
   FileEntity _chooseBestRanked(final List<FileEntity> files) {
     files.sort((final a, final b) {
@@ -918,21 +964,29 @@ class ReverseShortcutMovingStrategy extends MoveMediaEntityStrategy {
 
     // Snapshot canonicity BEFORE any move
     final Map<FileEntity, bool> wasCanonical = {
-      for (final f in allFiles) f: f.isCanonical == true
+      for (final f in allFiles) f: f.isCanonical == true,
     };
 
-    final List<FileEntity> nonCanonicals =
-        allFiles.where((final f) => f.isCanonical != true).toList();
+    final List<FileEntity> nonCanonicals = allFiles
+        .where((final f) => f.isCanonical != true)
+        .toList();
 
     // Common special folders handling: move to Special Folders and exclude from further logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
 
-    final List<FileEntity> nonCanonicalsUsable =
-        nonCanonicals.where((final f) => !specialHandled.contains(f)).toList();
+    final List<FileEntity> nonCanonicalsUsable = nonCanonicals
+        .where((final f) => !specialHandled.contains(f))
+        .toList();
 
     if (nonCanonicalsUsable.isNotEmpty) {
       // Move every NON-CANONICAL to its album (deterministic choice per file)
@@ -943,14 +997,17 @@ class ReverseShortcutMovingStrategy extends MoveMediaEntityStrategy {
             MovingStrategyUtils.albumsForFile(entity, fe);
         final String primaryAlbum = albumsForThisFile.isNotEmpty
             ? albumsForThisFile.first
-            : (entity.albumNames.isNotEmpty ? entity.albumNames.first : 'Unknown Album');
+            : (entity.albumNames.isNotEmpty
+                  ? entity.albumNames.first
+                  : 'Unknown Album');
 
-        final Directory albumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-          _pathService,
-          primaryAlbum,
-          entity,
-          context,
-        );
+        final Directory albumDir =
+            MovingStrategyUtils.albumDirConsideringUntitled(
+              _pathService,
+              primaryAlbum,
+              entity,
+              context,
+            );
 
         final sw = Stopwatch()..start();
         final File src = fe.asFile();
@@ -1024,7 +1081,8 @@ class ReverseShortcutMovingStrategy extends MoveMediaEntityStrategy {
         final ssw = Stopwatch()..start();
         try {
           // Try reuse if a link/file with the desired basename already exists in ALL_PHOTOS
-          if (usedBasenamesAllPhotos.contains(desiredName) || MovingStrategyUtils._existsAny(desiredPath)) {
+          if (usedBasenamesAllPhotos.contains(desiredName) ||
+              MovingStrategyUtils._existsAny(desiredPath)) {
             ssw.stop();
 
             // Represent this canonical via the existing shortcut (synthetic entry)
@@ -1058,12 +1116,13 @@ class ReverseShortcutMovingStrategy extends MoveMediaEntityStrategy {
             );
           } else {
             // Otherwise create a symlink and try to rename it to the preferred basename
-            final File shortcut = await MovingStrategyUtils.createSymlinkWithPreferredName(
-              _symlinkService,
-              allPhotosDir,
-              anchorMoved,
-              desiredName,
-            );
+            final File shortcut =
+                await MovingStrategyUtils.createSymlinkWithPreferredName(
+                  _symlinkService,
+                  allPhotosDir,
+                  anchorMoved,
+                  desiredName,
+                );
             ssw.stop();
 
             entity.secondaryFiles.add(
@@ -1222,8 +1281,14 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
     final bool hasCanonical = allFiles.any((final f) => f.isCanonical == true);
 
     // Common special folders handling: move to Special Folders and exclude from copies/duplicates logic
-    final (Set<FileEntity> specialHandled, List<MoveMediaEntityResult> sfResults) =
-        await MovingStrategyUtils.handleSpecialFoldersForEntity(_fileService, context, entity);
+    final (
+      Set<FileEntity> specialHandled,
+      List<MoveMediaEntityResult> sfResults,
+    ) = await MovingStrategyUtils.handleSpecialFoldersForEntity(
+      _fileService,
+      context,
+      entity,
+    );
     for (final r in sfResults) {
       yield r;
     }
@@ -1274,7 +1339,10 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
       for (final fe in allFiles.where((final f) => f.isCanonical == true)) {
         if (specialHandled.contains(fe)) continue; // skip Special Folders
         final File src = fe.asFile();
-        final (File? moved, Duration elapsed) = await moveWithTiming(src, allPhotosDir);
+        final (File? moved, Duration elapsed) = await moveWithTiming(
+          src,
+          allPhotosDir,
+        );
         if (moved != null) {
           fe.targetPath = moved.path;
           fe.isShortcut = false;
@@ -1311,18 +1379,23 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
             MovingStrategyUtils.albumsForFile(entity, fe);
         final String primaryAlbum = albumsForThisFile.isNotEmpty
             ? albumsForThisFile.first
-            : (entity.albumNames.isNotEmpty ? entity.albumNames.first : 'Unknown Album');
+            : (entity.albumNames.isNotEmpty
+                  ? entity.albumNames.first
+                  : 'Unknown Album');
 
         // Move original to primary album
-        final Directory primaryAlbumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-          _pathService,
-          primaryAlbum,
-          entity,
-          context,
-        );
+        final Directory primaryAlbumDir =
+            MovingStrategyUtils.albumDirConsideringUntitled(
+              _pathService,
+              primaryAlbum,
+              entity,
+              context,
+            );
         final File srcMove = fe.asFile();
-        final (File? movedToAlbum, Duration moveElapsed) =
-            await moveWithTiming(srcMove, primaryAlbumDir);
+        final (File? movedToAlbum, Duration moveElapsed) = await moveWithTiming(
+          srcMove,
+          primaryAlbumDir,
+        );
         if (movedToAlbum != null) {
           fe.targetPath = movedToAlbum.path;
           fe.isShortcut = false;
@@ -1356,14 +1429,17 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
 
         // Copy to remaining albums
         for (final albumName in albumsForThisFile.skip(1)) {
-          final Directory albumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-            _pathService,
-            albumName,
-            entity,
-            context,
+          final Directory albumDir =
+              MovingStrategyUtils.albumDirConsideringUntitled(
+                _pathService,
+                albumName,
+                entity,
+                context,
+              );
+          final (File? copied, Duration copyElapsed) = await copyWithTiming(
+            movedToAlbum,
+            albumDir,
           );
-          final (File? copied, Duration copyElapsed) =
-              await copyWithTiming(movedToAlbum, albumDir);
           if (copied != null) {
             yield MoveMediaEntityResult.success(
               operation: MoveMediaEntityOperation(
@@ -1396,14 +1472,19 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
     }
 
     // Case B: No canonicals → create ONE duplicate copy in ALL_PHOTOS from the best-ranked NON-CANONICAL
-    final List<FileEntity> nonCanonicals =
-        allFiles.where((final f) => f.isCanonical != true && !specialHandled.contains(f)).toList();
+    final List<FileEntity> nonCanonicals = allFiles
+        .where(
+          (final f) => f.isCanonical != true && !specialHandled.contains(f),
+        )
+        .toList();
     if (nonCanonicals.isEmpty) return;
 
     final FileEntity best = _chooseBestRanked(nonCanonicals);
     final File srcBest = best.asFile();
-    final (File? copiedToAll, Duration copyElapsed) =
-        await copyWithTiming(srcBest, allPhotosDir);
+    final (File? copiedToAll, Duration copyElapsed) = await copyWithTiming(
+      srcBest,
+      allPhotosDir,
+    );
     if (copiedToAll != null) {
       // Synthetic secondary representing the duplicate copy in ALL_PHOTOS
       entity.secondaryFiles.add(
@@ -1440,22 +1521,29 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
 
     // Move each NON-CANONICAL original to its primary album and copy to other albums
     for (final fe in nonCanonicals) {
-      final List<String> albumsForThisFile =
-          MovingStrategyUtils.albumsForFile(entity, fe);
+      final List<String> albumsForThisFile = MovingStrategyUtils.albumsForFile(
+        entity,
+        fe,
+      );
       final String primaryAlbum = albumsForThisFile.isNotEmpty
           ? albumsForThisFile.first
-          : (entity.albumNames.isNotEmpty ? entity.albumNames.first : 'Unknown Album');
+          : (entity.albumNames.isNotEmpty
+                ? entity.albumNames.first
+                : 'Unknown Album');
 
       // Move original to primary album
-      final Directory primaryAlbumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-        _pathService,
-        primaryAlbum,
-        entity,
-        context,
-      );
+      final Directory primaryAlbumDir =
+          MovingStrategyUtils.albumDirConsideringUntitled(
+            _pathService,
+            primaryAlbum,
+            entity,
+            context,
+          );
       final File srcMove = fe.asFile();
-      final (File? movedToAlbum, Duration moveElapsed) =
-          await moveWithTiming(srcMove, primaryAlbumDir);
+      final (File? movedToAlbum, Duration moveElapsed) = await moveWithTiming(
+        srcMove,
+        primaryAlbumDir,
+      );
       if (movedToAlbum != null) {
         fe.targetPath = movedToAlbum.path;
         fe.isShortcut = false;
@@ -1489,14 +1577,17 @@ class DuplicateCopyMovingStrategy extends MoveMediaEntityStrategy {
 
       // Copy to remaining albums
       for (final albumName in albumsForThisFile.skip(1)) {
-        final Directory albumDir = MovingStrategyUtils.albumDirConsideringUntitled(
-          _pathService,
-          albumName,
-          entity,
-          context,
+        final Directory albumDir =
+            MovingStrategyUtils.albumDirConsideringUntitled(
+              _pathService,
+              albumName,
+              entity,
+              context,
+            );
+        final (File? copied, Duration copyElapsed2) = await copyWithTiming(
+          movedToAlbum,
+          albumDir,
         );
-        final (File? copied, Duration copyElapsed2) =
-            await copyWithTiming(movedToAlbum, albumDir);
         if (copied != null) {
           yield MoveMediaEntityResult.success(
             operation: MoveMediaEntityOperation(
@@ -1558,13 +1649,12 @@ class MovingStrategyUtils {
     final PathGeneratorService pathService,
     final MediaEntity entity,
     final MovingContext context,
-  ) =>
-      pathService.generateTargetDirectory(
-        null,
-        entity.dateTaken,
-        context,
-        isPartnerShared: entity.partnerShared,
-      );
+  ) => pathService.generateTargetDirectory(
+    null,
+    entity.dateTaken,
+    context,
+    isPartnerShared: entity.partnerShared,
+  );
 
   /// Generate Albums/<albumName> target directory (date-structured if needed).
   static Directory albumDir(
@@ -1572,13 +1662,12 @@ class MovingStrategyUtils {
     final String albumName,
     final MediaEntity entity,
     final MovingContext context,
-  ) =>
-      pathService.generateTargetDirectory(
-        albumName,
-        entity.dateTaken,
-        context,
-        isPartnerShared: entity.partnerShared,
-      );
+  ) => pathService.generateTargetDirectory(
+    albumName,
+    entity.dateTaken,
+    context,
+    isPartnerShared: entity.partnerShared,
+  );
 
   /// Generate album directory but reroute to "Untitled Albums" if albumName starts with any entry in untitledAlbums (case-insensitive).
   /// Note: keeps date-structured path produced by pathService; only swaps the top-level 'Albums' with 'Untitled Albums' when present.
@@ -1739,7 +1828,8 @@ class MovingStrategyUtils {
     final List<String> segments = norm.split('/');
     for (final seg in segments) {
       final String segLower = seg.toLowerCase();
-      for (final name in specialFolders) {  // specialFolders are defined in constant.dart module
+      for (final name in specialFolders) {
+        // specialFolders are defined in constant.dart module
         if (segLower == name) {
           return _capitalizeFirst(name);
         }
@@ -1748,7 +1838,10 @@ class MovingStrategyUtils {
     return null;
   }
 
-  static Directory specialFolderDir(final Directory outputDir, final String specialCapName) => Directory(path.join(outputDir.path, 'Special Folders', specialCapName));
+  static Directory specialFolderDir(
+    final Directory outputDir,
+    final String specialCapName,
+  ) => Directory(path.join(outputDir.path, 'Special Folders', specialCapName));
 
   static String _capitalizeFirst(final String s) {
     if (s.isEmpty) return s;
@@ -1758,7 +1851,8 @@ class MovingStrategyUtils {
 
   /// Moves any file from the entity that lives under a Special Folder directly to output/Special Folders/<CapName>/...
   /// Returns the set of handled FileEntity and the list of MoveMediaEntityResult to be yielded by the caller.
-  static Future<(Set<FileEntity>, List<MoveMediaEntityResult>)> handleSpecialFoldersForEntity(
+  static Future<(Set<FileEntity>, List<MoveMediaEntityResult>)>
+  handleSpecialFoldersForEntity(
     final FileOperationService fileService,
     final MovingContext context,
     final MediaEntity entity,
@@ -1776,11 +1870,18 @@ class MovingStrategyUtils {
       final String? specialCap = matchSpecialFolderInPath(fe.sourcePath);
       if (specialCap == null) continue;
 
-      final Directory specialDir = specialFolderDir(context.outputDirectory, specialCap);
+      final Directory specialDir = specialFolderDir(
+        context.outputDirectory,
+        specialCap,
+      );
       final sw = Stopwatch()..start();
       final File src = fe.asFile();
       try {
-        final File moved = await fileService.moveFile(src, specialDir, dateTaken: entity.dateTaken);
+        final File moved = await fileService.moveFile(
+          src,
+          specialDir,
+          dateTaken: entity.dateTaken,
+        );
         sw.stop();
 
         fe.targetPath = moved.path;

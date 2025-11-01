@@ -140,13 +140,31 @@ class FindAlbumsStep extends ProcessingStep with LoggerMixin {
     // -------- Resume check: if step 5 is already completed, load and return stored result --------
     try {
       final progress = await StepProgressLoader.readProgressJson(context);
-      if (progress != null && StepProgressLoader.isStepCompleted(progress, stepId, context: context)) {
+      if (progress != null &&
+          StepProgressLoader.isStepCompleted(
+            progress,
+            stepId,
+            context: context,
+          )) {
         final dur = StepProgressLoader.readDurationForStep(progress, stepId);
         final data = StepProgressLoader.readResultDataForStep(progress, stepId);
         final msg = StepProgressLoader.readMessageForStep(progress, stepId);
-        StepProgressLoader.updateMediaEntityCollection(context, progress['media_entity_collection_object'], progressJson: progress);
-        logPrint('[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json');
-        return StepResult.success(stepName: name, duration: dur, data: data, message: msg.isEmpty ? 'Resume: loaded Step $stepId results from progress.json' : msg);
+        StepProgressLoader.updateMediaEntityCollection(
+          context,
+          progress['media_entity_collection_object'],
+          progressJson: progress,
+        );
+        logPrint(
+          '[Step $stepId/8] Auto-Resume enabled: step already completed previously, loading results from progress.json',
+        );
+        return StepResult.success(
+          stepName: name,
+          duration: dur,
+          data: data,
+          message: msg.isEmpty
+              ? 'Resume: loaded Step $stepId results from progress.json'
+              : msg,
+        );
       }
     } catch (_) {
       // If resume fails, continue with normal execution
@@ -160,19 +178,21 @@ class FindAlbumsStep extends ProcessingStep with LoggerMixin {
         final stepResult = StepResult.success(
           stepName: name,
           duration: stopWatch.elapsed,
-          data: {
-            'mergedCount': 0,
-            'groupsMerged': 0,
-            'albumsMerged': 0,
-          },
+          data: {'mergedCount': 0, 'groupsMerged': 0, 'albumsMerged': 0},
           message: 'No media to process.',
         );
         // Persist progress.json only on success (do NOT save on failure)
-        await StepProgressSaver.saveProgress(context: context, stepId: stepId, duration: stopWatch.elapsed, stepResult: stepResult);
+        await StepProgressSaver.saveProgress(
+          context: context,
+          stepId: stepId,
+          duration: stopWatch.elapsed,
+          stepResult: stepResult,
+        );
         return stepResult;
       }
 
-      final service = const FindAlbumService()..logger = LoggingService.fromConfig(context.config);
+      final service = const FindAlbumService()
+        ..logger = LoggingService.fromConfig(context.config);
       final FindAlbumSummary summary = await service.findAlbums(context);
 
       stopWatch.stop();
@@ -184,7 +204,12 @@ class FindAlbumsStep extends ProcessingStep with LoggerMixin {
       );
 
       // Persist progress.json only on success (do NOT save on failure)
-      await StepProgressSaver.saveProgress(context: context, stepId: stepId, duration: stopWatch.elapsed, stepResult: stepResult);
+      await StepProgressSaver.saveProgress(
+        context: context,
+        stepId: stepId,
+        duration: stopWatch.elapsed,
+        stepResult: stepResult,
+      );
 
       return stepResult;
     } catch (e) {
@@ -199,5 +224,6 @@ class FindAlbumsStep extends ProcessingStep with LoggerMixin {
   }
 
   @override
-  bool shouldSkip(final ProcessingContext context) => context.mediaCollection.isEmpty;
+  bool shouldSkip(final ProcessingContext context) =>
+      context.mediaCollection.isEmpty;
 }

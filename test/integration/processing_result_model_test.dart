@@ -104,7 +104,10 @@ void main() {
           contains('80/100 files got their DateTime set in EXIF data'),
         );
         expect(summary, contains('3/100 files got their extensions fixed'));
-        expect(summary, contains('25/100 files had their CreationDate updated'));
+        expect(
+          summary,
+          contains('25/100 files had their CreationDate updated'),
+        );
         expect(summary, contains('10 extras were skipped'));
         expect(summary, contains('DateTime extraction method statistics:'));
         expect(summary, contains('json: 70 files'));

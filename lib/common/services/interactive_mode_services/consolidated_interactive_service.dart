@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker_desktop/file_picker_desktop.dart';
 import 'package:gpth/gpth_lib_exports.dart';
 
-
 /// Consolidated interactive service that combines all user interaction functionality
 ///
 /// This service consolidates functionality from:
@@ -577,8 +576,10 @@ class ConsolidatedInteractiveService with LoggerMixin {
     final bool verbose = false,
     final bool skipExtras = false,
     final bool guessFromName = true,
-    final bool keepInput = false,       // mantiene el input intacto con copia temporal
-    final bool keepDuplicates = false,  // NUEVO: coherente con la pregunta interactiva
+    final bool keepInput =
+        false, // mantiene el input intacto con copia temporal
+    final bool keepDuplicates =
+        false, // NUEVO: coherente con la pregunta interactiva
   }) => ProcessingConfig(
     inputPath: inputPath,
     outputPath: outputPath,
@@ -688,7 +689,9 @@ class ConsolidatedInteractiveService with LoggerMixin {
   Future<bool> askKeepInput() async {
     // Keeping style consistent with other prompts: we print here directly,
     // then reuse presenter helpers for selection/validation feedback.
-    print('Do you want to keep your original --input folder untouched by working on a temporary sibling copy (suffix _tmp)?');
+    print(
+      'Do you want to keep your original --input folder untouched by working on a temporary sibling copy (suffix _tmp)?',
+    );
     print('[1] (Default) - No, work directly on the original input');
     print('[2] - Yes, create and use "<input>_tmp" as the working directory');
     print('(Type 1 or 2, or press enter for default):');
@@ -729,9 +732,13 @@ class ConsolidatedInteractiveService with LoggerMixin {
   /// - true  -> Duplicates will be move to "_Duplicates" directory within output directory.
   /// - false -> Duplicates will be removed totally
   Future<bool> askKeepDuplicates() async {
-    print('Do you want to keep duplicates files in `_Duplicates` subfolder within output folder?');
+    print(
+      'Do you want to keep duplicates files in `_Duplicates` subfolder within output folder?',
+    );
     print('[1] (Default) - No, you can remove all duplicates found');
-    print('[2] - Yes, create a `_Duplicates` subfolder within output folder (slower)');
+    print(
+      '[2] - Yes, create a `_Duplicates` subfolder within output folder (slower)',
+    );
     print('(Type 1 or 2, or press enter for default):');
 
     while (true) {
@@ -784,7 +791,7 @@ class ConsolidatedInteractiveService with LoggerMixin {
 /// Extension methods for enum conversion
 extension AlbumBehaviorExtension on AlbumBehavior {
   static AlbumBehavior fromString(final String value) {
-    // Delegamos al método del propio enum para mantener una única fuente de verdad
+    // We delegate to the enum's own method to maintain a single source of truth.
     return AlbumBehavior.fromString(value);
   }
 }

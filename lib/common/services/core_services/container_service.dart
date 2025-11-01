@@ -110,7 +110,9 @@ class ServiceContainer {
 
     // Core services
     _globalConfig = GlobalConfigService();
-    _loggingService = loggingService ?? LoggingService(saveLog: ServiceContainer.instance.globalConfig.saveLog);
+    _loggingService =
+        loggingService ??
+        LoggingService(saveLog: ServiceContainer.instance.globalConfig.saveLog);
     _utilityService = const FormattingService();
     _diskSpaceService = ConsolidatedDiskSpaceService();
 

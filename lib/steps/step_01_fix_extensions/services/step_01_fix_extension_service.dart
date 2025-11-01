@@ -17,7 +17,8 @@ class FixExtensionService with LoggerMixin {
   /// Creates a new file extension corrector service
   FixExtensionService() : _mimeTypeService = const MimeTypeService();
   final MimeTypeService _mimeTypeService;
-  static const EditedVersionDetectorService _extrasService = EditedVersionDetectorService();
+  static const EditedVersionDetectorService _extrasService =
+      EditedVersionDetectorService();
 
   /// Fixes incorrectly named files by renaming them to match their actual MIME type
   ///
@@ -41,12 +42,18 @@ class FixExtensionService with LoggerMixin {
 
     // NEW (progress): initialize the progress bar only when there is work to do.
     final FillingBar? bar = (total > 0)
-        ? FillingBar(total: total, width: 50, percentage: true, desc: '[ INFO  ] [Step 1/8] Fixing extensions')
+        ? FillingBar(
+            total: total,
+            width: 50,
+            percentage: true,
+            desc: '[ INFO  ] [Step 1/8] Fixing extensions',
+          )
         : null;
 
     int done = 0;
 
-    await for (final FileSystemEntity file in directory.list(recursive: true).wherePhotoVideo()) {
+    await for (final FileSystemEntity file
+        in directory.list(recursive: true).wherePhotoVideo()) {
       try {
         final result = await _processFile(File(file.path), skipJpegFiles);
         if (result) fixedCount++;
@@ -71,7 +78,10 @@ class FixExtensionService with LoggerMixin {
   Future<bool> _processFile(final File file, final bool skipJpegFiles) async {
     // Read file header to determine actual MIME type
     final List<int> headerBytes = await file.openRead(0, 128).first;
-    final String? actualMimeType = lookupMimeType(file.path, headerBytes: headerBytes);
+    final String? actualMimeType = lookupMimeType(
+      file.path,
+      headerBytes: headerBytes,
+    );
 
     // Skip if we can't determine the actual type
     if (actualMimeType == null) return false;
@@ -86,11 +96,15 @@ class FixExtensionService with LoggerMixin {
     if (actualMimeType == 'image/tiff') return false;
 
     // Check if extension matches content
-    if (actualMimeType == extensionMimeType) return false; // Extension is correct
+    if (actualMimeType == extensionMimeType)
+      return false; // Extension is correct
 
     // Log special cases
-    if (extensionMimeType == 'video/mp4' && actualMimeType == 'video/x-msvideo') {
-      logDebug('[Step 1/8] Detected AVI file incorrectly named as .mp4: ${path.basename(file.path)}');
+    if (extensionMimeType == 'video/mp4' &&
+        actualMimeType == 'video/x-msvideo') {
+      logDebug(
+        '[Step 1/8] Detected AVI file incorrectly named as .mp4: ${path.basename(file.path)}',
+      );
     }
 
     return _renameFileWithCorrectExtension(file, actualMimeType);
@@ -104,7 +118,9 @@ class FixExtensionService with LoggerMixin {
     final String? newExtension = _getPreferredExtension(mimeType);
 
     if (newExtension == null) {
-      logWarning('[Step 1/8] Could not determine correct extension for MIME type $mimeType for file ${path.basename(file.path)}');
+      logWarning(
+        '[Step 1/8] Could not determine correct extension for MIME type $mimeType for file ${path.basename(file.path)}',
+      );
       return false;
     }
 
@@ -113,7 +129,9 @@ class FixExtensionService with LoggerMixin {
 
     // Check if target file already exists
     if (await newFile.exists()) {
-      logWarning('[Step 1/8] Skipped fixing extension because target file already exists: $newFilePath');
+      logWarning(
+        '[Step 1/8] Skipped fixing extension because target file already exists: $newFilePath',
+      );
       return false;
     }
 
@@ -130,11 +148,17 @@ class FixExtensionService with LoggerMixin {
   /// Finds the JSON metadata file associated with a media file
   Future<File?> _findJsonFile(final File file) async {
     // Try quick lookup first
-    File? jsonFile = await JsonMetadataMatcherService.findJsonForFile(file, tryhard: false);
+    File? jsonFile = await JsonMetadataMatcherService.findJsonForFile(
+      file,
+      tryhard: false,
+    );
     if (jsonFile != null) return jsonFile;
 
     // Try harder lookup if quick one failed
-    jsonFile = await JsonMetadataMatcherService.findJsonForFile(file, tryhard: true);
+    jsonFile = await JsonMetadataMatcherService.findJsonForFile(
+      file,
+      tryhard: true,
+    );
     if (jsonFile != null) return jsonFile;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -163,9 +187,14 @@ class FixExtensionService with LoggerMixin {
           if (normalizedCandidate == normalizedTarget) return File(e.path);
 
           // Also allow match by basenameWithoutExtension (for rare exports that drop the original extension)
-          final String nameNoJson = name.substring(0, name.length - 5); // remove ".json"
+          final String nameNoJson = name.substring(
+            0,
+            name.length - 5,
+          ); // remove ".json"
           final String n1 = _trimRight(nameNoJson).toLowerCase();
-          final String n2 = _trimRight(path.basenameWithoutExtension(baseName)).toLowerCase();
+          final String n2 = _trimRight(
+            path.basenameWithoutExtension(baseName),
+          ).toLowerCase();
           if (n1 == n2) return File(e.path);
         }
       }
@@ -176,14 +205,19 @@ class FixExtensionService with LoggerMixin {
     // 3) Try same candidates but on a trimmed parent directory (if current ends with spaces)
     final String trimmedDirPath = _trimRight(dirPath);
     if (trimmedDirPath != dirPath) {
-      final String candidateInTrimmed = path.join(trimmedDirPath, '$baseName.json');
+      final String candidateInTrimmed = path.join(
+        trimmedDirPath,
+        '$baseName.json',
+      );
       final File trimmedJson = File(candidateInTrimmed);
       if (await trimmedJson.exists()) return trimmedJson;
 
       try {
         final Directory tdir = Directory(trimmedDirPath);
         if (await tdir.exists()) {
-          final List<FileSystemEntity> entries = tdir.listSync(followLinks: false);
+          final List<FileSystemEntity> entries = tdir.listSync(
+            followLinks: false,
+          );
           final String targetLower = '$baseName.json'.toLowerCase();
           for (final FileSystemEntity e in entries) {
             if (e is! File) continue;
@@ -196,7 +230,9 @@ class FixExtensionService with LoggerMixin {
 
             final String nameNoJson = name.substring(0, name.length - 5);
             final String n1 = _trimRight(nameNoJson).toLowerCase();
-            final String n2 = _trimRight(path.basenameWithoutExtension(baseName)).toLowerCase();
+            final String n2 = _trimRight(
+              path.basenameWithoutExtension(baseName),
+            ).toLowerCase();
             if (n1 == n2) return File(e.path);
           }
         }
@@ -206,12 +242,15 @@ class FixExtensionService with LoggerMixin {
     }
 
     // If we reached this point, emit the original warning once (kept as in your code)
-    logWarning('[Step 1/8] Unable to find matching JSON for file: ${file.path}');
+    logWarning(
+      '[Step 1/8] Unable to find matching JSON for file: ${file.path}',
+    );
     return null;
   }
 
   /// Returns the preferred file extension for a given MIME type
-  String? _getPreferredExtension(final String mimeType) => _mimeTypeService.getPreferredExtension(mimeType);
+  String? _getPreferredExtension(final String mimeType) =>
+      _mimeTypeService.getPreferredExtension(mimeType);
 
   /// Performs atomic rename of both media file and its JSON metadata file
   ///
@@ -228,7 +267,9 @@ class FixExtensionService with LoggerMixin {
 
     // Check if JSON target already exists
     if (newJsonPath != null && await File(newJsonPath).exists()) {
-      logWarning('[Step 1/8] Skipped fixing extension because target JSON file already exists: $newJsonPath');
+      logWarning(
+        '[Step 1/8] Skipped fixing extension because target JSON file already exists: $newJsonPath',
+      );
       return false;
     }
 
@@ -241,7 +282,9 @@ class FixExtensionService with LoggerMixin {
 
       // Verify media file rename was successful
       if (!await renamedMediaFile.exists()) {
-        throw Exception('Media file does not exist after rename: $newMediaPath');
+        throw Exception(
+          'Media file does not exist after rename: $newMediaPath',
+        );
       }
 
       // Step 2: Rename the JSON file if it exists
@@ -251,7 +294,9 @@ class FixExtensionService with LoggerMixin {
 
           // Verify JSON file rename was successful
           if (!await renamedJsonFile.exists()) {
-            throw Exception('JSON file does not exist after rename: $newJsonPath');
+            throw Exception(
+              'JSON file does not exist after rename: $newJsonPath',
+            );
           }
         }
       }
@@ -259,12 +304,19 @@ class FixExtensionService with LoggerMixin {
       // Step 3: Verify cleanup of original files
       await _verifyOriginalFilesRemoved(originalMediaPath, originalJsonPath);
 
-      logDebug('[Step 1/8] Fixed extension: ${path.basename(originalMediaPath)} -> ${path.basename(newMediaPath)}');
+      logDebug(
+        '[Step 1/8] Fixed extension: ${path.basename(originalMediaPath)} -> ${path.basename(newMediaPath)}',
+      );
       return true;
     } catch (e) {
       // Rollback: Attempt to restore original state
       logError('[Step 1/8] Extension fixing failed, attempting rollback: $e');
-      await _rollbackAtomicRename(originalMediaPath, originalJsonPath, renamedMediaFile, renamedJsonFile);
+      await _rollbackAtomicRename(
+        originalMediaPath,
+        originalJsonPath,
+        renamedMediaFile,
+        renamedJsonFile,
+      );
       return false;
     }
   }
@@ -289,11 +341,15 @@ class FixExtensionService with LoggerMixin {
       if (renamedMediaFile != null) {
         if (await renamedMediaFile.exists()) {
           await renamedMediaFile.rename(originalMediaPath);
-          logInfo('[Step 1/8] Rolled back media file rename: $originalMediaPath');
+          logInfo(
+            '[Step 1/8] Rolled back media file rename: $originalMediaPath',
+          );
         }
       }
     } catch (rollbackError) {
-      logError('[Step 1/8] Failed to rollback atomic rename operation. Manual cleanup may be required. Original media: $originalMediaPath, Original JSON: $originalJsonPath. Error: $rollbackError');
+      logError(
+        '[Step 1/8] Failed to rollback atomic rename operation. Manual cleanup may be required. Original media: $originalMediaPath, Original JSON: $originalJsonPath. Error: $rollbackError',
+      );
     }
   }
 
@@ -304,23 +360,35 @@ class FixExtensionService with LoggerMixin {
   ) async {
     // Check if original media file still exists
     if (await File(originalMediaPath).exists()) {
-      logWarning('[Step 1/8] Original media file still exists after rename. Attempting manual cleanup: $originalMediaPath');
+      logWarning(
+        '[Step 1/8] Original media file still exists after rename. Attempting manual cleanup: $originalMediaPath',
+      );
       try {
         await File(originalMediaPath).delete();
-        logInfo('[Step 1/8] Manually cleaned up original media file: $originalMediaPath');
+        logInfo(
+          '[Step 1/8] Manually cleaned up original media file: $originalMediaPath',
+        );
       } catch (deleteError) {
-        throw Exception('[Step 1/8] Failed to delete original media file: $deleteError');
+        throw Exception(
+          '[Step 1/8] Failed to delete original media file: $deleteError',
+        );
       }
     }
 
     // Check if original JSON file still exists
     if (originalJsonPath != null && await File(originalJsonPath).exists()) {
-      logWarning('[Step 1/8] Original JSON file still exists after rename. Attempting manual cleanup: $originalJsonPath');
+      logWarning(
+        '[Step 1/8] Original JSON file still exists after rename. Attempting manual cleanup: $originalJsonPath',
+      );
       try {
         await File(originalJsonPath).delete();
-        logInfo('[Step 1/8] Successfully cleaned up original JSON file: $originalJsonPath');
+        logInfo(
+          '[Step 1/8] Successfully cleaned up original JSON file: $originalJsonPath',
+        );
       } catch (deleteError) {
-        logWarning('[Step 1/8] Failed to delete original JSON file: $deleteError');
+        logWarning(
+          '[Step 1/8] Failed to delete original JSON file: $deleteError',
+        );
         // Do not throw here as this is less critical than media file consistency
       }
     }
@@ -333,6 +401,9 @@ class FixExtensionService with LoggerMixin {
   /// Trims only trailing ASCII/Unicode spaces and tabs from a path segment or filename.
   /// We avoid full normalization to keep behavior minimal and predictable.
   static String _trimRight(final String s) {
-    return s.replaceFirst(RegExp(r'[\u0020\u0009]+$'), ''); // Remove trailing spaces and tabs (common offenders for folder names)
+    return s.replaceFirst(
+      RegExp(r'[\u0020\u0009]+$'),
+      '',
+    ); // Remove trailing spaces and tabs (common offenders for folder names)
   }
 }

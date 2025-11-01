@@ -75,15 +75,16 @@ class MoveMediaEntityService with LoggerMixin {
         allResults.add(result);
 
         final op = result.operation;
-        final String opSrc = op.operationType == MediaEntityOperationType.delete ||
-                             op.operationType == MediaEntityOperationType.move
+        final String opSrc =
+            op.operationType == MediaEntityOperationType.delete ||
+                op.operationType == MediaEntityOperationType.move
             ? op.sourceFile.path
             : op.sourceFile.path; // same, kept explicit for clarity
 
         // Primary is considered handled if strategy MOVED or DELETED it
         if (_samePath(opSrc, primarySourcePath) &&
             (op.operationType == MediaEntityOperationType.move ||
-             op.operationType == MediaEntityOperationType.delete)) {
+                op.operationType == MediaEntityOperationType.delete)) {
           primaryAccounted = true;
         }
 
@@ -104,8 +105,7 @@ class MoveMediaEntityService with LoggerMixin {
         );
         final synthetic = MoveMediaEntityResult.failure(
           operation: syntheticOp,
-          errorMessage:
-              'Primary file was not moved or deleted by strategy',
+          errorMessage: 'Primary file was not moved or deleted by strategy',
           duration: Duration.zero,
         );
         allResults.add(synthetic);
@@ -147,7 +147,6 @@ class MoveMediaEntityService with LoggerMixin {
     // Print summary
     _printSummary(allResults);
   }
-
 
   /// High-performance parallel media moving with batched operations.
   ///
@@ -196,7 +195,7 @@ class MoveMediaEntityService with LoggerMixin {
 
                 if (_samePath(opSrc, primarySourcePath) &&
                     (op.operationType == MediaEntityOperationType.move ||
-                     op.operationType == MediaEntityOperationType.delete)) {
+                        op.operationType == MediaEntityOperationType.delete)) {
                   primaryAccounted = true;
                 }
               }
@@ -253,18 +252,21 @@ class MoveMediaEntityService with LoggerMixin {
     _printSummary(allResults);
   }
 
-
   void _logResult(final MoveMediaEntityResult result) {
     final operation = result.operation;
     final status = result.success ? 'SUCCESS' : 'FAILED';
-    logPrint('[Step 6/8] [${operation.operationType.name.toUpperCase()}] $status: ${operation.sourceFile.path}');
+    logPrint(
+      '[Step 6/8] [${operation.operationType.name.toUpperCase()}] $status: ${operation.sourceFile.path}',
+    );
     if (result.resultFile != null) {
       logPrint('[Step 6/8]   → ${result.resultFile!.path}');
     }
   }
 
   void _logError(final MoveMediaEntityResult result) {
-    logPrint('[Step 6/8] [Error] Failed to process ${result.operation.sourceFile.path}: ${result.errorMessage}');
+    logPrint(
+      '[Step 6/8] [Error] Failed to process ${result.operation.sourceFile.path}: ${result.errorMessage}',
+    );
   }
 
   // Print Summary
@@ -386,25 +388,45 @@ class MoveMediaEntityService with LoggerMixin {
         deletes +
         failures;
 
-    print('');  // print to force new line after progress bar
+    print(''); // print to force new line after progress bar
     const int detailsCol = 50; // starting column for the parenthesis block
     logPrint('[Step 6/8] === Moving Files Summary ===');
-    logPrint('${'[Step 6/8]     Primary files moved: $primaryMoves'.padRight(detailsCol)}(ALL_PHOTOS: $primaryMovesAllPhotos, Albums: $primaryMovesAlbums)');
-    logPrint('${'[Step 6/8]     Non-primary moves: $nonPrimaryMoves'.padRight(detailsCol)}(ALL_PHOTOS: $nonPrimaryMovesAllPhotos, Albums: $nonPrimaryMovesAlbums)');
-    logPrint('${'[Step 6/8]     Duplicated copies created: ${copiesAllPhotos + copiesAlbums}'.padRight(detailsCol)}(ALL_PHOTOS: $copiesAllPhotos, Albums: $copiesAlbums)');
-    logPrint('${'[Step 6/8]     Symlinks created: $symlinksCreated'.padRight(detailsCol)}(ALL_PHOTOS: $symlinksAllPhotos, Albums: $symlinksAlbums)');
-    logPrint('${'[Step 6/8]     JSON refs created: $jsonRefs'.padRight(detailsCol)}(ALL_PHOTOS: $jsonRefsAllPhotos, Albums: $jsonRefsAlbums)');
-    logPrint('${'[Step 6/8]     Deleted from source: $deletes'.padRight(detailsCol)}(ALL_PHOTOS: $deletesAllPhotos, Albums: $deletesAlbums)');
-    logPrint('${'[Step 6/8]     Failures: $failures'.padRight(detailsCol)}(ALL_PHOTOS: ${results.where((final r) => !r.success && !r.operation.isAlbumFile).length}, Albums: ${results.where((final r) => !r.success && r.operation.isAlbumFile).length})');
-    logPrint('${'[Step 6/8]     Total operations: $totalOps${computedOps != totalOps ? ' (computed: $computedOps)' : ''}'.padRight(detailsCol)}(ALL_PHOTOS: $totalOpsAllPhotos, Albums: $totalOpsAlbums)');
+    logPrint(
+      '${'[Step 6/8]     Primary files moved: $primaryMoves'.padRight(detailsCol)}(ALL_PHOTOS: $primaryMovesAllPhotos, Albums: $primaryMovesAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     Non-primary moves: $nonPrimaryMoves'.padRight(detailsCol)}(ALL_PHOTOS: $nonPrimaryMovesAllPhotos, Albums: $nonPrimaryMovesAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     Duplicated copies created: ${copiesAllPhotos + copiesAlbums}'.padRight(detailsCol)}(ALL_PHOTOS: $copiesAllPhotos, Albums: $copiesAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     Symlinks created: $symlinksCreated'.padRight(detailsCol)}(ALL_PHOTOS: $symlinksAllPhotos, Albums: $symlinksAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     JSON refs created: $jsonRefs'.padRight(detailsCol)}(ALL_PHOTOS: $jsonRefsAllPhotos, Albums: $jsonRefsAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     Deleted from source: $deletes'.padRight(detailsCol)}(ALL_PHOTOS: $deletesAllPhotos, Albums: $deletesAlbums)',
+    );
+    logPrint(
+      '${'[Step 6/8]     Failures: $failures'.padRight(detailsCol)}(ALL_PHOTOS: ${results.where((final r) => !r.success && !r.operation.isAlbumFile).length}, Albums: ${results.where((final r) => !r.success && r.operation.isAlbumFile).length})',
+    );
+    logPrint(
+      '${'[Step 6/8]     Total operations: $totalOps${computedOps != totalOps ? ' (computed: $computedOps)' : ''}'.padRight(detailsCol)}(ALL_PHOTOS: $totalOpsAllPhotos, Albums: $totalOpsAlbums)',
+    );
 
     if (failures > 0) {
       logError('[Step 6/8] Errors encountered:');
       results.where((final r) => !r.success).take(5).forEach((final result) {
-        logError('[Step 6/8]   • ${result.operation.sourceFile.path}: ${result.errorMessage}', forcePrint: true);
+        logError(
+          '[Step 6/8]   • ${result.operation.sourceFile.path}: ${result.errorMessage}',
+          forcePrint: true,
+        );
       });
       final extra = failures - 5;
-      if (extra > 0) logError('[Step 6/8]   ... and $extra more errors', forcePrint: true);
+      if (extra > 0)
+        logError('[Step 6/8]   ... and $extra more errors', forcePrint: true);
     }
   }
 
@@ -418,14 +440,19 @@ class MoveMediaEntityService with LoggerMixin {
 
   /// Runs the full Step 6 workflow and returns a summary with the same data/message the step used to produce.
   Future<MoveFilesSummary> moveAll(final ProcessingContext context) async {
-    logPrint('[Step 6/8] Moving files to Output folder (this may take a while)...');
+    logPrint(
+      '[Step 6/8] Moving files to Output folder (this may take a while)...',
+    );
 
     // Optional pre-pass: transform Pixel .MP/.MV → .mp4 ONLY on primary files (in-place, still in input).
     int transformedCount = 0;
     if (context.config.transformPixelMp) {
       transformedCount = await _transformPixelPrimaries(context);
       if (context.config.verbose) {
-        logDebug('[Step 6/8] Transformed $transformedCount Pixel .MP/.MV primary files to .mp4', forcePrint: true);
+        logDebug(
+          '[Step 6/8] Transformed $transformedCount Pixel .MP/.MV primary files to .mp4',
+          forcePrint: true,
+        );
       }
     }
 
@@ -433,7 +460,7 @@ class MoveMediaEntityService with LoggerMixin {
       desc: '[ INFO  ] [Step 6/8] Moving entities',
       total: context.mediaCollection.length,
       width: 50,
-      percentage: true
+      percentage: true,
     );
 
     final movingContext = MovingContext(
@@ -535,7 +562,9 @@ class MoveMediaEntityService with LoggerMixin {
           primary.sourcePath = renamed.path;
           transformed++;
         } catch (e) {
-          logPrint('[Step 6/8] Warning: Failed to transform ${primary.path}: $e');
+          logPrint(
+            '[Step 6/8] Warning: Failed to transform ${primary.path}: $e',
+          );
         }
       }
     }
@@ -543,7 +572,6 @@ class MoveMediaEntityService with LoggerMixin {
     return transformed;
   }
 }
-
 
 /// Operation result
 class MoveMediaEntityResult {
@@ -587,7 +615,6 @@ class MoveMediaEntityResult {
   bool get isFailure => !success;
 }
 
-
 /// Base class for MediaEntity moving strategies (unchanged public API)
 abstract class MoveMediaEntityStrategy {
   const MoveMediaEntityStrategy();
@@ -624,11 +651,19 @@ class MoveMediaEntityStrategyFactory {
   MoveMediaEntityStrategy createStrategy(final AlbumBehavior albumBehavior) {
     switch (albumBehavior) {
       case AlbumBehavior.shortcut:
-        return ShortcutMovingStrategy(_fileService, _pathService, _symlinkService);
+        return ShortcutMovingStrategy(
+          _fileService,
+          _pathService,
+          _symlinkService,
+        );
       case AlbumBehavior.duplicateCopy:
         return DuplicateCopyMovingStrategy(_fileService, _pathService);
       case AlbumBehavior.reverseShortcut:
-        return ReverseShortcutMovingStrategy(_fileService, _pathService, _symlinkService);
+        return ReverseShortcutMovingStrategy(
+          _fileService,
+          _pathService,
+          _symlinkService,
+        );
       case AlbumBehavior.json:
         return JsonMovingStrategy(_fileService, _pathService);
       case AlbumBehavior.nothing:

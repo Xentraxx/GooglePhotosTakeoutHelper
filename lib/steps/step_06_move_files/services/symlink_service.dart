@@ -45,11 +45,13 @@ class SymlinkService {
     // (We do NOT touch the source file on disk.)
     final String rawBasename = path.basename(sourceFile.path);
     final String linkBasename = _sanitizeLeafForWindows(rawBasename);
-    final File desiredLink = File(path.join(targetDirectory.path, linkBasename));
+    final File desiredLink = File(
+      path.join(targetDirectory.path, linkBasename),
+    );
 
     // Respect your unique-name policy
-    final File linkFile =
-        ServiceContainer.instance.utilityService.findUniqueFileName(desiredLink);
+    final File linkFile = ServiceContainer.instance.utilityService
+        .findUniqueFileName(desiredLink);
 
     if (!Platform.isWindows) {
       // Unix: create a symlink (relative target)
@@ -111,13 +113,18 @@ class SymlinkService {
   // ───────────────────────────────────────────────────────────────────────────
 
   /// Create a Windows hard link for files using `mklink /H`.
-  Future<void> _createWindowsHardLink(final String linkPath, final String targetAbs) async {
+  Future<void> _createWindowsHardLink(
+    final String linkPath,
+    final String targetAbs,
+  ) async {
     // mklink /H "link" "target"
-    final result = await Process.run(
-      'cmd',
-      ['/c', 'mklink', '/H', linkPath, targetAbs],
-      runInShell: true,
-    );
+    final result = await Process.run('cmd', [
+      '/c',
+      'mklink',
+      '/H',
+      linkPath,
+      targetAbs,
+    ], runInShell: true);
     if (result.exitCode != 0) {
       throw FileSystemException(
         'mklink /H failed (${result.exitCode}): ${(result.stderr ?? '').toString().trim()}',
@@ -127,13 +134,18 @@ class SymlinkService {
   }
 
   /// Create a Windows junction for directories using `mklink /J`.
-  Future<void> _createWindowsJunction(final String linkPath, final String targetAbs) async {
+  Future<void> _createWindowsJunction(
+    final String linkPath,
+    final String targetAbs,
+  ) async {
     // mklink /J "link" "target"
-    final result = await Process.run(
-      'cmd',
-      ['/c', 'mklink', '/J', linkPath, targetAbs],
-      runInShell: true,
-    );
+    final result = await Process.run('cmd', [
+      '/c',
+      'mklink',
+      '/J',
+      linkPath,
+      targetAbs,
+    ], runInShell: true);
     if (result.exitCode != 0) {
       throw FileSystemException(
         'mklink /J failed (${result.exitCode}): ${(result.stderr ?? '').toString().trim()}',
@@ -145,7 +157,8 @@ class SymlinkService {
   /// On Windows, hard links require both paths to live on the same drive.
   bool _sameDrive(final String a, final String b) {
     if (!Platform.isWindows) return true;
-    String driveOf(final String p) => p.length >= 2 ? p.substring(0, 2).toUpperCase() : '';
+    String driveOf(final String p) =>
+        p.length >= 2 ? p.substring(0, 2).toUpperCase() : '';
     return driveOf(a) == driveOf(b);
   }
 

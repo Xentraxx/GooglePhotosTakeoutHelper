@@ -72,16 +72,24 @@ class ProcessingResult {
       buffer.writeln('\t$duplicatesRemoved duplicates were found and skipped');
     }
     if (coordinatesWrittenToExif > 0) {
-      buffer.writeln('\t$coordinatesWrittenToExif/$mediaProcessed files got their coordinates set in EXIF data (from json)');
+      buffer.writeln(
+        '\t$coordinatesWrittenToExif/$mediaProcessed files got their coordinates set in EXIF data (from json)',
+      );
     }
     if (dateTimesWrittenToExif > 0) {
-      buffer.writeln('\t$dateTimesWrittenToExif/$mediaProcessed files got their DateTime set in EXIF data');
+      buffer.writeln(
+        '\t$dateTimesWrittenToExif/$mediaProcessed files got their DateTime set in EXIF data',
+      );
     }
     if (extensionsFixed > 0) {
-      buffer.writeln('\t$extensionsFixed/$mediaProcessed files got their extensions fixed');
+      buffer.writeln(
+        '\t$extensionsFixed/$mediaProcessed files got their extensions fixed',
+      );
     }
     if (creationTimesUpdated > 0) {
-      buffer.writeln('\t$creationTimesUpdated/$mediaProcessed files had their CreationDate updated');
+      buffer.writeln(
+        '\t$creationTimesUpdated/$mediaProcessed files had their CreationDate updated',
+      );
     }
     if (extrasSkipped > 0) {
       buffer.writeln('\t$extrasSkipped extras were skipped');
@@ -91,7 +99,9 @@ class ProcessingResult {
       buffer.writeln('\tAlbum behavior: $albumBehavior');
     }
     if (totalMoveOperations != null) {
-      buffer.writeln('\tFile operations (move/copy/symlink/json): $totalMoveOperations');
+      buffer.writeln(
+        '\tFile operations (move/copy/symlink/json): $totalMoveOperations',
+      );
     }
 
     // DateTime extraction method statistics (always show all buckets, including zeros)

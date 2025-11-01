@@ -17,7 +17,7 @@ import 'package:path/path.dart' as path;
 class MergeMediaEntitiesService with LoggerMixin {
   /// Creates a new instance of DuplicateDetectionService
   MergeMediaEntitiesService({final MediaHashService? hashService})
-      : _hashService = hashService ?? MediaHashService();
+    : _hashService = hashService ?? MediaHashService();
 
   final MediaHashService _hashService;
 
@@ -29,14 +29,19 @@ class MergeMediaEntitiesService with LoggerMixin {
   static int get baseConcurrency => ConcurrencyManager().cpuCoreCount;
 
   /// Adaptive concurrency based on recent performance
-  int get adaptiveConcurrency => ConcurrencyManager().getAdaptiveConcurrency(_recentPerformanceMetrics, baseLevel: ConcurrencyManager().conservative);
+  int get adaptiveConcurrency => ConcurrencyManager().getAdaptiveConcurrency(
+    _recentPerformanceMetrics,
+    baseLevel: ConcurrencyManager().conservative,
+  );
 
   /// Maximum number of concurrent operations to prevent overwhelming the system
-  static int get maxConcurrency => ConcurrencyManager().concurrencyFor(ConcurrencyOperation.duplicate);
+  static int get maxConcurrency =>
+      ConcurrencyManager().concurrencyFor(ConcurrencyOperation.duplicate);
 
   /// Records performance metric for adaptive optimization
   void _recordPerformance(final int filesProcessed, final Duration elapsed) {
-    final filesPerSecond = filesProcessed / elapsed.inSeconds.clamp(1, double.infinity);
+    final filesPerSecond =
+        filesProcessed / elapsed.inSeconds.clamp(1, double.infinity);
     _recentPerformanceMetrics.add(filesPerSecond);
 
     // Keep only recent metrics
@@ -46,7 +51,6 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     // logDebug('[Step 3/8] Performance: ${filesPerSecond.toStringAsFixed(1)} files/sec, adaptive concurrency: $adaptiveConcurrency');
   }
-
 
   // ─────────────────────────────── NEW: full Step-3 logic moved from the wrapper's execute ───────────────────────────────
   /// Full Step 3 business logic moved from the wrapper:
@@ -59,15 +63,21 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// - Emits telemetry and detailed logs (printed here in the orchestrator)
   ///
   /// Returns a summary with all counters and timings expected by the wrapper.
-  Future<MergeMediaEntitiesSummary> executeMergeMediaEntitiesLogic(final ProcessingContext context) async {
+  Future<MergeMediaEntitiesSummary> executeMergeMediaEntitiesLogic(
+    final ProcessingContext context,
+  ) async {
     final mediaCollection = context.mediaCollection;
 
     // Overall stopwatch for the whole merge step
     final Stopwatch totalSw = Stopwatch()..start();
 
-    logPrint('[Step 3/8] Merging identical media entities and removing duplicates (this may take a while)...');
+    logPrint(
+      '[Step 3/8] Merging identical media entities and removing duplicates (this may take a while)...',
+    );
     if (context.config.keepDuplicates) {
-      logPrint("[Step 3/8] Flag '--keep-duplicates' detected. Duplicates will be moved to '_Duplicates' subfolder within output folder");
+      logPrint(
+        "[Step 3/8] Flag '--keep-duplicates' detected. Duplicates will be moved to '_Duplicates' subfolder within output folder",
+      );
     }
 
     // We will accumulate final telemetry here (grouping + merge + IO)
@@ -79,20 +89,31 @@ class MergeMediaEntitiesService with LoggerMixin {
     // To compare strategies, chose only one of the following 3 lines:
     // final Map<String, List<MediaEntity>> groups = await groupIdentical(mediaCollection.entities.toList(), telemetryObject: telem);
     // final Map<String, List<MediaEntity>> groups = await groupIdenticalFast(mediaCollection.entities.toList(), telemetryObject: telem);
-    final Map<String, List<MediaEntity>> groups = await groupIdenticalFast2(mediaCollection.entities.toList(), telemetryObject: telem);
+    final Map<String, List<MediaEntity>> groups = await groupIdenticalFast2(
+      mediaCollection.entities.toList(),
+      telemetryObject: telem,
+    );
 
     // ────────────────────────────────────────────────────────────────────────
     // Phase 2: apply merges into the collection (mutates collection)
     final Stopwatch mergeSw = Stopwatch()..start();
-    final int mergedEntities = await mergeDuplicateEntities(mediaCollection, groups);
+    final int mergedEntities = await mergeDuplicateEntities(
+      mediaCollection,
+      groups,
+    );
     mergeSw.stop();
     telem.msMergeReplace = mergeSw.elapsedMilliseconds;
-    telem.entitiesMergedByContent = mergedEntities; // feed classic telemetry field
+    telem.entitiesMergedByContent =
+        mergedEntities; // feed classic telemetry field
 
     // ────────────────────────────────────────────────────────────────────────
     // Phase 3: move/delete within-folder duplicates (NO telemetry printed here)
     final Stopwatch ioSw = Stopwatch()..start();
-    final removal = await removeQuarantineDuplicates(context, mediaCollection, telemetryObject: telem);
+    final removal = await removeQuarantineDuplicates(
+      context,
+      mediaCollection,
+      telemetryObject: telem,
+    );
 
     ioSw.stop();
     telem.msRemoveIO = ioSw.elapsedMilliseconds;
@@ -133,7 +154,10 @@ class MergeMediaEntitiesService with LoggerMixin {
     telem.msTotal = totalSw.elapsedMilliseconds;
 
     // Print telemetry once here (classic full block restored)
-    if (ServiceContainer.instance.globalConfig.enableTelemetryInMergeMediaEntitiesStep) {
+    if (ServiceContainer
+        .instance
+        .globalConfig
+        .enableTelemetryInMergeMediaEntitiesStep) {
       _printTelemetryFull(
         telem,
         loggerMixin: this,
@@ -148,16 +172,36 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     // Final “summary” block (NOT telemetry)
     logPrint('[Step 3/8] === Merge Media Entity Summary ===');
-    logPrint('[Step 3/8]     Initial Entities in collection               : ${mediaCollection.length + mergedEntities}');
-    logPrint('[Step 3/8]         Duplicate files removed/moved            : ${removal.duplicateFilesRemoved}');
-    logPrint('[Step 3/8]         Primary + Secondary files                : ${totalPrimaryFiles + totalSecondaryFiles}');
-    logPrint('[Step 3/8]             Primary files in collection          : $totalPrimaryFiles ($primaryCanonical canonical | $primaryFromAlbums from albums)');
-    logPrint('[Step 3/8]             Secondary files in collection        : $totalSecondaryFiles ($secondaryCanonical canonical | $secondaryFromAlbums from albums)');
-    logPrint('[Step 3/8]         Canonical + Non-Canonical files          : ${canonicalAll + nonCanonicalAll}');
-    logPrint('[Step 3/8]             Canonical files (within year folder) : $canonicalAll ($primaryCanonical primary | $secondaryCanonical secondary)');
-    logPrint('[Step 3/8]             Non-Canonical files (Albums)         : $nonCanonicalAll ($primaryFromAlbums primary | $secondaryFromAlbums secondary)');
-    logPrint('[Step 3/8]     Total Entities merged                        : $mergedEntities');
-    logPrint('[Step 3/8]     Media Entities remain in collection          : ${mediaCollection.length}');
+    logPrint(
+      '[Step 3/8]     Initial Entities in collection               : ${mediaCollection.length + mergedEntities}',
+    );
+    logPrint(
+      '[Step 3/8]         Duplicate files removed/moved            : ${removal.duplicateFilesRemoved}',
+    );
+    logPrint(
+      '[Step 3/8]         Primary + Secondary files                : ${totalPrimaryFiles + totalSecondaryFiles}',
+    );
+    logPrint(
+      '[Step 3/8]             Primary files in collection          : $totalPrimaryFiles ($primaryCanonical canonical | $primaryFromAlbums from albums)',
+    );
+    logPrint(
+      '[Step 3/8]             Secondary files in collection        : $totalSecondaryFiles ($secondaryCanonical canonical | $secondaryFromAlbums from albums)',
+    );
+    logPrint(
+      '[Step 3/8]         Canonical + Non-Canonical files          : ${canonicalAll + nonCanonicalAll}',
+    );
+    logPrint(
+      '[Step 3/8]             Canonical files (within year folder) : $canonicalAll ($primaryCanonical primary | $secondaryCanonical secondary)',
+    );
+    logPrint(
+      '[Step 3/8]             Non-Canonical files (Albums)         : $nonCanonicalAll ($primaryFromAlbums primary | $secondaryFromAlbums secondary)',
+    );
+    logPrint(
+      '[Step 3/8]     Total Entities merged                        : $mergedEntities',
+    );
+    logPrint(
+      '[Step 3/8]     Media Entities remain in collection          : ${mediaCollection.length}',
+    );
 
     return MergeMediaEntitiesSummary(
       message: 'Media Entities remain in collection: ${mediaCollection.length}',
@@ -189,7 +233,10 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// Same API as groupIdentical and groupIdenticalFast: returns a Map.
   /// This phase does NOT mutate the collection; it only builds groups.
   /// —————————————————————————————————————————————————————————————————————————————
-  Future<Map<String, List<MediaEntity>>> groupIdenticalFast2(final List<MediaEntity> mediaList, {final TelemetryLike? telemetryObject}) async {
+  Future<Map<String, List<MediaEntity>>> groupIdenticalFast2(
+    final List<MediaEntity> mediaList, {
+    final TelemetryLike? telemetryObject,
+  }) async {
     final _Telemetry telem = telemetryObject ?? _Telemetry();
     telem.filesTotal = mediaList.length;
 
@@ -218,24 +265,34 @@ class MergeMediaEntitiesService with LoggerMixin {
     // Concurrency caps (conservative but higher than previous 1..8)
     // - maxWorkersBuckets: parallelism across size buckets (mix of IO & CPU)
     // - maxWorkersQuick  : parallelism inside ext-buckets for quick signatures (I/O-bound)
-    final int maxWorkersBuckets = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.exif).clamp(4, 24);
-    final int maxWorkersQuick = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.exif).clamp(4, 32);
+    final int maxWorkersBuckets = ConcurrencyManager()
+        .concurrencyFor(ConcurrencyOperation.exif)
+        .clamp(4, 24);
+    final int maxWorkersQuick = ConcurrencyManager()
+        .concurrencyFor(ConcurrencyOperation.exif)
+        .clamp(4, 32);
 
     // NEW (perf): parallelize hash grouping inside ext-buckets, capped to avoid CPU oversubscription.
     // If your ConcurrencyOperation doesn't have a dedicated "hash", we reuse EXIF channel safely.
-    final int maxWorkersHash = ConcurrencyManager().concurrencyFor(ConcurrencyOperation.exif).clamp(2, 16);
+    final int maxWorkersHash = ConcurrencyManager()
+        .concurrencyFor(ConcurrencyOperation.exif)
+        .clamp(2, 16);
 
     // Process buckets in slices
     // PERF: process largest buckets first to maximize early dedup impact (cache wins)
     final bucketKeys = sizeBuckets.keys.toList()
-      ..sort((final a, final b) => (sizeBuckets[b]!.length).compareTo(sizeBuckets[a]!.length));
+      ..sort(
+        (final a, final b) =>
+            (sizeBuckets[b]!.length).compareTo(sizeBuckets[a]!.length),
+      );
     int processedGroups = 0;
     final int totalGroups = bucketKeys.length;
 
     final Map<String, List<MediaEntity>> output = <String, List<MediaEntity>>{};
 
     Future<void> processSizeBucket(final int sizeKey) async {
-      final Map<String, List<MediaEntity>> extBuckets = <String, List<MediaEntity>>{};
+      final Map<String, List<MediaEntity>> extBuckets =
+          <String, List<MediaEntity>>{};
       final Stopwatch extSw = Stopwatch()..start();
       for (final e in sizeBuckets[sizeKey]!) {
         final String ext = _extOf(e.primaryFile.path);
@@ -250,20 +307,33 @@ class MergeMediaEntitiesService with LoggerMixin {
       // - Big/video files suffer with high seek concurrency. We reduce workers for those,
       //   and use higher concurrency for small files to fully utilize I/O.
       int quickWorkersFor(final int sz, final bool isVideo) {
-        if (isVideo || sz >= (64 << 20)) return 2;   // ≥ 64MiB or video → very low concurrency
-        if (sz >= (8 << 20)) return 4;               // 8–64 MiB
-        if (sz >= (1 << 20)) return 8;               // 1–8 MiB
-        return 24;                                   // < 1 MiB
+        if (isVideo || sz >= (64 << 20))
+          return 2; // ≥ 64MiB or video → very low concurrency
+        if (sz >= (8 << 20)) return 4; // 8–64 MiB
+        if (sz >= (1 << 20)) return 8; // 1–8 MiB
+        return 24; // < 1 MiB
       }
 
-      final Set<String> videoExts = {'mp4','mov','m4v','mkv','avi','hevc','heif','heic','webm'};
+      final Set<String> videoExts = {
+        'mp4',
+        'mov',
+        'm4v',
+        'mkv',
+        'avi',
+        'hevc',
+        'heif',
+        'heic',
+        'webm',
+      };
 
       for (final entry in extBuckets.entries) {
-        final String extKey = entry.key;             // extension for this bucket
+        final String extKey = entry.key; // extension for this bucket
         final List<MediaEntity> extGroup = entry.value;
         if (extGroup.length <= 1) {
           // Unique by extension-bucket + size → keep as unique marker (no hash needed)
-          output['${sizeKey}bytes|${extGroup.first.primaryFile.sourcePath}'] = [extGroup.first];
+          output['${sizeKey}bytes|${extGroup.first.primaryFile.sourcePath}'] = [
+            extGroup.first,
+          ];
           continue;
         }
 
@@ -275,23 +345,33 @@ class MergeMediaEntitiesService with LoggerMixin {
         //    MODIFIED: open file only once and use FNV-1a 32-bit + adaptive 2-point for video/large.
         // ────────────────────────────────────────────────────────────────
         final Stopwatch qsigSw = Stopwatch()..start();
-        final Map<String, List<MediaEntity>> quickBuckets = <String, List<MediaEntity>>{};
+        final Map<String, List<MediaEntity>> quickBuckets =
+            <String, List<MediaEntity>>{};
 
         final bool isVideoExt = videoExts.contains(extKey);
-        final int localQuickWorkers = quickWorkersFor(sizeKey, isVideoExt).clamp(1, maxWorkersQuick);
+        final int localQuickWorkers = quickWorkersFor(
+          sizeKey,
+          isVideoExt,
+        ).clamp(1, maxWorkersQuick);
 
         for (int i = 0; i < extGroup.length; i += localQuickWorkers) {
           final slice = extGroup.skip(i).take(localQuickWorkers).toList();
-          await Future.wait(slice.map((final e) async {
-            String sig;
-            try {
-              final String ext = _extOf(e.primaryFile.path);
-              sig = await _quickSignature(e.primaryFile.asFile(), sizeKey, ext);
-            } catch (_) {
-              sig = 'qsig-err';
-            }
-            (quickBuckets[sig] ??= <MediaEntity>[]).add(e);
-          }));
+          await Future.wait(
+            slice.map((final e) async {
+              String sig;
+              try {
+                final String ext = _extOf(e.primaryFile.path);
+                sig = await _quickSignature(
+                  e.primaryFile.asFile(),
+                  sizeKey,
+                  ext,
+                );
+              } catch (_) {
+                sig = 'qsig-err';
+              }
+              (quickBuckets[sig] ??= <MediaEntity>[]).add(e);
+            }),
+          );
         }
 
         qsigSw.stop();
@@ -301,20 +381,27 @@ class MergeMediaEntitiesService with LoggerMixin {
         // ────────────────────────────────────────────────────────────────
         // 4) HASH GROUPING inside each quick-bucket
         // ────────────────────────────────────────────────────────────────
-        final qbLists = quickBuckets.values.where((final q) => q.length > 1).toList();
+        final qbLists = quickBuckets.values
+            .where((final q) => q.length > 1)
+            .toList();
         for (int i = 0; i < qbLists.length; i += maxWorkersHash) {
           final slice = qbLists.skip(i).take(maxWorkersHash).toList();
-          final results = await Future.wait(slice.map((final q) async {
-            final Stopwatch hashSw = Stopwatch()..start();
-            Map<String, List<MediaEntity>> groups;
-            try {
-              groups = await _fullHashGroup(q);
-            } catch (_) {
-              groups = await groupIdenticalLegacy(q.toList(), telemetryObject: telem); // safe fallback
-            }
-            hashSw.stop();
-            return _HashBatchResult(groups, hashSw.elapsedMilliseconds);
-          }));
+          final results = await Future.wait(
+            slice.map((final q) async {
+              final Stopwatch hashSw = Stopwatch()..start();
+              Map<String, List<MediaEntity>> groups;
+              try {
+                groups = await _fullHashGroup(q);
+              } catch (_) {
+                groups = await groupIdenticalLegacy(
+                  q.toList(),
+                  telemetryObject: telem,
+                ); // safe fallback
+              }
+              hashSw.stop();
+              return _HashBatchResult(groups, hashSw.elapsedMilliseconds);
+            }),
+          );
 
           for (final r in results) {
             telem.msHashGroups += r.ms;
@@ -334,12 +421,17 @@ class MergeMediaEntitiesService with LoggerMixin {
     }
 
     for (int i = 0; i < bucketKeys.length; i += maxWorkersBuckets) {
-      final slice = bucketKeys.skip(i).take(maxWorkersBuckets).toList(growable: false);
+      final slice = bucketKeys
+          .skip(i)
+          .take(maxWorkersBuckets)
+          .toList(growable: false);
       await Future.wait(slice.map(processSizeBucket));
 
       processedGroups += slice.length;
       if ((processedGroups % 50) == 0) {
-        logDebug('[Step 3/8] Progress: processed $processedGroups/$totalGroups size groups...');
+        logDebug(
+          '[Step 3/8] Progress: processed $processedGroups/$totalGroups size groups...',
+        );
       }
     }
 
@@ -350,7 +442,6 @@ class MergeMediaEntitiesService with LoggerMixin {
     return output;
   }
 
-
   // ───────────────────────── Additional grouping methods APIs (non-breaking) ─────────────────────────
   /// Fast path duplicate grouping with tri-sample fingerprint prefilter.
   ///
@@ -359,7 +450,12 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// Only fingerprint-colliding subgroups get full content hashing.
   ///
   /// For tiny groups (≤3 files) we jump straight to full hashing to avoid overhead.
-  Future<Map<String, List<MediaEntity>>> groupIdenticalFast(final List<MediaEntity> mediaList, {final TelemetryLike? telemetryObject, final int sampleSizeBytes = 64 * 1024}) async { // 64 KiB per slice
+  Future<Map<String, List<MediaEntity>>> groupIdenticalFast(
+    final List<MediaEntity> mediaList, {
+    final TelemetryLike? telemetryObject,
+    final int sampleSizeBytes = 64 * 1024,
+  }) async {
+    // 64 KiB per slice
     final _Telemetry telem = telemetryObject ?? _Telemetry();
     telem.filesTotal = mediaList.length;
 
@@ -382,7 +478,9 @@ class MergeMediaEntitiesService with LoggerMixin {
           );
           return (media: media, size: size);
         } catch (e) {
-          logError('[Step 3/8] Failed to get size for ${media.primaryFile.sourcePath}: $e');
+          logError(
+            '[Step 3/8] Failed to get size for ${media.primaryFile.sourcePath}: $e',
+          );
           return null;
         }
       });
@@ -391,8 +489,12 @@ class MergeMediaEntitiesService with LoggerMixin {
 
       if (mediaList.length > 1000) {
         final int processed = math.min(i + sizeBatch, mediaList.length).toInt();
-        final double progress = (processed / mediaList.length * 100).clamp(0, 100).toDouble();
-        logDebug('[Step 3/8] Size calculation progress (FAST): ${progress.toStringAsFixed(1)}%');
+        final double progress = (processed / mediaList.length * 100)
+            .clamp(0, 100)
+            .toDouble();
+        logDebug(
+          '[Step 3/8] Size calculation progress (FAST): ${progress.toStringAsFixed(1)}%',
+        );
       }
     }
     sizeSw.stop();
@@ -400,12 +502,15 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     final sizeGroups = <int, List<MediaEntity>>{};
     for (final entry in sizeResults) {
-      sizeGroups.putIfAbsent(entry.size, () => <MediaEntity>[]).add(entry.media);
+      sizeGroups
+          .putIfAbsent(entry.size, () => <MediaEntity>[])
+          .add(entry.media);
     }
     telem.sizeBuckets = sizeGroups.length;
 
     // Phase 2: inside each size group, tri-sample fingerprint, then full hash
-    for (final MapEntry<int, List<MediaEntity>> sameSize in sizeGroups.entries) {
+    for (final MapEntry<int, List<MediaEntity>> sameSize
+        in sizeGroups.entries) {
       final List<MediaEntity> group = sameSize.value;
       if (group.length <= 1) {
         output['${sameSize.key}bytes'] = group;
@@ -414,7 +519,9 @@ class MergeMediaEntitiesService with LoggerMixin {
 
       if (group.length <= 3) {
         final Stopwatch hashSw = Stopwatch()..start();
-        final Map<String, List<MediaEntity>> byHash = await _fullHashGroup(group);
+        final Map<String, List<MediaEntity>> byHash = await _fullHashGroup(
+          group,
+        );
         hashSw.stop();
         telem.msHashGroups += hashSw.elapsedMilliseconds;
         telem.hashGroups += byHash.length;
@@ -436,7 +543,9 @@ class MergeMediaEntitiesService with LoggerMixin {
             final key = '${sameSize.key}|$fp';
             return (media: media, key: key);
           } catch (e) {
-            logError('[Step 3/8] Fingerprint failed for ${media.primaryFile.sourcePath}: $e');
+            logError(
+              '[Step 3/8] Fingerprint failed for ${media.primaryFile.sourcePath}: $e',
+            );
             return (media: media, key: 'ERR|${media.primaryFile.sourcePath}');
           }
         });
@@ -452,11 +561,14 @@ class MergeMediaEntitiesService with LoggerMixin {
       // 2b) only hash subgroups with >1
       for (final List<MediaEntity> fpSub in byFp.values) {
         if (fpSub.length == 1) {
-          output['${sameSize.key}bytes|${fpSub.first.primaryFile.sourcePath}'] = [fpSub.first];
+          output['${sameSize.key}bytes|${fpSub.first.primaryFile.sourcePath}'] =
+              [fpSub.first];
           continue;
         }
         final Stopwatch hashSw = Stopwatch()..start();
-        final Map<String, List<MediaEntity>> byHash = await _fullHashGroup(fpSub);
+        final Map<String, List<MediaEntity>> byHash = await _fullHashGroup(
+          fpSub,
+        );
         hashSw.stop();
         telem.msHashGroups += hashSw.elapsedMilliseconds;
         telem.hashGroups += byHash.length;
@@ -478,7 +590,6 @@ class MergeMediaEntitiesService with LoggerMixin {
     return output;
   }
 
-
   /// Groups media entities by file size and hash for duplicate detection with caching
   ///
   /// Uses a three-phase approach for maximum efficiency:
@@ -491,7 +602,10 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// - Value: List of MediaEntity objects sharing that size/hash
   ///
   /// Single-item groups indicate unique files, multi-item groups are duplicates
-  Future<Map<String, List<MediaEntity>>> groupIdenticalLegacy(final List<MediaEntity> mediaList, {final TelemetryLike? telemetryObject}) async {
+  Future<Map<String, List<MediaEntity>>> groupIdenticalLegacy(
+    final List<MediaEntity> mediaList, {
+    final TelemetryLike? telemetryObject,
+  }) async {
     final _Telemetry telem = telemetryObject ?? _Telemetry();
     telem.filesTotal = mediaList.length;
 
@@ -503,9 +617,12 @@ class MergeMediaEntitiesService with LoggerMixin {
     // Step 1: Calculate all sizes in parallel with optimal batching
     final Stopwatch sizeSw = Stopwatch()..start();
     final sizeResults = <({MediaEntity media, int size})>[];
-    final batchSize = (adaptiveConcurrency * 1.5).round(); // Use adaptive concurrency
+    final batchSize = (adaptiveConcurrency * 1.5)
+        .round(); // Use adaptive concurrency
 
-    logDebug('[Step 3/8] Starting $batchSize threads (duplicate size batching concurrency)');
+    logDebug(
+      '[Step 3/8] Starting $batchSize threads (duplicate size batching concurrency)',
+    );
 
     for (int i = 0; i < mediaList.length; i += batchSize) {
       final batch = mediaList.skip(i).take(batchSize);
@@ -516,19 +633,27 @@ class MergeMediaEntitiesService with LoggerMixin {
           );
           return (media: media, size: size);
         } catch (e) {
-          logError('[Step 3/8] Failed to get size for ${media.primaryFile.sourcePath}: $e');
+          logError(
+            '[Step 3/8] Failed to get size for ${media.primaryFile.sourcePath}: $e',
+          );
           return null;
         }
       });
 
       final batchResults = await Future.wait(futures);
-      sizeResults.addAll(batchResults.whereType<({MediaEntity media, int size})>());
+      sizeResults.addAll(
+        batchResults.whereType<({MediaEntity media, int size})>(),
+      );
 
       // Progress reporting
       if (mediaList.length > 1000) {
         final int processed = math.min(i + batchSize, mediaList.length).toInt();
-        final double progress = (processed / mediaList.length * 100).clamp(0, 100).toDouble();
-        logDebug('[Step 3/8] Size calculation progress: ${progress.toStringAsFixed(1)}%');
+        final double progress = (processed / mediaList.length * 100)
+            .clamp(0, 100)
+            .toDouble();
+        logDebug(
+          '[Step 3/8] Size calculation progress: ${progress.toStringAsFixed(1)}%',
+        );
       }
     }
     sizeSw.stop();
@@ -537,10 +662,14 @@ class MergeMediaEntitiesService with LoggerMixin {
     // Group by size
     final sizeGroups = <int, List<MediaEntity>>{};
     for (final entry in sizeResults) {
-      sizeGroups.putIfAbsent(entry.size, () => <MediaEntity>[]).add(entry.media);
+      sizeGroups
+          .putIfAbsent(entry.size, () => <MediaEntity>[])
+          .add(entry.media);
     }
 
-    logDebug('[Step 3/8] Grouped ${mediaList.length} files into ${sizeGroups.length} size groups');
+    logDebug(
+      '[Step 3/8] Grouped ${mediaList.length} files into ${sizeGroups.length} size groups',
+    );
     telem.sizeBuckets = sizeGroups.length;
 
     // Step 2: Calculate hashes in parallel for groups with multiple files
@@ -548,7 +677,8 @@ class MergeMediaEntitiesService with LoggerMixin {
     int uniqueSizeFiles = 0;
 
     final Stopwatch hashAllSw = Stopwatch()..start();
-    for (final MapEntry<int, List<MediaEntity>> sameSize in sizeGroups.entries) {
+    for (final MapEntry<int, List<MediaEntity>> sameSize
+        in sizeGroups.entries) {
       if (sameSize.value.length <= 1) {
         output['${sameSize.key}bytes'] = sameSize.value;
         uniqueSizeFiles++;
@@ -562,7 +692,9 @@ class MergeMediaEntitiesService with LoggerMixin {
         // Use adaptive batch size for hash calculation
         final hashBatchSize = adaptiveConcurrency;
 
-        logDebug('[Step 3/8] Starting $hashBatchSize threads (duplicate hash batching concurrency)');
+        logDebug(
+          '[Step 3/8] Starting $hashBatchSize threads (duplicate hash batching concurrency)',
+        );
 
         for (int i = 0; i < mediaWithSameSize.length; i += hashBatchSize) {
           final batch = mediaWithSameSize.skip(i).take(hashBatchSize);
@@ -573,18 +705,26 @@ class MergeMediaEntitiesService with LoggerMixin {
               );
               return (media: media, hash: hash);
             } catch (e) {
-              logError('[Step 3/8] Failed to calculate hash for ${media.primaryFile.sourcePath}: $e');
+              logError(
+                '[Step 3/8] Failed to calculate hash for ${media.primaryFile.sourcePath}: $e',
+              );
               return null;
             }
           });
 
           final batchResults = await Future.wait(futures);
-          hashResults.addAll(batchResults.whereType<({MediaEntity media, String hash})>());
+          hashResults.addAll(
+            batchResults.whereType<({MediaEntity media, String hash})>(),
+          );
 
           // Progress reporting for large groups
           if (mediaWithSameSize.length > 100) {
-            final int processed = math.min(i + hashBatchSize, mediaWithSameSize.length).toInt();
-            (processed / mediaWithSameSize.length * 100).clamp(0, 100).toDouble();
+            final int processed = math
+                .min(i + hashBatchSize, mediaWithSameSize.length)
+                .toInt();
+            (processed / mediaWithSameSize.length * 100)
+                .clamp(0, 100)
+                .toDouble();
             // logDebug('[Step 3/8] Hash calculation progress for ${sameSize.key}bytes group: ${progress.toStringAsFixed(1)}%');
           }
         }
@@ -592,7 +732,9 @@ class MergeMediaEntitiesService with LoggerMixin {
         // Group by hash
         final hashGroups = <String, List<MediaEntity>>{};
         for (final entry in hashResults) {
-          hashGroups.putIfAbsent(entry.hash, () => <MediaEntity>[]).add(entry.media);
+          hashGroups
+              .putIfAbsent(entry.hash, () => <MediaEntity>[])
+              .add(entry.media);
         }
         telem.hashGroups += hashGroups.length;
         output.addAll(hashGroups);
@@ -609,9 +751,13 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     // Log performance statistics
     final cacheStats = _hashService.getCacheStats();
-    logDebug('[Step 3/8] Duplicate detection completed in ${stopwatch.elapsed.inMilliseconds}ms');
+    logDebug(
+      '[Step 3/8] Duplicate detection completed in ${stopwatch.elapsed.inMilliseconds}ms',
+    );
     logDebug('[Step 3/8] Files with unique sizes: $uniqueSizeFiles');
-    logDebug('[Step 3/8] Files requiring hash calculation: $hashCalculationsNeeded');
+    logDebug(
+      '[Step 3/8] Files requiring hash calculation: $hashCalculationsNeeded',
+    );
     logDebug('[Step 3/8] Cache statistics: $cacheStats');
 
     // // Count and log duplicate groups found
@@ -633,17 +779,22 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// - Removes merged-away entities from the collection
   /// All original logs and behavior are preserved.
   /// —————————————————————————————————————————————————————————————————————————————
-  Future<int> mergeDuplicateEntities(final MediaEntityCollection mediaCollection, final Map<String, List<MediaEntity>> groups, {final bool? verify, final TelemetryLike? telemetryObject}) async {
-
+  Future<int> mergeDuplicateEntities(
+    final MediaEntityCollection mediaCollection,
+    final Map<String, List<MediaEntity>> groups, {
+    final bool? verify,
+    final TelemetryLike? telemetryObject,
+  }) async {
     // final _Telemetry telem = telemetryObject ?? _Telemetry();
     final bool verifyLocal = verify ?? _isVerifyEnabled();
-    final MediaHashService verifier = verifyLocal ? MediaHashService() : MediaHashService(maxCacheSize: 1);
+    final MediaHashService verifier = verifyLocal
+        ? MediaHashService()
+        : MediaHashService(maxCacheSize: 1);
 
     final List<_Replacement> pendingReplacements = <_Replacement>[];
     final Set<MediaEntity> entitiesToMerge = HashSet<MediaEntity>.identity();
 
-
-    for (final entry in groups.entries){
+    for (final entry in groups.entries) {
       final List<MediaEntity> group = entry.value;
       if (group.length <= 1) continue;
 
@@ -676,26 +827,41 @@ class MergeMediaEntitiesService with LoggerMixin {
       // - Only verify for big groups or very large files (saves double hashing).
       // - Reuse precomputed hash if 'entry.key' looks like a real hash (not "NNNbytes").
       int sizeKey = -1;
-      try { sizeKey = kept.primaryFile.asFile().lengthSync(); } catch (_) {}
-      final bool verifyThisGroup = verifyLocal && (group.length >= 4 || sizeKey > (64 << 20));
+      try {
+        sizeKey = kept.primaryFile.asFile().lengthSync();
+      } catch (_) {}
+      final bool verifyThisGroup =
+          verifyLocal && (group.length >= 4 || sizeKey > (64 << 20));
       final String groupKey = entry.key;
       final bool keyIsHash = !groupKey.contains('bytes');
       final String? expectedHash = keyIsHash ? groupKey : null;
 
       if (verifyThisGroup) {
         try {
-          final String keptHash = expectedHash ?? await verifier.calculateFileHash(kept.primaryFile.asFile());
+          final String keptHash =
+              expectedHash ??
+              await verifier.calculateFileHash(kept.primaryFile.asFile());
 
           if (expectedHash != null) {
             if (toRemove.isNotEmpty) {
               final d = toRemove.first;
-              final String sampleHash = await verifier.calculateFileHash(d.primaryFile.asFile());
+              final String sampleHash = await verifier.calculateFileHash(
+                d.primaryFile.asFile(),
+              );
               if (sampleHash != keptHash) {
-                logWarning('[Step 3/8] Verification sample mismatch for group $groupKey. Falling back to full verification.', forcePrint: true);
+                logWarning(
+                  '[Step 3/8] Verification sample mismatch for group $groupKey. Falling back to full verification.',
+                  forcePrint: true,
+                );
                 for (final x in toRemove) {
-                  final String xh = await verifier.calculateFileHash(x.primaryFile.asFile());
+                  final String xh = await verifier.calculateFileHash(
+                    x.primaryFile.asFile(),
+                  );
                   if (xh != keptHash) {
-                    logWarning('[Step 3/8] Verification mismatch. Will NOT remove ${x.primaryFile.path} (hash differs from kept).', forcePrint: true);
+                    logWarning(
+                      '[Step 3/8] Verification mismatch. Will NOT remove ${x.primaryFile.path} (hash differs from kept).',
+                      forcePrint: true,
+                    );
                     continue;
                   }
                   kept = kept.mergeWith(x);
@@ -711,20 +877,31 @@ class MergeMediaEntitiesService with LoggerMixin {
           } else {
             for (final d in toRemove) {
               try {
-                final String dupHash = await verifier.calculateFileHash(d.primaryFile.asFile());
+                final String dupHash = await verifier.calculateFileHash(
+                  d.primaryFile.asFile(),
+                );
                 if (dupHash != keptHash) {
-                  logWarning('[Step 3/8] Verification mismatch. Will NOT remove ${d.primaryFile.path} (hash differs from kept).', forcePrint: true);
+                  logWarning(
+                    '[Step 3/8] Verification mismatch. Will NOT remove ${d.primaryFile.path} (hash differs from kept).',
+                    forcePrint: true,
+                  );
                   continue;
                 }
                 kept = kept.mergeWith(d);
                 entitiesToMerge.add(d);
               } catch (e) {
-                logWarning('[Step 3/8] Verification failed for ${d.primaryFile.path}: $e. Skipping removal for safety.', forcePrint: true);
+                logWarning(
+                  '[Step 3/8] Verification failed for ${d.primaryFile.path}: $e. Skipping removal for safety.',
+                  forcePrint: true,
+                );
               }
             }
           }
         } catch (e) {
-          logWarning('[Step 3/8] Could not hash kept file ${_safePath(kept.primaryFile.asFile())} for verification: $e. Skipping removals for this group.', forcePrint: true);
+          logWarning(
+            '[Step 3/8] Could not hash kept file ${_safePath(kept.primaryFile.asFile())} for verification: $e. Skipping removals for this group.',
+            forcePrint: true,
+          );
         }
       } else {
         for (final d in toRemove) {
@@ -739,27 +916,36 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     // Apply replacements sequentially (safe mutation of collection)
     // OPTIMIZATION: single pass over the collection using a mapping O(N)
-    final Map<MediaEntity, MediaEntity> map = LinkedHashMap<MediaEntity, MediaEntity>.identity();
+    final Map<MediaEntity, MediaEntity> map =
+        LinkedHashMap<MediaEntity, MediaEntity>.identity();
     for (final r in pendingReplacements) {
       map[r.kept0] = r.kept; // kept0 → kept
     }
     mediaCollection.applyReplacements(map);
 
-
     // Just before creating multi-path entities line
     final int initialEntitiesCount = mediaCollection.length;
-    logPrint('[Step 3/8] Processing $initialEntitiesCount media entities from media entities collection');
+    logPrint(
+      '[Step 3/8] Processing $initialEntitiesCount media entities from media entities collection',
+    );
 
     // Informative message before removing merged-away entities from the collection
     final int mergedEntities = entitiesToMerge.length;
     if (mergedEntities > 0) {
-      logPrint('[Step 3/8] $mergedEntities media entities will be merged (entities with multiple file paths for the same file content)');
+      logPrint(
+        '[Step 3/8] $mergedEntities media entities will be merged (entities with multiple file paths for the same file content)',
+      );
     }
 
     // Remove merged-away entities from the collection ONLY (do not delete files here)
     if (entitiesToMerge.isNotEmpty) {
       // NEW (progress): show a progress bar while compacting the collection.
-      final FillingBar pbar = FillingBar(total: mergedEntities, width: 50, percentage: true, desc: '[ INFO  ] [Step 3/8] Merging entities');
+      final FillingBar pbar = FillingBar(
+        total: mergedEntities,
+        width: 50,
+        percentage: true,
+        desc: '[ INFO  ] [Step 3/8] Merging entities',
+      );
 
       // Keep visual progress (cheap) without doing O(R) removals one-by-one
       int done = 0;
@@ -769,21 +955,29 @@ class MergeMediaEntitiesService with LoggerMixin {
       }
 
       // Single-pass removal O(N + R)
-      mediaCollection.removeAll(entitiesToMerge); // ← add this method to your collection (see apartado 2)
-      stdout.writeln(); // note: ensure the next logs start in a new line after the bar.
+      mediaCollection.removeAll(
+        entitiesToMerge,
+      ); // ← add this method to your collection (see apartado 2)
+      stdout
+          .writeln(); // note: ensure the next logs start in a new line after the bar.
     }
 
-    logPrint('[Step 3/8] ${mediaCollection.entities.length} final media entities left');
+    logPrint(
+      '[Step 3/8] ${mediaCollection.entities.length} final media entities left',
+    );
     return mergedEntities;
   }
-
 
   /// —————————————————————————————————————————————————————————————————————————————
   /// Phase 3: I/O phase (move/delete within-folder duplicates).
   /// NOTE: This function gathers duplicatesFiles and performs I/O (move/delete).
   /// It does NOT print telemetry. It only logs operational messages and returns counts.
   /// —————————————————————————————————————————————————————————————————————————————
-  Future<({bool moved, int duplicateFilesRemoved})> removeQuarantineDuplicates(final ProcessingContext context, final MediaEntityCollection mediaCollection, {final TelemetryLike? telemetryObject}) async {
+  Future<({bool moved, int duplicateFilesRemoved})> removeQuarantineDuplicates(
+    final ProcessingContext context,
+    final MediaEntityCollection mediaCollection, {
+    final TelemetryLike? telemetryObject,
+  }) async {
     // final _Telemetry telem = telemetryObject ?? _Telemetry();
 
     // Gather duplicate files across the collection for I/O
@@ -798,10 +992,17 @@ class MergeMediaEntitiesService with LoggerMixin {
     int duplicateFilesRemoved = 0;
     bool moved = false;
     if (duplicateFiles.isNotEmpty) {
-      logPrint('[Step 3/8] Found ${duplicateFiles.length} duplicates files (within-folder duplicates). Processing them for removal/quarantine');
+      logPrint(
+        '[Step 3/8] Found ${duplicateFiles.length} duplicates files (within-folder duplicates). Processing them for removal/quarantine',
+      );
 
       // NEW (progress): show a progress bar during duplicate I/O (remove/move).
-      final FillingBar pbarIO = FillingBar(total: duplicateFiles.length, width: 50, percentage: true, desc: '[ INFO  ] [Step 3/8] Removing/moving duplicate files');
+      final FillingBar pbarIO = FillingBar(
+        total: duplicateFiles.length,
+        width: 50,
+        percentage: true,
+        desc: '[ INFO  ] [Step 3/8] Removing/moving duplicate files',
+      );
       int doneIO = 0;
 
       moved = await _removeOrQuarantineDuplicateFiles(
@@ -810,13 +1011,16 @@ class MergeMediaEntitiesService with LoggerMixin {
         onRemoved: () {
           duplicateFilesRemoved++;
           doneIO++;
-          if ((doneIO % 250) == 0 || doneIO == duplicateFiles.length) pbarIO.update(doneIO);
+          if ((doneIO % 250) == 0 || doneIO == duplicateFiles.length)
+            pbarIO.update(doneIO);
         },
       );
       stdout.writeln();
 
       if (moved) {
-        logPrint('[Step 3/8] Duplicates files moved to _Duplicates (flag --keep-duplicates = true)');
+        logPrint(
+          '[Step 3/8] Duplicates files moved to _Duplicates (flag --keep-duplicates = true)',
+        );
       } else {
         logPrint('[Step 3/8] Duplicates files removed from input folder.');
       }
@@ -826,8 +1030,6 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     return (moved: moved, duplicateFilesRemoved: duplicateFilesRemoved);
   }
-
-
 
   // —————————————————————————————————————— NEW DTOs / helpers for this class ——————————————————————————————————————
   /// Full telemetry printer restored to the original complete output (always prints all fields).
@@ -848,28 +1050,57 @@ class MergeMediaEntitiesService with LoggerMixin {
         LoggingService().info(s);
       }
     }
+
     String ms(final num v) => '${v.toStringAsFixed(0)} ms';
 
     out('[Step 3/8] === Telemetry Summary ===');
     out('[Step 3/8]     Files total                        : ${t.filesTotal}');
     out('[Step 3/8]     Size buckets                       : ${t.sizeBuckets}');
     out('[Step 3/8]     Ext buckets                        : ${t.extBuckets}');
-    out('[Step 3/8]     Quick buckets                      : ${t.quickBuckets}');
+    out(
+      '[Step 3/8]     Quick buckets                      : ${t.quickBuckets}',
+    );
     out('[Step 3/8]     Hash groups                        : ${t.hashGroups}');
-    out('[Step 3/8]     Merged media entities (by content) : ${t.entitiesMergedByContent}');
-    out('[Step 3/8]     Primary files in collection        : $primaryFilesInCollection');
-    out('[Step 3/8]     Secondary files in collection      : $secondaryFilesInCollection');
-    out('[Step 3/8]     Canonical files (ALL_PHOTOS/Year)  : $canonicalFilesInCollection');
-    out('[Step 3/8]     Non-Canonical files (Albums)       : $nonCanonicalFilesInCollection');
-    out('[Step 3/8]     Duplicate files removed (I/O)      : $duplicateFilesRemovedIO');
+    out(
+      '[Step 3/8]     Merged media entities (by content) : ${t.entitiesMergedByContent}',
+    );
+    out(
+      '[Step 3/8]     Primary files in collection        : $primaryFilesInCollection',
+    );
+    out(
+      '[Step 3/8]     Secondary files in collection      : $secondaryFilesInCollection',
+    );
+    out(
+      '[Step 3/8]     Canonical files (ALL_PHOTOS/Year)  : $canonicalFilesInCollection',
+    );
+    out(
+      '[Step 3/8]     Non-Canonical files (Albums)       : $nonCanonicalFilesInCollection',
+    );
+    out(
+      '[Step 3/8]     Duplicate files removed (I/O)      : $duplicateFilesRemovedIO',
+    );
     out('[Step 3/8]     Time total                         : ${ms(t.msTotal)}');
-    out('[Step 3/8]       - Find duplicates                : ${ms(t.msGrouping)}');
-    out('[Step 3/8]         - Size scan                    : ${ms(t.msSizeScan)}');
-    out('[Step 3/8]         - Ext bucketing                : ${ms(t.msExtBucket)}');
-    out('[Step 3/8]         - Quick signature              : ${ms(t.msQuickSig)}');
-    out('[Step 3/8]         - Hash grouping                : ${ms(t.msHashGroups)}');
-    out('[Step 3/8]       - Merge/replace                  : ${ms(t.msMergeReplace)}');
-    out('[Step 3/8]       - Remove/IO                      : ${ms(t.msRemoveIO)}');
+    out(
+      '[Step 3/8]       - Find duplicates                : ${ms(t.msGrouping)}',
+    );
+    out(
+      '[Step 3/8]         - Size scan                    : ${ms(t.msSizeScan)}',
+    );
+    out(
+      '[Step 3/8]         - Ext bucketing                : ${ms(t.msExtBucket)}',
+    );
+    out(
+      '[Step 3/8]         - Quick signature              : ${ms(t.msQuickSig)}',
+    );
+    out(
+      '[Step 3/8]         - Hash grouping                : ${ms(t.msHashGroups)}',
+    );
+    out(
+      '[Step 3/8]       - Merge/replace                  : ${ms(t.msMergeReplace)}',
+    );
+    out(
+      '[Step 3/8]       - Remove/IO                      : ${ms(t.msRemoveIO)}',
+    );
   }
 
   bool _isVerifyEnabled() {
@@ -894,7 +1125,8 @@ class MergeMediaEntitiesService with LoggerMixin {
       if (keepDuplicates is bool) return keepDuplicates;
     } catch (_) {}
     try {
-      final env = Platform.environment['GPTH_MOVE_DUPLICATES_TO_DUPLICATES_FOLDER'];
+      final env =
+          Platform.environment['GPTH_MOVE_DUPLICATES_TO_DUPLICATES_FOLDER'];
       if (env != null) {
         final s = env.trim().toLowerCase();
         return s == '1' || s == 'true' || s == 'yes' || s == 'on';
@@ -952,7 +1184,10 @@ class MergeMediaEntitiesService with LoggerMixin {
         }
         onRemoved?.call();
       } catch (ioe) {
-        logWarning('[Step 3/8] Failed to remove/move duplicate ${f.path}: $ioe', forcePrint: true);
+        logWarning(
+          '[Step 3/8] Failed to remove/move duplicate ${f.path}: $ioe',
+          forcePrint: true,
+        );
       }
     }
     return moveToDuplicates;
@@ -984,7 +1219,17 @@ class MergeMediaEntitiesService with LoggerMixin {
     final int sz = size > 0 ? size : (await file.length());
 
     // Heuristic: videos or very large files → fewer seeks (2-point)
-    final Set<String> videoExts = {'mp4','mov','m4v','mkv','avi','hevc','heif','heic','webm'};
+    final Set<String> videoExts = {
+      'mp4',
+      'mov',
+      'm4v',
+      'mkv',
+      'avi',
+      'hevc',
+      'heif',
+      'heic',
+      'webm',
+    };
     final bool isVideo = videoExts.contains(ext);
     final bool twoPointOnly = isVideo || sz >= (64 << 20); // ≥ 64MiB
 
@@ -994,8 +1239,8 @@ class MergeMediaEntitiesService with LoggerMixin {
 
     // FNV-1a 32-bit
     int fnv32(final List<int> bytes) {
-      int h = 0x811C9DC5;        // offset basis
-      const int p = 0x01000193;  // prime
+      int h = 0x811C9DC5; // offset basis
+      const int p = 0x01000193; // prime
       for (final b in bytes) {
         h ^= b & 0xFF;
         h = (h * p) & 0xFFFFFFFF;
@@ -1075,7 +1320,9 @@ class MergeMediaEntitiesService with LoggerMixin {
     }
   }
 
-  Future<Map<String, List<MediaEntity>>> _fullHashGroup(final List<MediaEntity> files) async {
+  Future<Map<String, List<MediaEntity>>> _fullHashGroup(
+    final List<MediaEntity> files,
+  ) async {
     final Map<String, List<MediaEntity>> byHash = <String, List<MediaEntity>>{};
     final int hashBatch = adaptiveConcurrency;
 
@@ -1083,10 +1330,14 @@ class MergeMediaEntitiesService with LoggerMixin {
       final batch = files.skip(i).take(hashBatch);
       final futures = batch.map((final media) async {
         try {
-          final h = await _hashService.calculateFileHash(File(media.primaryFile.sourcePath));
+          final h = await _hashService.calculateFileHash(
+            File(media.primaryFile.sourcePath),
+          );
           return (media: media, hash: h);
         } catch (e) {
-          logError('[Step 3/8] Failed to calculate hash for ${media.primaryFile.sourcePath}: $e');
+          logError(
+            '[Step 3/8] Failed to calculate hash for ${media.primaryFile.sourcePath}: $e',
+          );
           return (media: media, hash: 'ERR|${media.primaryFile.sourcePath}');
         }
       });
@@ -1098,7 +1349,11 @@ class MergeMediaEntitiesService with LoggerMixin {
     return byHash;
   }
 
-  Future<Uint8List> _readSlice(final RandomAccessFile raf, final int start, final int length) async {
+  Future<Uint8List> _readSlice(
+    final RandomAccessFile raf,
+    final int start,
+    final int length,
+  ) async {
     await raf.setPosition(start);
     return raf.read(length);
   }
@@ -1130,10 +1385,15 @@ class MergeMediaEntitiesService with LoggerMixin {
   /// [mediaList] List of media entities to deduplicate
   /// [progressCallback] Optional callback for progress updates (processed, total)
   /// Returns list with duplicates removed, keeping the highest quality version
-  Future<List<MediaEntity>> removeDuplicates(final List<MediaEntity> mediaList, {final void Function(int processed, int total)? progressCallback}) async {
+  Future<List<MediaEntity>> removeDuplicates(
+    final List<MediaEntity> mediaList, {
+    final void Function(int processed, int total)? progressCallback,
+  }) async {
     if (mediaList.length <= 1) return mediaList;
 
-    logInfo('[Step 3/8] Starting duplicate removal for ${mediaList.length} media entities...');
+    logInfo(
+      '[Step 3/8] Starting duplicate removal for ${mediaList.length} media entities...',
+    );
 
     // final grouped = await groupIdentical(mediaList);
     final grouped = await groupIdenticalLegacy(mediaList);
@@ -1155,14 +1415,20 @@ class MergeMediaEntitiesService with LoggerMixin {
         result.add(merged);
 
         // Log which duplicates are being removed
-        final duplicatesToRemove = group.where((final media) => media != best).toList();
+        final duplicatesToRemove = group
+            .where((final media) => media != best)
+            .toList();
         duplicatesRemoved += duplicatesToRemove.length;
 
         if (duplicatesToRemove.isNotEmpty) {
           final keptFile = best.primaryFile.sourcePath;
-          logDebug('[Step 3/8] Found ${group.length} identical files, keeping: $keptFile');
+          logDebug(
+            '[Step 3/8] Found ${group.length} identical files, keeping: $keptFile',
+          );
           for (final duplicate in duplicatesToRemove) {
-            logDebug('[Step 3/8]   Removing duplicate: ${duplicate.primaryFile.sourcePath}');
+            logDebug(
+              '[Step 3/8]   Removing duplicate: ${duplicate.primaryFile.sourcePath}',
+            );
           }
         }
       }
@@ -1171,7 +1437,9 @@ class MergeMediaEntitiesService with LoggerMixin {
       progressCallback?.call(processed, grouped.length);
     }
 
-    logInfo('[Step 3/8] Duplicate removal completed: removed $duplicatesRemoved files, kept ${result.length}');
+    logInfo(
+      '[Step 3/8] Duplicate removal completed: removed $duplicatesRemoved files, kept ${result.length}',
+    );
 
     // Log cache performance
     final cacheStats = _hashService.getCacheStats();
@@ -1198,7 +1466,9 @@ class MergeMediaEntitiesService with LoggerMixin {
         final bHasDate = b.dateTaken != null && b.dateAccuracy != null;
 
         if (aHasDate && bHasDate) {
-          final dateComparison = a.dateTakenAccuracy!.compareTo(b.dateTakenAccuracy!);
+          final dateComparison = a.dateTakenAccuracy!.compareTo(
+            b.dateTakenAccuracy!,
+          );
           if (dateComparison != 0) return dateComparison;
         } else if (aHasDate && !bHasDate) {
           return -1; // a is better
@@ -1207,7 +1477,9 @@ class MergeMediaEntitiesService with LoggerMixin {
         }
 
         // 2. Prefer media with more album associations (metadata)
-        final albumComparison = b.albumsMap.length.compareTo(a.albumsMap.length);
+        final albumComparison = b.albumsMap.length.compareTo(
+          a.albumsMap.length,
+        );
         if (albumComparison != 0) return albumComparison;
 
         // 3. Prefer media with shorter path (likely more original)
@@ -1223,7 +1495,9 @@ class MergeMediaEntitiesService with LoggerMixin {
   ///
   /// Returns a list of duplicate groups, where each group contains
   /// media entities with identical file content.
-  Future<List<List<MediaEntity>>> findDuplicateGroups(final List<MediaEntity> mediaList) async {
+  Future<List<List<MediaEntity>>> findDuplicateGroups(
+    final List<MediaEntity> mediaList,
+  ) async {
     // Chose only one of the following 3 methods:
     // final grouped = await groupIdentical(mediaList);
     // final grouped = await groupIdenticalFast(mediaList);
@@ -1232,7 +1506,10 @@ class MergeMediaEntitiesService with LoggerMixin {
   }
 
   /// Checks if two media entities are duplicates based on content
-  Future<bool> areDuplicates(final MediaEntity media1, final MediaEntity media2) async {
+  Future<bool> areDuplicates(
+    final MediaEntity media1,
+    final MediaEntity media2,
+  ) async {
     // Quick size check first
     final size1 = await _hashService.calculateFileSize(
       File(media1.primaryFile.sourcePath),
@@ -1255,7 +1532,9 @@ class MergeMediaEntitiesService with LoggerMixin {
   }
 
   /// Statistics about duplicate detection results
-  DuplicateStats calculateStats(final Map<String, List<MediaEntity>> groupedResults) {
+  DuplicateStats calculateStats(
+    final Map<String, List<MediaEntity>> groupedResults,
+  ) {
     int totalFiles = 0;
     int uniqueFiles = 0;
     int duplicateGroups = 0;
@@ -1295,8 +1574,8 @@ class MergeMediaEntitiesService with LoggerMixin {
   }
 
   /// Optional convenience alias if you prefer this name in callers.
-  Future<String> computeSha256(final MediaEntity media) => _hashService.calculateFileHash(File(media.primaryFile.sourcePath));
-
+  Future<String> computeSha256(final MediaEntity media) =>
+      _hashService.calculateFileHash(File(media.primaryFile.sourcePath));
 }
 
 /// Statistics about duplicate detection results
@@ -1325,7 +1604,8 @@ class DuplicateStats {
   final int spaceWastedBytes;
 
   /// Percentage of files that are duplicates
-  double get duplicatePercentage => totalFiles > 0 ? (duplicateFiles / totalFiles) * 100 : 0;
+  double get duplicatePercentage =>
+      totalFiles > 0 ? (duplicateFiles / totalFiles) * 100 : 0;
 
   /// Human readable summary
   String get summary =>
@@ -1334,7 +1614,6 @@ class DuplicateStats {
 }
 
 typedef TelemetryLike = _Telemetry;
-
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Telemetry support types (kept as in original execute(), moved here)

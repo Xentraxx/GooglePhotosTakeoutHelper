@@ -15,7 +15,9 @@ class DiscoverMediaService with LoggerMixin {
   Future<DiscoverMediaResult> discover(final ProcessingContext context) async {
     final inputDir = Directory(context.config.inputPath);
     if (!await inputDir.exists()) {
-      throw Exception('Input directory does not exist: ${context.config.inputPath}');
+      throw Exception(
+        'Input directory does not exist: ${context.config.inputPath}',
+      );
     }
 
     final scan = await _scanDirectoriesOptimized(inputDir, context);
@@ -29,7 +31,10 @@ class DiscoverMediaService with LoggerMixin {
       extrasSkipped = result.removedCount;
 
       if (context.config.verbose) {
-        logDebug('[Step 2/8] Skipped $extrasSkipped extra files due to skipExtras configuration', forcePrint: true);
+        logDebug(
+          '[Step 2/8] Skipped $extrasSkipped extra files due to skipExtras configuration',
+          forcePrint: true,
+        );
       }
     }
 
@@ -83,22 +88,37 @@ class DiscoverMediaService with LoggerMixin {
       plannedTotal += await _countMediaFiles(d, context);
     }
     final FillingBar? bar = (plannedTotal > 0)
-        ? FillingBar(total: plannedTotal, width: 50, percentage: true, desc: '[ INFO  ] [Step 2/8] Indexing')
+        ? FillingBar(
+            total: plannedTotal,
+            width: 50,
+            percentage: true,
+            desc: '[ INFO  ] [Step 2/8] Indexing',
+          )
         : null;
     int progressed = 0;
 
     // Process year directories
     for (final yearDir in yearDirectories) {
       if (context.config.verbose) {
-        logDebug('[Step 2/8] Scanning year folder: ${path.basename(yearDir.path)}', forcePrint: true);
+        logDebug(
+          '[Step 2/8] Scanning year folder: ${path.basename(yearDir.path)}',
+          forcePrint: true,
+        );
       }
-      await for (final mediaFile in _getMediaFiles(yearDir, context, onEach: () {
-        if (bar != null) {
-          progressed++;
-          if ((progressed % 500) == 0 || progressed == plannedTotal) bar.update(progressed);
-        }
-      })) {
-        final isPartnerShared = await jsonPartnerSharingExtractor(File(mediaFile.sourcePath));
+      await for (final mediaFile in _getMediaFiles(
+        yearDir,
+        context,
+        onEach: () {
+          if (bar != null) {
+            progressed++;
+            if ((progressed % 500) == 0 || progressed == plannedTotal)
+              bar.update(progressed);
+          }
+        },
+      )) {
+        final isPartnerShared = await jsonPartnerSharingExtractor(
+          File(mediaFile.sourcePath),
+        );
 
         final entity = MediaEntity.single(
           file: mediaFile,
@@ -114,15 +134,25 @@ class DiscoverMediaService with LoggerMixin {
     for (final albumDir in albumDirectories) {
       final albumName = path.basename(albumDir.path);
       if (context.config.verbose) {
-        logDebug('[Step 2/8] Scanning album folder: $albumName', forcePrint: true);
+        logDebug(
+          '[Step 2/8] Scanning album folder: $albumName',
+          forcePrint: true,
+        );
       }
-      await for (final mediaFile in _getMediaFiles(albumDir, context, onEach: () {
-        if (bar != null) {
-          progressed++;
-          if ((progressed % 500) == 0 || progressed == plannedTotal) bar.update(progressed);
-        }
-      })) {
-        final isPartnerShared = await jsonPartnerSharingExtractor(File(mediaFile.sourcePath));
+      await for (final mediaFile in _getMediaFiles(
+        albumDir,
+        context,
+        onEach: () {
+          if (bar != null) {
+            progressed++;
+            if ((progressed % 500) == 0 || progressed == plannedTotal)
+              bar.update(progressed);
+          }
+        },
+      )) {
+        final isPartnerShared = await jsonPartnerSharingExtractor(
+          File(mediaFile.sourcePath),
+        );
 
         final parentDir = path.dirname(mediaFile.sourcePath);
         final entity = MediaEntity.single(
@@ -210,7 +240,8 @@ class DiscoverMediaService with LoggerMixin {
         }
       }
     } else {
-      await for (final file in directory.list(recursive: true).wherePhotoVideo()) {
+      await for (final file
+          in directory.list(recursive: true).wherePhotoVideo()) {
         onEach?.call();
         yield FileEntity(sourcePath: file.path);
       }

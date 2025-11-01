@@ -20,10 +20,16 @@ void main() {
     test('should have album options defined', () {
       expect(InteractivePresenterService.albumOptions, isNotEmpty);
       expect(InteractivePresenterService.albumOptions, contains('shortcut'));
-      expect(InteractivePresenterService.albumOptions, contains('duplicate-copy'));
+      expect(
+        InteractivePresenterService.albumOptions,
+        contains('duplicate-copy'),
+      );
       expect(InteractivePresenterService.albumOptions, contains('json'));
       expect(InteractivePresenterService.albumOptions, contains('nothing'));
-      expect(InteractivePresenterService.albumOptions, contains('reverse-shortcut'));
+      expect(
+        InteractivePresenterService.albumOptions,
+        contains('reverse-shortcut'),
+      );
     });
 
     test('should have proper album option descriptions', () {
@@ -62,7 +68,8 @@ void main() {
       });
 
       test('json option should mention JSON files', () {
-        final jsonDescription = InteractivePresenterService.albumOptions['json']!;
+        final jsonDescription =
+            InteractivePresenterService.albumOptions['json']!;
         expect(jsonDescription.toLowerCase(), contains('json'));
         expect(jsonDescription.toLowerCase(), contains('programmer'));
       });
@@ -87,7 +94,9 @@ void main() {
       });
 
       test('should allow disabling sleep', () {
-        final noSleepPresenter = InteractivePresenterService(enableSleep: false);
+        final noSleepPresenter = InteractivePresenterService(
+          enableSleep: false,
+        );
         expect(noSleepPresenter, isA<InteractivePresenterService>());
       });
 
@@ -143,7 +152,8 @@ void main() {
         // Test that the static album options can be accessed concurrently
         final futures = List.generate(
           10,
-          (final index) => Future(() => InteractivePresenterService.albumOptions),
+          (final index) =>
+              Future(() => InteractivePresenterService.albumOptions),
         );
 
         expect(() => Future.wait(futures), returnsNormally);
