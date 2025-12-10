@@ -5,10 +5,14 @@
 
 ### 🚀 **Improvements**
   - Untitled Albums now are detected and moved to `Untitled Albums` forder. (only if albums strategy is `shortcut`, `reversed-shortcut` or `duplicate-copy`, the rest of albums strategies don't creates albums folders). (#86).
+  - Upgraded exif_reader package to the newest version.
 
 ### 🐛 **Bug Fixes**
   - Minor Bug Fixing.
-
+  - Fixed #90 (duplicated output in interactive mode)
+  - Fixed major error which led to native exif write methods not being used when exiftool was not installed.
+  
+  
 
 ## 5.0.5
 

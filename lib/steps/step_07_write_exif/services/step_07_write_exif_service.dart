@@ -31,14 +31,14 @@ class WriteExifProcessingService with LoggerMixin {
   }) async {
     // --- Tooling and flags (exactly as in the step) ---
     final collection = context.mediaCollection;
-    final bool nativeOnly = exifTool == null;
-    if (nativeOnly) {
+    final bool exifToolAvailable = exifTool != null;
+    if (!exifToolAvailable) {
       logWarning(
         '[Step 7/8] ExifTool not available, native-only support.',
         forcePrint: true,
       );
     } else {
-      logPrint('[Step 7/8] ExifTool enabled');
+      logPrint('[Step 7/8] ExifTool available');
     }
 
     // Concurrency selection is kept identical
@@ -50,10 +50,11 @@ class WriteExifProcessingService with LoggerMixin {
     final bool enableExifToolBatch = _resolveBatchingPreference(exifTool);
     final _UnsupportedPolicy unsupportedPolicy = _resolveUnsupportedPolicy();
 
-    // Writer may be null if native-only
-    final WriteExifAuxiliaryService? exifWriter = (exifTool != null)
-        ? WriteExifAuxiliaryService(exifTool as ExifToolService)
-        : null;
+    // Always instantiate the auxiliary writer so native-only writes work
+    // even when ExifTool is not available. ExifTool-backed operations remain
+    // guarded by `exifToolAvailable` / `exifTool` checks elsewhere.
+    final WriteExifAuxiliaryService exifWriter =
+      WriteExifAuxiliaryService(exifTool as ExifToolService?);
 
     // Batch queues and helpers (moved here from the step; unchanged logic)
     final bool isWindows = Platform.isWindows;
@@ -151,7 +152,7 @@ class WriteExifProcessingService with LoggerMixin {
       required final bool useArgFile,
       required final bool isVideoBatch,
     }) async {
-      if (queue.isEmpty || exifWriter == null) return;
+      if (queue.isEmpty) return;
 
       Future<void> splitAndWrite(
         final List<MapEntry<File, Map<String, dynamic>>> chunk,
@@ -298,12 +299,8 @@ class WriteExifProcessingService with LoggerMixin {
       required final bool isVideoBatch,
       required final int capPerChunk,
     }) async {
-      if (nativeOnly || !enableExifToolBatch) return;
+      if (!exifToolAvailable || !enableExifToolBatch) return;
       if (byTagset.isEmpty) return;
-      if (exifWriter == null) {
-        byTagset.clear();
-        return;
-      }
 
       final keys = byTagset.keys.toList();
       for (final k in keys) {
@@ -348,7 +345,7 @@ class WriteExifProcessingService with LoggerMixin {
         );
 
     Future<void> maybeFlushThresholds() async {
-      if (nativeOnly || !enableExifToolBatch) return;
+      if (!exifToolAvailable || !enableExifToolBatch) return;
       final int targetImageBatch = baseBatchSize
           .clamp(1, maxImageBatch)
           .toInt();
@@ -424,116 +421,75 @@ class WriteExifProcessingService with LoggerMixin {
         final bool isJpeg = lower.endsWith('.jpg') || lower.endsWith('.jpeg');
         final bool forceXmpJpeg = isJpeg && forceJpegXmp.contains(lower);
 
-        // GPS handling (same as step)
+        // GPS handling: always attempt native JPEG writes first for JPEGs.
         try {
           final coords = coordsFromPrimary;
           if (coords != null) {
             if (isJpeg && !forceXmpJpeg) {
-              if (!nativeOnly && exifWriter != null) {
-                if (effectiveDate != null) {
-                  final ok = await preserveMTime(
+              // Try native combined (date+gps) or gps-only writes first.
+              if (effectiveDate != null) {
+                final ok = await preserveMTime(
+                  file,
+                  () async => exifWriter.writeCombinedNativeJpeg(
                     file,
-                    () async => exifWriter.writeCombinedNativeJpeg(
-                      file,
-                      effectiveDate,
-                      coords,
-                    ),
-                  );
-                  if (ok) {
-                    gpsWrittenThis = true;
-                    dtWrittenThis = true;
-                  } else {
+                    effectiveDate,
+                    coords,
+                  ),
+                );
+                if (ok) {
+                  gpsWrittenThis = true;
+                  dtWrittenThis = true;
+                } else {
+                  // Native failed — fall back to ExifTool only if available.
+                  if (exifToolAvailable) {
                     final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
                     final dt = exifFormat.format(effectiveDate);
                     tagsToWrite['DateTimeOriginal'] = '"$dt"';
                     tagsToWrite['DateTimeDigitized'] = '"$dt"';
                     tagsToWrite['DateTime'] = '"$dt"';
-                    tagsToWrite['GPSLatitude'] = coords
-                        .toDD()
-                        .latitude
-                        .toString();
-                    tagsToWrite['GPSLongitude'] = coords
-                        .toDD()
-                        .longitude
-                        .toString();
-                    tagsToWrite['GPSLatitudeRef'] = coords
-                        .latDirection
-                        .abbreviation
-                        .toString();
-                    tagsToWrite['GPSLongitudeRef'] = coords
-                        .longDirection
-                        .abbreviation
-                        .toString();
+                    tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
+                    tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
+                    tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
+                    tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
                     WriteExifAuxiliaryService.markFallbackCombinedTried(file);
-                  }
-                } else {
-                  final ok = await preserveMTime(
-                    file,
-                    () async => exifWriter.writeGpsNativeJpeg(file, coords),
-                  );
-                  if (ok) {
-                    gpsWrittenThis = true;
                   } else {
-                    tagsToWrite['GPSLatitude'] = coords
-                        .toDD()
-                        .latitude
-                        .toString();
-                    tagsToWrite['GPSLongitude'] = coords
-                        .toDD()
-                        .longitude
-                        .toString();
-                    tagsToWrite['GPSLatitudeRef'] = coords
-                        .latDirection
-                        .abbreviation
-                        .toString();
-                    tagsToWrite['GPSLongitudeRef'] = coords
-                        .longDirection
-                        .abbreviation
-                        .toString();
-                    WriteExifAuxiliaryService.markFallbackGpsTried(file);
+                    logWarning(
+                      '[Step 7/8] Native combined write failed and ExifTool not available: ${file.path}',
+                    );
                   }
                 }
               } else {
-                tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
-                tagsToWrite['GPSLongitude'] = coords
-                    .toDD()
-                    .longitude
-                    .toString();
-                tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation
-                    .toString();
-                tagsToWrite['GPSLongitudeRef'] = coords
-                    .longDirection
-                    .abbreviation
-                    .toString();
+                final ok = await preserveMTime(
+                  file,
+                  () async => exifWriter.writeGpsNativeJpeg(file, coords),
+                );
+                if (ok) {
+                  gpsWrittenThis = true;
+                } else {
+                  if (exifToolAvailable) {
+                    tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
+                    tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
+                    tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
+                    tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
+                    WriteExifAuxiliaryService.markFallbackGpsTried(file);
+                  } else {
+                    logWarning(
+                      '[Step 7/8] Native GPS write failed and ExifTool not available: ${file.path}',
+                    );
+                  }
+                }
               }
             } else {
-              if (!nativeOnly) {
+              // Non-JPEGs or forced XMP: prepare tags for ExifTool when available.
+              if (exifToolAvailable) {
                 if (isPng || forceXmpJpeg) {
-                  tagsToWrite['XMP:GPSLatitude'] = coords
-                      .toDD()
-                      .latitude
-                      .toString();
-                  tagsToWrite['XMP:GPSLongitude'] = coords
-                      .toDD()
-                      .longitude
-                      .toString();
+                  tagsToWrite['XMP:GPSLatitude'] = coords.toDD().latitude.toString();
+                  tagsToWrite['XMP:GPSLongitude'] = coords.toDD().longitude.toString();
                 } else {
-                  tagsToWrite['GPSLatitude'] = coords
-                      .toDD()
-                      .latitude
-                      .toString();
-                  tagsToWrite['GPSLongitude'] = coords
-                      .toDD()
-                      .longitude
-                      .toString();
-                  tagsToWrite['GPSLatitudeRef'] = coords
-                      .latDirection
-                      .abbreviation
-                      .toString();
-                  tagsToWrite['GPSLongitudeRef'] = coords
-                      .longDirection
-                      .abbreviation
-                      .toString();
+                  tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
+                  tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
+                  tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
+                  tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
                 }
               }
             }
@@ -545,11 +501,11 @@ class WriteExifProcessingService with LoggerMixin {
           );
         }
 
-        // Date/time handling (same as step)
+        // Date/time handling (always try native JPEG write first for JPEGs)
         try {
           if (effectiveDate != null) {
             if (isJpeg && !forceXmpJpeg) {
-              if (!dtWrittenThis && !nativeOnly && exifWriter != null) {
+              if (!dtWrittenThis) {
                 final ok = await preserveMTime(
                   file,
                   () async =>
@@ -558,16 +514,22 @@ class WriteExifProcessingService with LoggerMixin {
                 if (ok) {
                   dtWrittenThis = true;
                 } else {
-                  final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
-                  final dt = exifFormat.format(effectiveDate);
-                  tagsToWrite['DateTimeOriginal'] = '"$dt"';
-                  tagsToWrite['DateTimeDigitized'] = '"$dt"';
-                  tagsToWrite['DateTime'] = '"$dt"';
-                  WriteExifAuxiliaryService.markFallbackDateTried(file);
+                  if (exifToolAvailable) {
+                    final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
+                    final dt = exifFormat.format(effectiveDate);
+                    tagsToWrite['DateTimeOriginal'] = '"$dt"';
+                    tagsToWrite['DateTimeDigitized'] = '"$dt"';
+                    tagsToWrite['DateTime'] = '"$dt"';
+                    WriteExifAuxiliaryService.markFallbackDateTried(file);
+                  } else {
+                    logWarning(
+                      '[Step 7/8] Native DateTime write failed and ExifTool not available: ${file.path}',
+                    );
+                  }
                 }
               }
             } else {
-              if (!nativeOnly) {
+              if (exifToolAvailable) {
                 if (isPng || forceXmpJpeg) {
                   final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
                   final dt = exifFormat.format(effectiveDate);
@@ -593,7 +555,7 @@ class WriteExifProcessingService with LoggerMixin {
 
         // Write using exiftool (per-file or enqueue for batch)
         try {
-          if (!nativeOnly && tagsToWrite.isNotEmpty) {
+              if (exifToolAvailable && tagsToWrite.isNotEmpty) {
             final bool isVideo = (mimeHeader ?? '').startsWith('video/');
             final bool isUnsupported = _isDefinitelyUnsupportedForWrite(
               mimeHeader: mimeHeader,
@@ -622,7 +584,7 @@ class WriteExifProcessingService with LoggerMixin {
                       file,
                       markAsPrimary,
                     );
-                    await exifWriter!.writeTagsWithExifToolSingle(
+                    await exifWriter.writeTagsWithExifToolSingle(
                       file,
                       tagsToWrite,
                     );
@@ -750,11 +712,11 @@ class WriteExifProcessingService with LoggerMixin {
         progressBar.update(completedEntities);
       }
 
-      if (!nativeOnly && enableExifToolBatch) await maybeFlushThresholds();
+      if (exifToolAvailable && enableExifToolBatch) await maybeFlushThresholds();
     }
 
     // Final flush telemetry + second bar (identical UX)
-    if (!nativeOnly && enableExifToolBatch) {
+    if (exifToolAvailable && enableExifToolBatch) {
       final int imagesQueued = totalQueued(pendingImagesByTagset);
       final int videosQueued = totalQueued(pendingVideosByTagset);
       print('');
@@ -1098,7 +1060,8 @@ class WriteExifProcessingService with LoggerMixin {
 class WriteExifAuxiliaryService with LoggerMixin {
   WriteExifAuxiliaryService(this._exifTool);
 
-  final ExifToolService _exifTool;
+  // Nullable: ExifTool backing service may be absent when running native-only.
+  late final ExifToolService? _exifTool;
 
   // ───────────────────── Instrumentation (per-process static) ─────────────────
   // Calls
@@ -1499,7 +1462,7 @@ class WriteExifAuxiliaryService with LoggerMixin {
     final bool asGps = isGps || cls.isGps;
 
     try {
-      await _exifTool.writeExifDataSingle(file, tags);
+      await _exifTool!.writeExifDataSingle(file, tags);
 
       final elapsed = sw.elapsed;
       final wasMarkedFallback = _consumeMarkedFallback(
@@ -1683,9 +1646,9 @@ class WriteExifAuxiliaryService with LoggerMixin {
     final sw = Stopwatch()..start();
     try {
       if (useArgFileWhenLarge) {
-        await _exifTool.writeExifDataBatchViaArgFile(batch);
+        await _exifTool!.writeExifDataBatchViaArgFile(batch);
       } else {
-        await _exifTool.writeExifDataBatch(batch);
+        await _exifTool!.writeExifDataBatch(batch);
       }
 
       final elapsed = sw.elapsed;
