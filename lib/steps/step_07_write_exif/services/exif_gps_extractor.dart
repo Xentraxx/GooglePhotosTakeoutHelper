@@ -150,12 +150,12 @@ class ExifGpsExtractor with LoggerMixin {
       await for (final chunk in file.openRead(0, end)) {
         bytesBuilder.add(chunk);
       }
-      final tags = await readExifFromBytes(bytesBuilder.takeBytes());
+      final ExifData exifData = await readExifFromBytes(bytesBuilder.takeBytes());
 
-      final latitude = tags['GPS GPSLatitude']?.printable;
-      final longitude = tags['GPS GPSLongitude']?.printable;
-      final latRef = tags['GPS GPSLatitudeRef']?.printable;
-      final longRef = tags['GPS GPSLongitudeRef']?.printable;
+      final latitude = exifData.tags['GPS GPSLatitude']?.printable;
+      final longitude = exifData.tags['GPS GPSLongitude']?.printable;
+      final latRef = exifData.tags['GPS GPSLatitudeRef']?.printable;
+      final longRef = exifData.tags['GPS GPSLongitudeRef']?.printable;
 
       if (_isValidCoord(latitude) && _isValidCoord(longitude)) {
         return {

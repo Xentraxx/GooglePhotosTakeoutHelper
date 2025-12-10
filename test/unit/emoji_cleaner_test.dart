@@ -417,9 +417,9 @@ void main() {
         expect(hexImg.existsSync(), isTrue);
 
         // 2. Read EXIF from image in hex folder
-        final tags = await readExifFromBytes(await hexImg.readAsBytes());
+        final ExifData exifData = await readExifFromBytes(await hexImg.readAsBytes());
         expect(
-          tags['EXIF DateTimeOriginal']?.printable,
+          exifData.tags['EXIF DateTimeOriginal']?.printable,
           '2022:12:16 16:06:47',
         ); // 3. Write using exiftool to hex_encoded folder
         if (exiftool != null) {
@@ -479,11 +479,11 @@ void main() {
         expect(restoredImg.existsSync(), isTrue);
 
         // Verify EXIF data is preserved after decode
-        final restoredTags = await readExifFromBytes(
+        final ExifData restoredExifData = await readExifFromBytes(
           await restoredImg.readAsBytes(),
         );
         expect(
-          restoredTags['EXIF DateTimeOriginal']?.printable,
+          restoredExifData.tags['EXIF DateTimeOriginal']?.printable,
           '2022:12:16 16:06:47',
         );
       });

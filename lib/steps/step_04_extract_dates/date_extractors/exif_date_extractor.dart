@@ -486,19 +486,19 @@ class ExifDateExtractor with LoggerMixin {
       _nativeFullReads++;
     }
 
-    final tags = await readExifFromBytes(read.bytes);
+    final ExifData exifData = await readExifFromBytes(Uint8List.fromList(read.bytes));
 
     final ordered = <String, String?>{
-      'EXIF DateTimeOriginal': tags['EXIF DateTimeOriginal']?.printable,
-      'Image DateTime': tags['Image DateTime']?.printable,
-      'EXIF CreateDate': tags['EXIF CreateDate']?.printable,
-      'EXIF DateCreated': tags['EXIF DateCreated']?.printable,
-      'EXIF CreationDate': tags['EXIF CreationDate']?.printable,
-      'EXIF MediaCreateDate': tags['EXIF MediaCreateDate']?.printable,
-      'EXIF TrackCreateDate': tags['EXIF TrackCreateDate']?.printable,
-      'EXIF EncodedDate': tags['EXIF EncodedDate']?.printable,
-      'EXIF MetadataDate': tags['EXIF MetadataDate']?.printable,
-      'EXIF ModifyDate': tags['EXIF ModifyDate']?.printable,
+      'EXIF DateTimeOriginal': exifData.tags['EXIF DateTimeOriginal']?.printable,
+      'Image DateTime': exifData.tags['Image DateTime']?.printable,
+      'EXIF CreateDate': exifData.tags['EXIF CreateDate']?.printable,
+      'EXIF DateCreated': exifData.tags['EXIF DateCreated']?.printable,
+      'EXIF CreationDate': exifData.tags['EXIF CreationDate']?.printable,
+      'EXIF MediaCreateDate': exifData.tags['EXIF MediaCreateDate']?.printable,
+      'EXIF TrackCreateDate': exifData.tags['EXIF TrackCreateDate']?.printable,
+      'EXIF EncodedDate': exifData.tags['EXIF EncodedDate']?.printable,
+      'EXIF MetadataDate': exifData.tags['EXIF MetadataDate']?.printable,
+      'EXIF ModifyDate': exifData.tags['EXIF ModifyDate']?.printable,
     };
 
     for (final entry in ordered.entries) {
@@ -548,10 +548,7 @@ class ExifDateExtractor with LoggerMixin {
     }
 
     final builder = BytesBuilder(copy: false);
-    // ignore: prefer_foreach
-    await for (final chunk in file.openRead(0, head)) {
-      builder.add(chunk);
-    }
+    await file.openRead(0, head).forEach(builder.add);
     return _SmartReadResult(builder.takeBytes(), true);
   }
 
