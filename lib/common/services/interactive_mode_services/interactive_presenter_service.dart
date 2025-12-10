@@ -303,49 +303,9 @@ class InteractivePresenterService with LoggerMixin {
   /// Updated to include the new 'ignore' option as [5].
   Future<void> promptForAlbumBehavior() async {
     print('What should be done with albums?');
-    print('[1] shortcut: [Recommended] Album folders with symlinks to');
-    print(
-      '    original photos. Recommended as it provides better compatibility',
-    );
-    print('    with cloud services and takes the least space');
     print('');
-    print(
-      '[2] reverse-shortcut: Album folders with ORIGINAL photos. "ALL_PHOTOS" folder',
-    );
-    print('    with shortcuts/symlinks to albums. If a photo is in an album,');
-    print(
-      '    the original is saved. CAUTION: If a photo is in multiple albums, it will',
-    );
-    print(
-      '    be duplicated in the other albums, and the shortcuts/symlinks in',
-    );
-    print('    "ALL_PHOTOS" will point only to one album.');
+    print('(Type a number or press enter for the recommended option):');
     print('');
-    print('[3] duplicate-copy: Album folders with photos copied into them.');
-    print(
-      '    This will work across all systems, but may take wayyy more space!!',
-    );
-    print('');
-    print(
-      '[4] json: Put ALL photos (including Archive and Trash) in one folder and',
-    );
-    print('    make a .json file with info about albums.');
-    print('    Use if you\'re a programmer, or just want to get everything,');
-    print('    ignoring lack of year-folders etc.');
-    print('    WARNING: This moves Archive/Trash into ALL_PHOTOS !!!');
-    print('');
-    print('[5] nothing: Just ignore them and put year-photos into one folder.');
-    print('    WARNING: This moves Archive/Trash into ALL_PHOTOS !!!');
-    print('');
-    print(
-      '[6] ignore: Ignore albums completely. Canonical files go to ALL_PHOTOS;',
-    );
-    print(
-      '    non-canonical files are deleted (not moved or copied to albums).',
-    );
-    print('    WARNING: This ignores Archive/Trash !!!');
-    print('');
-    print('(Type a number or press enter for recommended option):');
 
     if (enableSleep) await _sleep(1);
   }
