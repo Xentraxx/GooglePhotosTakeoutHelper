@@ -18,7 +18,9 @@ dependencies:
   intl: ^0.20.2
   file_picker_desktop: ^1.2.0
   exif_reader: ^4.0.2
-  image: ^4.5.4
+  image:
+    git: 
+      url: https://github.com/Xentraxx/image.git
   emoji_regex: ^0.0.5
   archive: ^4.0.6
   proper_filesize: ^1.0.2

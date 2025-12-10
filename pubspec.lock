@@ -204,10 +204,11 @@ packages:
   image:
     dependency: "direct main"
     description:
-      name: image
-      sha256: "4e973fcf4caae1a4be2fa0a13157aa38a8f9cb049db6529aa00b4d71abc4d928"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: a4c0550d5d8265b8804b937793af40b5be155037
+      url: "https://github.com/Xentraxx/image.git"
+    source: git
     version: "4.5.4"
   intl:
     dependency: "direct main"
