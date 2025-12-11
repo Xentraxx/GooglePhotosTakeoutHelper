@@ -165,6 +165,13 @@ void main() {
       test('benchmark media collection operations', () async {
         final collection = MediaEntityCollection();
 
+        // Create processing config for the test
+        final config = ProcessingConfig(
+          inputPath: takeoutPath,
+          outputPath: outputPath,
+          disableResumeCheck: true,
+        );
+
         // Create test files for performance testing
         final testFiles = <File>[];
         for (int i = 0; i < 100; i++) {
@@ -181,7 +188,9 @@ void main() {
 
         // Test duplicate removal performance
         stopwatch = Stopwatch()..start();
-        final duplicatesRemoved = await collection.mergeMediaEntities();
+        final duplicatesRemoved = await collection.mergeMediaEntities(
+          config: config,
+        );
         stopwatch.stop();
         print(
           'Duplicate removal: ${stopwatch.elapsed} (removed: $duplicatesRemoved)',
@@ -189,7 +198,7 @@ void main() {
 
         // Test EXIF writing performance
         stopwatch = Stopwatch()..start();
-        final exifResult = await collection.writeExifData();
+        final exifResult = await collection.writeExifData(config: config);
         stopwatch.stop();
         print(
           'EXIF writing: ${stopwatch.elapsed} (${exifResult['coordinatesWritten']} coordinates, ${exifResult['dateTimesWritten']} datetimes)',

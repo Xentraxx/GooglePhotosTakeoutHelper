@@ -175,6 +175,7 @@ void main() {
       test('removes duplicate entities successfully', () async {
         // Explicit config for this test (pass required paths; other options use defaults)
         final cfg = ProcessingConfig(
+          disableResumeCheck: true,
           inputPath: fixture.basePath,
           outputPath: fixture.basePath,
         );

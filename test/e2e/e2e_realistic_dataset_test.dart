@@ -184,6 +184,7 @@ void main() {
       final inputDir = Directory(googlePhotosPath);
       final outputDir = Directory(outputPath);
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.nothing,
@@ -245,6 +246,7 @@ void main() {
       final inputDir = Directory(googlePhotosPath);
       final outputDir = Directory(outputPath);
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.json,
@@ -286,6 +288,7 @@ void main() {
       final outputDir = Directory(outputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.nothing,
@@ -348,6 +351,7 @@ void main() {
         final outputDir = Directory(outputPath);
 
         final config = ProcessingConfig(
+          disableResumeCheck: true,
           inputPath: googlePhotosPath,
           outputPath: outputPath,
           albumBehavior: AlbumBehavior.shortcut,
@@ -390,6 +394,7 @@ void main() {
       final outputDir = Directory(outputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.nothing,
@@ -484,6 +489,7 @@ void main() {
       final outputDir = Directory(outputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.nothing,
@@ -521,6 +527,7 @@ void main() {
       final outputDir = Directory(outputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.shortcut,
@@ -567,6 +574,7 @@ void main() {
       final outputDir = Directory(largeOutputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: largeGooglePhotosPath,
         outputPath: largeOutputPath,
         albumBehavior: AlbumBehavior.shortcut,
@@ -636,6 +644,7 @@ void main() {
       }
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.shortcut,
@@ -767,6 +776,7 @@ void main() {
         );
 
         final config = ProcessingConfig(
+          disableResumeCheck: true,
           inputPath: googlePhotosPath,
           outputPath: outputPath,
           albumBehavior: AlbumBehavior.shortcut,
@@ -865,6 +875,7 @@ void main() {
           .toList();
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior:
@@ -953,6 +964,7 @@ void main() {
 
         final originalInputCount = inputFiles.length;
         final config = ProcessingConfig(
+          disableResumeCheck: true,
           inputPath: googlePhotosPath,
           outputPath: outputPath,
           albumBehavior: AlbumBehavior.duplicateCopy,
@@ -1026,6 +1038,7 @@ void main() {
       final outputDir = Directory(outputPath);
 
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: googlePhotosPath,
         outputPath: outputPath,
         albumBehavior: AlbumBehavior.nothing, // No albums, just year folders
@@ -1148,6 +1161,7 @@ void main() {
 
           // Test move behavior (only mode available)
           final config = ProcessingConfig(
+            disableResumeCheck: true,
             inputPath: googlePhotosPath,
             outputPath: outputPath,
             albumBehavior: albumBehavior,

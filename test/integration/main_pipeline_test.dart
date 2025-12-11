@@ -23,7 +23,11 @@ void main() {
         await tempInputDir.delete(recursive: true);
       }
       if (await tempOutputDir.exists()) {
-        await tempOutputDir.delete(recursive: true);
+        try {
+          await tempOutputDir.delete(recursive: true);
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
       }
     });
 
