@@ -12,8 +12,6 @@
   - Fixed #90 (duplicated output in interactive mode)
   - Fixed major error which led to native exif write methods not being used when exiftool was not installed.
   - Fixed issue with App1 marker in image library when jpg has no exif block. Using own fork of image library until pull request to the source repo is accepted. Fixes issue #95
-  
-  
 
 ## 5.0.5
 

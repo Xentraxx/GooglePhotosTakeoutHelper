@@ -206,10 +206,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: a4c0550d5d8265b8804b937793af40b5be155037
+      resolved-ref: "687e0e2e7ab9235e37d371d000d4b19fd6b7ce8a"
       url: "https://github.com/Xentraxx/image.git"
     source: git
-    version: "4.5.4"
+    version: "4.5.5"
   intl:
     dependency: "direct main"
     description:
