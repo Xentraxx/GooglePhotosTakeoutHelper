@@ -486,10 +486,13 @@ class ExifDateExtractor with LoggerMixin {
       _nativeFullReads++;
     }
 
-    final ExifData exifData = await readExifFromBytes(Uint8List.fromList(read.bytes));
+    final ExifData exifData = await readExifFromBytes(
+      Uint8List.fromList(read.bytes),
+    );
 
     final ordered = <String, String?>{
-      'EXIF DateTimeOriginal': exifData.tags['EXIF DateTimeOriginal']?.printable,
+      'EXIF DateTimeOriginal':
+          exifData.tags['EXIF DateTimeOriginal']?.printable,
       'Image DateTime': exifData.tags['Image DateTime']?.printable,
       'EXIF CreateDate': exifData.tags['EXIF CreateDate']?.printable,
       'EXIF DateCreated': exifData.tags['EXIF DateCreated']?.printable,

@@ -53,8 +53,9 @@ class WriteExifProcessingService with LoggerMixin {
     // Always instantiate the auxiliary writer so native-only writes work
     // even when ExifTool is not available. ExifTool-backed operations remain
     // guarded by `exifToolAvailable` / `exifTool` checks elsewhere.
-    final WriteExifAuxiliaryService exifWriter =
-      WriteExifAuxiliaryService(exifTool as ExifToolService?);
+    final WriteExifAuxiliaryService exifWriter = WriteExifAuxiliaryService(
+      exifTool as ExifToolService?,
+    );
 
     // Batch queues and helpers (moved here from the step; unchanged logic)
     final bool isWindows = Platform.isWindows;
@@ -447,10 +448,22 @@ class WriteExifProcessingService with LoggerMixin {
                     tagsToWrite['DateTimeOriginal'] = '"$dt"';
                     tagsToWrite['DateTimeDigitized'] = '"$dt"';
                     tagsToWrite['DateTime'] = '"$dt"';
-                    tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
-                    tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
-                    tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
-                    tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
+                    tagsToWrite['GPSLatitude'] = coords
+                        .toDD()
+                        .latitude
+                        .toString();
+                    tagsToWrite['GPSLongitude'] = coords
+                        .toDD()
+                        .longitude
+                        .toString();
+                    tagsToWrite['GPSLatitudeRef'] = coords
+                        .latDirection
+                        .abbreviation
+                        .toString();
+                    tagsToWrite['GPSLongitudeRef'] = coords
+                        .longDirection
+                        .abbreviation
+                        .toString();
                     WriteExifAuxiliaryService.markFallbackCombinedTried(file);
                   } else {
                     logWarning(
@@ -467,10 +480,22 @@ class WriteExifProcessingService with LoggerMixin {
                   gpsWrittenThis = true;
                 } else {
                   if (exifToolAvailable) {
-                    tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
-                    tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
-                    tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
-                    tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
+                    tagsToWrite['GPSLatitude'] = coords
+                        .toDD()
+                        .latitude
+                        .toString();
+                    tagsToWrite['GPSLongitude'] = coords
+                        .toDD()
+                        .longitude
+                        .toString();
+                    tagsToWrite['GPSLatitudeRef'] = coords
+                        .latDirection
+                        .abbreviation
+                        .toString();
+                    tagsToWrite['GPSLongitudeRef'] = coords
+                        .longDirection
+                        .abbreviation
+                        .toString();
                     WriteExifAuxiliaryService.markFallbackGpsTried(file);
                   } else {
                     logWarning(
@@ -483,13 +508,31 @@ class WriteExifProcessingService with LoggerMixin {
               // Non-JPEGs or forced XMP: prepare tags for ExifTool when available.
               if (exifToolAvailable) {
                 if (isPng || forceXmpJpeg) {
-                  tagsToWrite['XMP:GPSLatitude'] = coords.toDD().latitude.toString();
-                  tagsToWrite['XMP:GPSLongitude'] = coords.toDD().longitude.toString();
+                  tagsToWrite['XMP:GPSLatitude'] = coords
+                      .toDD()
+                      .latitude
+                      .toString();
+                  tagsToWrite['XMP:GPSLongitude'] = coords
+                      .toDD()
+                      .longitude
+                      .toString();
                 } else {
-                  tagsToWrite['GPSLatitude'] = coords.toDD().latitude.toString();
-                  tagsToWrite['GPSLongitude'] = coords.toDD().longitude.toString();
-                  tagsToWrite['GPSLatitudeRef'] = coords.latDirection.abbreviation.toString();
-                  tagsToWrite['GPSLongitudeRef'] = coords.longDirection.abbreviation.toString();
+                  tagsToWrite['GPSLatitude'] = coords
+                      .toDD()
+                      .latitude
+                      .toString();
+                  tagsToWrite['GPSLongitude'] = coords
+                      .toDD()
+                      .longitude
+                      .toString();
+                  tagsToWrite['GPSLatitudeRef'] = coords
+                      .latDirection
+                      .abbreviation
+                      .toString();
+                  tagsToWrite['GPSLongitudeRef'] = coords
+                      .longDirection
+                      .abbreviation
+                      .toString();
                 }
               }
             }
@@ -555,7 +598,7 @@ class WriteExifProcessingService with LoggerMixin {
 
         // Write using exiftool (per-file or enqueue for batch)
         try {
-              if (exifToolAvailable && tagsToWrite.isNotEmpty) {
+          if (exifToolAvailable && tagsToWrite.isNotEmpty) {
             final bool isVideo = (mimeHeader ?? '').startsWith('video/');
             final bool isUnsupported = _isDefinitelyUnsupportedForWrite(
               mimeHeader: mimeHeader,
@@ -712,7 +755,8 @@ class WriteExifProcessingService with LoggerMixin {
         progressBar.update(completedEntities);
       }
 
-      if (exifToolAvailable && enableExifToolBatch) await maybeFlushThresholds();
+      if (exifToolAvailable && enableExifToolBatch)
+        await maybeFlushThresholds();
     }
 
     // Final flush telemetry + second bar (identical UX)

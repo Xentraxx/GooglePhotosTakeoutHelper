@@ -150,7 +150,9 @@ class ExifGpsExtractor with LoggerMixin {
       await for (final chunk in file.openRead(0, end)) {
         bytesBuilder.add(chunk);
       }
-      final ExifData exifData = await readExifFromBytes(bytesBuilder.takeBytes());
+      final ExifData exifData = await readExifFromBytes(
+        bytesBuilder.takeBytes(),
+      );
 
       final latitude = exifData.tags['GPS GPSLatitude']?.printable;
       final longitude = exifData.tags['GPS GPSLongitude']?.printable;

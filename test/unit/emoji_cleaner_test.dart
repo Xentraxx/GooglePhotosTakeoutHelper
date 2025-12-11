@@ -417,7 +417,9 @@ void main() {
         expect(hexImg.existsSync(), isTrue);
 
         // 2. Read EXIF from image in hex folder
-        final ExifData exifData = await readExifFromBytes(await hexImg.readAsBytes());
+        final ExifData exifData = await readExifFromBytes(
+          await hexImg.readAsBytes(),
+        );
         expect(
           exifData.tags['EXIF DateTimeOriginal']?.printable,
           '2022:12:16 16:06:47',
