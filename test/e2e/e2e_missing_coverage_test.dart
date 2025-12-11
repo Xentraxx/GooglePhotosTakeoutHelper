@@ -13,12 +13,8 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -52,7 +48,7 @@ void main() {
 
       // Create unique output path for each test
       final timestamp = DateTime.now().microsecondsSinceEpoch.toString();
-      outputPath = p.join(fixture.basePath, 'output_$timestamp');
+      outputPath = path.join(fixture.basePath, 'output_$timestamp');
 
       // Ensure clean output directory for each test
       final outputDir = Directory(outputPath);
@@ -101,7 +97,7 @@ void main() {
         final outputFiles = await Directory(outputPath)
             .list(recursive: true)
             .where((final entity) => entity is File)
-            .map((final entity) => p.basename(entity.path))
+            .map((final entity) => path.basename(entity.path))
             .toList(); // Should NOT contain files with extra suffixes
         expect(
           outputFiles.any((final name) => name.contains('-edited')),
@@ -156,7 +152,7 @@ void main() {
         final outputFiles = await Directory(outputPath)
             .list(recursive: true)
             .where((final entity) => entity is File)
-            .map((final entity) => p.basename(entity.path))
+            .map((final entity) => path.basename(entity.path))
             .toList();
         expect(
           outputFiles.any((final name) => name.contains('-edited')),
@@ -198,11 +194,11 @@ void main() {
 
         // With guessFromName disabled, files should end up in a default/unknown year
         // since they have no EXIF or JSON metadata
-        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
         final yearDirs = await allPhotosDir
             .list()
             .where((final entity) => entity is Directory)
-            .map((final entity) => p.basename(entity.path))
+            .map((final entity) => path.basename(entity.path))
             .toList();
 
         // Should not create year folders based on filename dates
@@ -348,7 +344,7 @@ void main() {
           final outputFiles = await Directory(outputPath)
               .list(recursive: true)
               .where((final entity) => entity is File)
-              .map((final entity) => p.basename(entity.path))
+              .map((final entity) => path.basename(entity.path))
               .toList();
 
           // Should still have files with wrong extensions
@@ -394,7 +390,7 @@ void main() {
           final outputFiles = await Directory(outputPath)
               .list(recursive: true)
               .where((final entity) => entity is File)
-              .map((final entity) => p.basename(entity.path))
+              .map((final entity) => path.basename(entity.path))
               .toList();
 
           expect(
@@ -687,7 +683,7 @@ void main() {
           final bytes = await file.readAsBytes();
           // Use file size + first 16 bytes for a simple but reliable fingerprint
           final fingerprint = '${bytes.length}_${bytes.take(16).join(',')}';
-          inputHashes[p.basename(file.path)] = fingerprint;
+          inputHashes[path.basename(file.path)] = fingerprint;
         }
 
         final config = ProcessingConfig(
@@ -718,7 +714,7 @@ void main() {
             .cast<File>()
             .toList();
         for (final outputFile in outputFiles) {
-          final fileName = p.basename(outputFile.path);
+          final fileName = path.basename(outputFile.path);
           if (inputHashes.containsKey(fileName)) {
             final outputBytes = await outputFile.readAsBytes();
             // Use the same fingerprint method as input files
@@ -754,7 +750,7 @@ void main() {
         );
 
         expect(result.isSuccess, isTrue); // Deep validation of album structure
-        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
         expect(await allPhotosDir.exists(), isTrue);
 
         final albumDirs = await Directory(outputPath)
@@ -762,7 +758,7 @@ void main() {
             .where(
               (final entity) =>
                   entity is Directory &&
-                  p.basename(entity.path) != 'ALL_PHOTOS',
+                  path.basename(entity.path) != 'ALL_PHOTOS',
             )
             .cast<Directory>()
             .toList();
@@ -782,8 +778,8 @@ void main() {
 
           // Verify each album file also exists in ALL_PHOTOS
           for (final albumFile in albumFiles.cast<File>()) {
-            final fileName = p.basename(albumFile.path);
-            final allPhotosFile = File(p.join(allPhotosDir.path, fileName));
+            final fileName = path.basename(albumFile.path);
+            final allPhotosFile = File(path.join(allPhotosDir.path, fileName));
 
             expect(
               await allPhotosFile.exists(),

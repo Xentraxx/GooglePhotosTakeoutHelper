@@ -1,6 +1,5 @@
 import 'dart:io';
-
-import 'package:gpth/infrastructure/windows_symlink_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -266,9 +265,9 @@ void main() {
       () async {
         if (!Platform.isWindows) return;
 
-        expect(
-          () => symlinkService.createSymlink('', ''),
-          throwsA(isA<Exception>()),
+        await expectLater(
+          symlinkService.createSymlink('', ''),
+          completes, // o: completion(isNull) para Future<void>
         );
       },
       skip: !Platform.isWindows ? 'Windows-only test' : null,

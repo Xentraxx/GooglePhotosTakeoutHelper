@@ -6,8 +6,9 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:gpth/infrastructure/exiftool_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
+
 import '../setup/test_setup.dart';
 
 void main() {
@@ -80,7 +81,7 @@ void main() {
 
         // Should handle writing basic metadata without throwing
         await expectLater(
-          exiftool!.writeExifData(testImage, testData),
+          exiftool!.writeExifDataSingle(testImage, testData),
           completes,
         );
 
@@ -92,7 +93,7 @@ void main() {
         if (exiftool == null) return; // Skip if exiftool not available
 
         // Test basic version command
-        final output = await exiftool!.executeCommand(['-ver']);
+        final output = await exiftool!.executeExifToolCommand(['-ver']);
 
         expect(output, isNotEmpty);
         expect(output.trim(), matches(r'^\d+\.\d+'));

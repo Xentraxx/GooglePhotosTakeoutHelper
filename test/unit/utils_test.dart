@@ -62,14 +62,8 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/services/core/formatting_service.dart';
-import 'package:gpth/domain/services/core/logging_service.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/infrastructure/platform_service.dart';
-import 'package:gpth/infrastructure/windows_symlink_service.dart';
-import 'package:gpth/shared/extensions/file_extensions.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -116,7 +110,7 @@ void main() {
         ]);
 
         expect(
-          stream.wherePhotoVideo().map((final f) => p.basename(f.path)),
+          stream.wherePhotoVideo().map((final f) => path.basename(f.path)),
           emitsInOrder(['photo.jpg', 'video.mp4', 'image.png', emitsDone]),
         );
       });
@@ -202,23 +196,30 @@ void main() {
       test(
         'WindowsSymlinkService handles Windows symlinks',
         () async {
-          if (Platform.isWindows) {
-            final targetFile = fixture.createFile('target.txt', [1, 2, 3]);
-            final symlinkPath = '${fixture.basePath}/symlink';
-            final windowsSymlinkService = WindowsSymlinkService();
+          if (!Platform.isWindows) return;
 
-            // Ensure target file exists before creating symlink
-            expect(targetFile.existsSync(), isTrue);
+          final targetFile = fixture.createFile('target.txt', [1, 2, 3]);
+          final symlinkPath = '${fixture.basePath}/symlink';
+          final windowsSymlinkService = WindowsSymlinkService();
 
-            // Should not throw and should complete successfully
-            await windowsSymlinkService.createSymlink(
-              symlinkPath,
-              targetFile.path,
-            );
+          // Precondition: the link should not exist yet (neither native nor .lnk fallback)
+          expect(File(symlinkPath).existsSync(), isFalse);
+          expect(File('$symlinkPath.lnk').existsSync(), isFalse);
 
-            // Verify symlink was created
-            expect(File(symlinkPath).existsSync(), isTrue);
-          }
+          // Create the link (native symlink if possible; .lnk fallback otherwise)
+          await windowsSymlinkService.createSymlink(
+            symlinkPath,
+            targetFile.path,
+          );
+
+          // Postcondition: either the native symlink exists OR the .lnk fallback exists
+          final existsNative = File(symlinkPath).existsSync();
+          final existsShortcut = File('$symlinkPath.lnk').existsSync();
+          expect(
+            existsNative || existsShortcut,
+            isTrue,
+            reason: 'Expected a native symlink or a .lnk fallback to exist',
+          );
         },
         skip: !Platform.isWindows ? 'Windows only test' : null,
       );

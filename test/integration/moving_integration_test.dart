@@ -2,13 +2,7 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/media_entity_collection.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/file_operations/moving/media_entity_moving_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/moving_context_model.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -16,12 +10,14 @@ import '../setup/test_setup.dart';
 void main() {
   group('MediaEntity Moving Integration Tests', () {
     late TestFixture fixture;
+    late AlbumRelationshipService albumSvc;
+
     setUp(() async {
       fixture = TestFixture();
       await fixture.setUp();
-
       // Initialize ServiceContainer
       await ServiceContainer.instance.initialize();
+      albumSvc = ServiceContainer.instance.albumRelationshipService;
     });
 
     tearDown(() async {
@@ -32,20 +28,31 @@ void main() {
     test(
       'moving service processes media entities without UnimplementedError',
       () async {
-        // Create test media files
-        final file1 = fixture.createFile('test1.jpg', [1, 2, 3]);
-        final file2 = fixture.createFile('test2.jpg', [4, 5, 6]);
-
-        final entity1 = MediaEntity.single(
-          file: file1,
+        // Entity 1: normal (year-only)
+        final f1 = fixture.createFile('2023/test1.jpg', [1, 2, 3]);
+        final e1 = MediaEntity.single(
+          file: FileEntity(sourcePath: f1.path),
           dateTaken: DateTime(2023, 6, 15),
         );
-        final entity2 = MediaEntity.fromMap(
-          files: {null: file2, 'Vacation': file2},
-          dateTaken: DateTime(2023, 7, 20),
-        );
 
-        final collection = MediaEntityCollection([entity1, entity2]);
+        // Entity 2: same content in year + album → merged into one entity with albumNames=['Vacation']
+        final bytes2 = [4, 5, 6];
+        final f2Year = fixture.createFile('2023/test2.jpg', bytes2);
+        final f2Album = fixture.createFile('Albums/Vacation/test2.jpg', bytes2);
+
+        final merged = await albumSvc.detectAndMergeAlbums([
+          MediaEntity.single(
+            file: FileEntity(sourcePath: f2Year.path),
+            dateTaken: DateTime(2023, 7, 20),
+          ),
+          MediaEntity.single(
+            file: FileEntity(sourcePath: f2Album.path),
+            dateTaken: DateTime(2023, 7, 20),
+          ),
+        ]);
+        final e2 = merged.single;
+
+        final collection = MediaEntityCollection([e1, e2]);
         final outputDir = fixture.createDirectory('output');
 
         final context = MovingContext(
@@ -54,26 +61,40 @@ void main() {
           albumBehavior: AlbumBehavior.shortcut,
         );
 
-        final movingService = MediaEntityMovingService();
+        final movingService = MoveMediaEntityService();
 
-        // This should not throw UnimplementedError anymore
+        // Should not throw UnimplementedError
         expect(() async {
           await for (final _ in movingService.moveMediaEntities(
             collection,
             context,
           )) {
-            // Progress updates
+            // progress
           }
         }, returnsNormally);
       },
     );
 
     test('shortcut strategy creates expected directory structure', () async {
-      final file = fixture.createFile('vacation_photo.jpg', [1, 2, 3]);
-      final entity = MediaEntity.fromMap(
-        files: {null: file, 'Summer Vacation': file},
-        dateTaken: DateTime(2023, 8, 15),
+      // Simulate year + album (same content) and merge into a single entity
+      final bytes = [1, 2, 3];
+      final y = fixture.createFile('2023/vacation_photo.jpg', bytes);
+      final a = fixture.createFile(
+        'Albums/Summer Vacation/vacation_photo.jpg',
+        bytes,
       );
+
+      final merged = await albumSvc.detectAndMergeAlbums([
+        MediaEntity.single(
+          file: FileEntity(sourcePath: y.path),
+          dateTaken: DateTime(2023, 8, 15),
+        ),
+        MediaEntity.single(
+          file: FileEntity(sourcePath: a.path),
+          dateTaken: DateTime(2023, 8, 15),
+        ),
+      ]);
+      final entity = merged.single;
 
       final collection = MediaEntityCollection([entity]);
       final outputDir = fixture.createDirectory('output');
@@ -84,7 +105,7 @@ void main() {
         albumBehavior: AlbumBehavior.shortcut,
       );
 
-      final movingService = MediaEntityMovingService();
+      final movingService = MoveMediaEntityService();
 
       var processedCount = 0;
       await for (final progress in movingService.moveMediaEntities(
@@ -96,21 +117,32 @@ void main() {
 
       expect(processedCount, equals(1));
 
-      // Verify ALL_PHOTOS directory exists
+      // Verify ALL_PHOTOS directory
       final allPhotosDir = Directory('${outputDir.path}/ALL_PHOTOS/2023');
       expect(allPhotosDir.existsSync(), isTrue);
 
-      // Verify album directory exists (flattened, no year subdirectory)
-      final albumDir = Directory('${outputDir.path}/Summer Vacation');
+      // Verify flattened album directory
+      final albumDir = Directory('${outputDir.path}/Albums/Summer Vacation');
       expect(albumDir.existsSync(), isTrue);
     });
 
     test('json strategy creates albums-info.json', () async {
-      final file = fixture.createFile('family_photo.jpg', [1, 2, 3]);
-      final entity = MediaEntity.fromMap(
-        files: {null: file, 'Family': file},
-        dateTaken: DateTime(2023, 9, 10),
-      );
+      // Year + album (same content) → single merged entity
+      final bytes = [1, 2, 3];
+      final y = fixture.createFile('2023/family_photo.jpg', bytes);
+      final a = fixture.createFile('Albums/Family/family_photo.jpg', bytes);
+
+      final merged = await albumSvc.detectAndMergeAlbums([
+        MediaEntity.single(
+          file: FileEntity(sourcePath: y.path),
+          dateTaken: DateTime(2023, 9, 10),
+        ),
+        MediaEntity.single(
+          file: FileEntity(sourcePath: a.path),
+          dateTaken: DateTime(2023, 9, 10),
+        ),
+      ]);
+      final entity = merged.single;
 
       final collection = MediaEntityCollection([entity]);
       final outputDir = fixture.createDirectory('output');
@@ -120,33 +152,33 @@ void main() {
         dateDivision: DateDivisionLevel.year,
         albumBehavior: AlbumBehavior.json,
       );
-      final movingService = MediaEntityMovingService();
+      final movingService = MoveMediaEntityService();
 
       await for (final _ in movingService.moveMediaEntities(
         collection,
         context,
       )) {
-        // Process
+        // progress
       }
 
-      // Verify albums-info.json was created
+      // albums-info.json must exist
       final jsonFile = File('${outputDir.path}/albums-info.json');
       expect(jsonFile.existsSync(), isTrue);
     });
 
     test('all album behaviors work without errors', () async {
       for (final behavior in AlbumBehavior.values) {
-        final file = fixture.createFile('test_${behavior.value}.jpg', [
+        final f = fixture.createFile('2023/test_${behavior.value}.jpg', [
           1,
           2,
           3,
         ]);
-        final entity = MediaEntity.single(
-          file: file,
+        final e = MediaEntity.single(
+          file: FileEntity(sourcePath: f.path),
           dateTaken: DateTime(2023, 6, 15),
         );
 
-        final collection = MediaEntityCollection([entity]);
+        final collection = MediaEntityCollection([e]);
         final outputDir = fixture.createDirectory('output_${behavior.value}');
 
         final context = MovingContext(
@@ -154,16 +186,15 @@ void main() {
           dateDivision: DateDivisionLevel.year,
           albumBehavior: behavior,
         );
-        final movingService = MediaEntityMovingService();
+        final movingService = MoveMediaEntityService();
 
-        // Should not throw for any strategy
         expect(
           () async {
             await for (final _ in movingService.moveMediaEntities(
               collection,
               context,
             )) {
-              // Process
+              // progress
             }
           },
           returnsNormally,

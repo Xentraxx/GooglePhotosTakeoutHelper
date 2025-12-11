@@ -3,8 +3,8 @@
 /// Tests the Google Photos Takeout path resolution functionality.
 library;
 
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -56,7 +56,7 @@ void main() {
 
         expect(
           result,
-          equals(p.join(fixture.basePath, 'Takeout', 'Google Photos')),
+          equals(path.join(fixture.basePath, 'Takeout', 'Google Photos')),
         );
       });
       test('resolves path when pointing to parent of Takeout directory', () {
@@ -78,7 +78,7 @@ void main() {
         expect(
           result,
           equals(
-            p.join(fixture.basePath, 'Export', 'Takeout', 'Google Photos'),
+            path.join(fixture.basePath, 'Export', 'Takeout', 'Google Photos'),
           ),
         );
       });
@@ -96,7 +96,7 @@ void main() {
       });
 
       test('throws DirectoryNotFoundException for non-existent directory', () {
-        final nonExistentPath = p.join(fixture.basePath, 'non_existent');
+        final nonExistentPath = path.join(fixture.basePath, 'non_existent');
 
         expect(
           () => PathResolverService.resolveGooglePhotosPath(nonExistentPath),
@@ -153,7 +153,7 @@ void main() {
         expect(
           result,
           equals(
-            p.join(fixture.basePath, 'MyExport', 'Takeout', 'Google Photos'),
+            path.join(fixture.basePath, 'MyExport', 'Takeout', 'Google Photos'),
           ),
         );
       });
@@ -176,7 +176,7 @@ void main() {
         expect(
           result,
           equals(
-            p.join(fixture.basePath, 'Export', 'TAKEOUT', 'Google Photos'),
+            path.join(fixture.basePath, 'Export', 'TAKEOUT', 'Google Photos'),
           ),
         );
       });

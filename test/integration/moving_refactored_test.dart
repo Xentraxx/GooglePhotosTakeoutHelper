@@ -5,13 +5,8 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/file_operations/moving/file_operation_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/moving_context_model.dart';
-import 'package:gpth/domain/services/file_operations/moving/path_generator_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -117,7 +112,7 @@ void main() {
       test(
         'ensureDirectoryExists creates directory if it does not exist',
         () async {
-          final dir = Directory(p.join(fixture.basePath, 'new_directory'));
+          final dir = Directory(path.join(fixture.basePath, 'new_directory'));
           expect(await dir.exists(), isFalse);
 
           await service.ensureDirectoryExists(dir);
@@ -148,7 +143,7 @@ void main() {
 
         // The path should be output/ALL_PHOTOS/2023
         // Check that ALL_PHOTOS is in the path components
-        final pathComponents = p.split(result.path);
+        final pathComponents = path.split(result.path);
         expect(pathComponents, contains('ALL_PHOTOS'));
         expect(pathComponents, contains('2023'));
       });
@@ -217,7 +212,7 @@ void main() {
         final result = service.generateAlbumsInfoJsonPath(
           context.outputDirectory,
         );
-        expect(p.basename(result), equals('albums-info.json'));
+        expect(path.basename(result), equals('albums-info.json'));
         expect(result, contains(context.outputDirectory.path));
       });
     });

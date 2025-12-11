@@ -1,10 +1,6 @@
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/file_operations/moving/moving_context_model.dart';
-import 'package:gpth/domain/services/file_operations/moving/path_generator_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -42,7 +38,10 @@ void main() {
             isPartnerShared: true,
           );
 
-          expect(targetDir.path, equals(p.join('/output', 'PARTNER_SHARED')));
+          expect(
+            targetDir.path,
+            equals(path.join('/output', 'PARTNER_SHARED', 'ALL_PHOTOS')),
+          );
         },
       );
 
@@ -60,7 +59,7 @@ void main() {
           context,
         );
 
-        expect(targetDir.path, equals(p.join('/output', 'ALL_PHOTOS')));
+        expect(targetDir.path, equals(path.join('/output', 'ALL_PHOTOS')));
       });
 
       test('applies date division to PARTNER_SHARED folder', () {
@@ -80,7 +79,9 @@ void main() {
 
         expect(
           targetDir.path,
-          equals(p.join('/output', 'PARTNER_SHARED', '2023', '01')),
+          equals(
+            path.join('/output', 'PARTNER_SHARED', 'ALL_PHOTOS', '2023', '01'),
+          ),
         );
       });
 
@@ -100,7 +101,12 @@ void main() {
         );
 
         // Album folders don't get date division
-        expect(targetDir.path, equals(p.join('/output', 'Family Album')));
+        expect(
+          targetDir.path,
+          equals(
+            path.join('/output', 'PARTNER_SHARED', 'Albums', 'Family Album'),
+          ),
+        );
       });
 
       test('ignores partner sharing when dividePartnerShared is disabled', () {
@@ -117,8 +123,8 @@ void main() {
           isPartnerShared: true,
         );
 
-        // Should go to ALL_PHOTOS even if partner shared
-        expect(targetDir.path, equals(p.join('/output', 'ALL_PHOTOS')));
+        // Should go to ./ALL_PHOTOS if dividePartnerShared is disabled
+        expect(targetDir.path, equals(path.join('/output', 'ALL_PHOTOS')));
       });
     });
 
@@ -169,9 +175,11 @@ void main() {
     group('MediaEntity Partner Sharing Integration', () {
       test('partner shared flag is preserved through path generation', () {
         final file = fixture.createFile('partner_photo.jpg', [1, 2, 3]);
+
+        // Wrap the File in a FileEntity for the new API
         final entity = MediaEntity.single(
-          file: file,
-          partnershared: true,
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true, // NOTE: property is camelCase now
           dateTaken: DateTime(2023, 5, 15),
         );
 
@@ -186,12 +194,12 @@ void main() {
           null,
           entity.dateTaken,
           context,
-          isPartnerShared: entity.partnershared,
+          isPartnerShared: entity.partnerShared,
         );
 
         expect(
           targetDir.path,
-          equals(p.join('/output', 'PARTNER_SHARED', '2023')),
+          equals(path.join('/output', 'PARTNER_SHARED', 'ALL_PHOTOS', '2023')),
         );
       });
 
@@ -220,8 +228,11 @@ void main() {
             context,
           );
 
-          expect(partnerDir.path, equals(p.join('/output', 'PARTNER_SHARED')));
-          expect(personalDir.path, equals(p.join('/output', 'ALL_PHOTOS')));
+          expect(
+            partnerDir.path,
+            equals(path.join('/output', 'PARTNER_SHARED', 'ALL_PHOTOS')),
+          );
+          expect(personalDir.path, equals(path.join('/output', 'ALL_PHOTOS')));
         },
       );
     });
@@ -244,7 +255,14 @@ void main() {
 
         expect(
           targetDir.path,
-          equals(p.join('/output', 'PARTNER_SHARED', 'date-unknown')),
+          equals(
+            path.join(
+              '/output',
+              'PARTNER_SHARED',
+              'ALL_PHOTOS',
+              'date-unknown',
+            ),
+          ),
         );
       });
 
@@ -265,7 +283,16 @@ void main() {
 
         expect(
           targetDir.path,
-          equals(p.join('/output', 'PARTNER_SHARED', '2023', '05', '15')),
+          equals(
+            path.join(
+              '/output',
+              'PARTNER_SHARED',
+              'ALL_PHOTOS',
+              '2023',
+              '05',
+              '15',
+            ),
+          ),
         );
       });
     });

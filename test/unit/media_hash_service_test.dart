@@ -4,8 +4,7 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/services/media/media_hash_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';

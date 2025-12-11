@@ -1,0 +1,407 @@
+name: ▶️ Build Binaries and Create Release
+
+on:
+  # ───────────────── 1) Manual trigger from GitHub Actions ─────────────────
+  workflow_dispatch:
+    inputs:
+      final_release:
+        description: "Is this a Final Release?"
+        required: true
+        default: false
+        type: boolean
+      linux_x64:
+        description: "Include linux-x64 ?"
+        type: boolean
+        required: true
+        default: true
+      linux_arm64:
+        description: "Include linux-arm64 ?"
+        type: boolean
+        required: true
+        default: true
+      macos_x64:
+        description: "Include macos-x64 ?"
+        type: boolean
+        required: true
+        default: true
+      macos_arm64:
+        description: "Include macos-arm64 ?"
+        type: boolean
+        required: true
+        default: true
+      windows_x64:
+        description: "Include windows-x64 ?"
+        type: boolean
+        required: true
+        default: true
+      windows_arm64:
+        description: "Include windows-arm64 ?"
+        type: boolean
+        required: true
+        default: true
+
+  # ─────────────────── 2) Automatic trigger by push ────────────────────────
+  #  push:                   # Execute after push on mmaster, except on path-ignore
+  #    branches:
+  #      - master
+  #    paths-ignore:
+  #      - .gitignore
+  #      - .idea/**
+
+  # ────────────────── 3) Scheduled trigger by cron ─────────────────────────
+  #  schedule:
+  #    - cron: '0 2 * * *' # Daily execution at 2 AM UTC
+  # ─────────────────────────────────────────────────────────────────────────
+
+
+jobs:
+  # ==========================================================================================================================
+  # JOB Set Input Matrix
+  # ==========================================================================================================================
+  set-input-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        run: |
+          echo "⚙️ Generating dynamic matrix..."
+
+          EVENT_NAME="${{ github.event_name }}"
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "🔘 Manual trigger with"
+            linux_x64=${{ toJSON(github.event.inputs.linux_x64) }}
+            linux_arm64=${{ toJSON(github.event.inputs.linux_arm64) }}
+            macos_x64=${{ toJSON(github.event.inputs.macos_x64) }}
+            macos_arm64=${{ toJSON(github.event.inputs.macos_arm64) }}
+            windows_x64=${{ toJSON(github.event.inputs.windows_x64) }}
+            windows_arm64=${{ toJSON(github.event.inputs.windows_arm64) }}
+
+          else
+            echo "⏰ Scheduled trigger (cron) or 📦 Per commit trigger"
+            linux_x64="true"
+            linux_arm64="true"
+            macos_x64="true"
+            macos_arm64="true"
+            windows_x64="true"
+            windows_arm64="true"
+          fi
+
+          # Crear lista
+          OS_LIST=()
+          [ "$linux_x64" = "true" ] && OS_LIST+=("linux-x64")
+          [ "$linux_arm64" = "true" ] && OS_LIST+=("linux-arm64")
+          [ "$macos_x64" = "true" ] && OS_LIST+=("macos-x64")
+          [ "$macos_arm64" = "true" ] && OS_LIST+=("macos-arm64")
+          [ "$windows_x64" = "true" ] && OS_LIST+=("windows-x64")
+          [ "$windows_arm64" = "true" ] && OS_LIST+=("windows-arm64")
+
+          if [ ${#OS_LIST[@]} -eq 0 ]; then
+            echo "❌ No OS selected"
+            exit 1
+          fi
+
+          # Converts to real and clean JSON array
+          OS_JSON=$(printf '%s\n' "${OS_LIST[@]}" | jq -R . | jq -s .)
+
+          # Build final compact JSON
+          MATRIX=$(jq -nc \
+            --argjson os "${OS_JSON}" \
+            '{os: $os'})
+
+          echo "✅ Generated Matrix:"
+          echo "$MATRIX"
+          echo ""
+          echo "📋 Inputs:"
+          echo "  🏁 Final-Release    : ${{ github.event.inputs.final_release }}"
+          echo "  🌿 Branch           : ${{ github.ref_name }}"
+          echo "  📦 OS               : $(echo "$MATRIX" | jq -r '.os | join(", ")')"
+
+          # Export a single line (mandatory)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+
+  # ==========================================================================================================================
+  # JOB build
+  # ==========================================================================================================================
+  build-binaries:
+    name: ▶️ Build Binaries
+    # Different VM images to compile in all SO and all Archs according to:
+    # https://github.com/actions/runner-images
+    # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+    needs: set-input-matrix
+    strategy:
+      matrix: ${{ fromJson(needs.set-input-matrix.outputs.matrix) }}
+        # os: [ linux-x64, linux-arm64, macos-x64, macos-arm64, windows-x64, windows-arm64 ]
+        # compiler: [ "${{ github.event.inputs.compiler }}" ] # possible values: [pyinstaller, nuitka]
+        # mode: [ "${{ github.event.inputs.mode }}" ] # possible values: [default, custom]
+        # python: [ "${{ github.event.inputs.python }}"] # select Python version
+
+    # runs-on: ${{ matrix.os }}
+    # latest linux-x64: ubuntu-latest
+    # latest linux-arm64: ubuntu-24.04-arm
+    runs-on: ${{ fromJson('{
+      "linux-x64":"ubuntu-22.04", 
+      "linux-arm64":"ubuntu-22.04-arm",
+      "macos-x64":"macos-15-intel",
+      "macos-arm64":"macos-latest",
+      "windows-x64":"windows-latest",
+      "windows-arm64":"windows-11-arm"}')
+      [matrix.os] }}
+
+    steps:
+      - name: 🔍 Show environment configuration
+        shell: bash
+        run: |
+          echo ""
+          echo "🎯 Event that triggered this workflow: ${{ github.event_name }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "✅ Manually triggered by a user from the interface"
+          else
+            echo "🤖 Automatically triggered (by push or cron)"
+          fi
+          echo ""
+          echo "📦 Target OS         : ${{ matrix.os }}"
+          echo ""
+          echo "OS        : ${{ runner.os }}"
+          echo "Arch      : ${{ runner.arch }}"
+
+      - uses: actions/checkout@v4.2.2
+      - uses: dart-lang/setup-dart@v1.7.1
+      - run: dart pub get
+
+      - name: 🏷️ Extract TOOL_VERSION
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == *"windows"* ]]; then
+          VERSION=$(powershell -Command "(Get-Content pubspec.yaml | Select-String '^version:').ToString().Split(':')[1].Trim()")
+          else
+          VERSION=$(grep '^version:' pubspec.yaml | head -n1 | cut -d' ' -f2)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: ▶️ Build Binaries
+        id: build_exe
+        shell: bash
+        run: |
+          version=${{ steps.version.outputs.version }}
+          osname=${{ matrix.os }}
+          # Normalize osname and append arch for output file
+          if [[ "${{ matrix.os }}" == "linux-x64" ]]; then
+            osname=linux-x64
+          elif [[ "${{ matrix.os }}" == "linux-arm64" ]]; then
+            osname=linux-arm64
+          elif [[ "${{ matrix.os }}" == "macos-x64" ]]; then
+            osname=macos-x64
+          elif [[ "${{ matrix.os }}" == "macos-arm64" ]]; then
+            osname=macos-arm64
+          elif [[ "${{ matrix.os }}" == "windows-x64" ]]; then
+            osname=windows-x64
+          elif [[ "${{ matrix.os }}" == "windows-arm64" ]]; then
+            osname=windows-arm64
+          fi
+          outname=gpth-$version-$osname
+          if [[ "$osname" == windows-* ]]; then
+            outname="$outname.exe"
+          else
+            outname="$outname.bin"
+          fi
+          echo "outname=$outname" >> $GITHUB_OUTPUT
+          dart compile exe bin/gpth.dart -o ./$outname
+
+      - name: ⬆️ Upload binaries as artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: ${{ steps.build_exe.outputs.outname }}
+          path: ./${{ steps.build_exe.outputs.outname }}
+          if-no-files-found: error
+
+
+  # ==========================================================================================================================
+  # JOB Create Release
+  # ==========================================================================================================================
+  create-release:
+    name: 🏷️ Create GH-Release
+    needs:
+      - build-binaries
+    runs-on: ubuntu-22.04
+    outputs:
+      tool_version: ${{ steps.extract_version.outputs.tool_version }}
+
+    steps:
+      - name: 🧾 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: ✅ Check Final-Release
+        run: |
+          echo "Final-Release: ${{ inputs.final_release }}"
+
+      - name: 🏷️ Extract TOOL_VERSION
+        id: extract_version
+        run: |
+          # 1️⃣ Obtain tool version without “v”
+          if [[ "${{ matrix.os }}" == *"windows"* ]]; then
+          TOOL_VERSION=$(powershell -Command "(Get-Content pubspec.yaml | Select-String '^version:').ToString().Split(':')[1].Trim()")
+          else
+          TOOL_VERSION=$(grep '^version:' pubspec.yaml | head -n1 | cut -d' ' -f2)
+          fi
+          
+          # 2️⃣ We put it on the environment for next steps
+          echo "TOOL_VERSION=${TOOL_VERSION}" >> "$GITHUB_ENV"
+          
+          # 3️⃣ Create step output
+          echo "tool_version=${TOOL_VERSION}" >> "$GITHUB_OUTPUT"
+          
+          echo "✅ TOOL_VERSION = ${TOOL_VERSION}"
+
+      - name: 📜 Get Release-Notes
+        run: python scripts/get_changelog.py --version ${TOOL_VERSION} > ./RELEASE-NOTES.md
+
+      - name: ⬆️ Upload RELEASE-NOTES.md as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: RELEASE-NOTES.md
+          path: ./RELEASE-NOTES.md
+          overwrite: true
+
+      - name: 🧼 Delete GitHub release, tag and associated discussion (only for stable releases)
+        run: |
+          set -e
+          TAG="v${{ env.TOOL_VERSION }}"
+          REPO="${{ github.repository }}"
+          EXIT_CODE=0
+      
+          # Get release info safely
+          RELEASE_INFO=$(gh api --silent "repos/$REPO/releases/tags/$TAG" 2>/dev/null || echo "")
+          RELEASE_ID=$(echo "$RELEASE_INFO" | jq -r '.id // empty')
+          
+          # Check for existing releasess/discussions with RELEASE_ID associated to TAG
+          echo "🔍 Checking for existing discussion ID with tag $TAG..."
+          if [[ -n "$RELEASE_ID" ]]; then
+            echo "🗑 Discussion ID $RELEASE_ID exists associated with tag $TAG . Deleting it (discussion will also be removed)..."
+            gh api -X DELETE "repos/$REPO/releases/$RELEASE_ID"
+            echo "✅ Release ID $RELEASE_ID successfully deleted."
+          else
+            echo "✅ No discussion was found for tag $TAG"
+          fi
+          
+          # Check if release exists and delete it
+          echo "🔍 Checking for existing release with tag $TAG..."
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" &> /dev/null; then
+            echo "🗑 Release $TAG exists. Deleting it..."
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+            echo "✅ Release $TAG successfully deleted."
+          else
+            echo "✅ Release $TAG does not exist."
+          fi
+      
+          # Check if remote tag exists and delete it
+          echo "🔍 Checking for remote tag $TAG..."
+          if git ls-remote --tags origin | grep "refs/tags/$TAG" &> /dev/null; then
+            echo "🗑 Remote tag $TAG exists. Deleting it..."
+            git push --delete origin "$TAG" || EXIT_CODE=1
+            echo "✅ Remote tag $TAG successfully deleted."
+          else
+            echo "✅ Remote tag $TAG does not exist"
+          fi
+          
+          # Check if local tag exists and delete it
+          echo "🔍 Checking for local tag $TAG..."
+          if git tag | grep -q "$TAG"; then
+            echo "🗑 Local tag $TAG exists. Deleting it..."
+            git tag -d "$TAG"
+            echo "✅ Local tag $TAG successfully deleted."
+          else
+            echo "✅ Local tag $TAG does not exist"
+          fi
+
+          # VERIFICATIONS...
+          echo ""
+          echo "✅ Verifying cleanup..."
+      
+          # Retry-based verification of release deletion
+          if gh api --silent "repos/$REPO/releases/tags/$TAG" 2>/dev/null; then
+            echo "⚠️ Release still exists after deletion. Retrying in 5s..."
+            sleep 5
+            if gh api --silent "repos/$REPO/releases/tags/$TAG" 2>/dev/null; then
+              echo "❌ Release still exists after retry."
+              EXIT_CODE=1
+            else
+              echo "✅ Release deleted after retry."
+            fi
+          else
+            echo "✅ Release deleted."
+          fi
+      
+          # Final verification of tag deletion
+          if git ls-remote --tags origin | grep "refs/tags/$TAG" &> /dev/null; then
+            echo "❌ Remote tag still exists after deletion."
+            EXIT_CODE=1
+          else
+            echo "✅ Remote tag deleted."
+          fi
+      
+          if [[ "$EXIT_CODE" -ne 0 ]]; then
+            echo "❌ Cleanup failed. Aborting workflow."
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+
+      - name: 📥 Download Artifacts (Binaries Zips)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gpth*
+          path: ./release_files
+          merge-multiple: true
+
+      - name: 📝 Download RELEASE-NOTES.md
+        uses: actions/download-artifact@v4
+        with:
+          name: RELEASE-NOTES.md
+          path: .
+
+      # Confirm downloaded content
+      - name: 📂 List downloaded files
+        run: |
+          ls -lh ./release_files/
+          sha256sum ./release_files/*
+
+      # 🚀 Create stable release (final_release == true)
+      - name: 🚀 Create GitHub Release (stable)
+        if: ${{ inputs.final_release == true }}
+        uses: softprops/action-gh-release@v2.2.2
+        with:
+          tag_name: v${{ env.TOOL_VERSION }}
+          name: v${{ env.TOOL_VERSION }}
+          # discussion_category_name: Announcements  # Uncomment if you want to create discussion when stable release is created
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          body_path: RELEASE-NOTES.md
+          files: |
+            ./release_files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+
+      # 🚀 Create prerelease (final_release == false)
+      - name: 🚀 Create GitHub Release (prerelease)
+        if: ${{ inputs.final_release == false }}
+        uses: softprops/action-gh-release@v2.2.2
+        with:
+          tag_name: v${{ env.TOOL_VERSION }}
+          name: v${{ env.TOOL_VERSION }}
+          # discussion_category_name: Announcements  # Uncomment if you also want discussion on prerelease
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          body_path: RELEASE-NOTES.md
+          files: |
+            ./release_files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}

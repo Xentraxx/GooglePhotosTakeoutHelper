@@ -7,12 +7,8 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -47,7 +43,7 @@ void main() {
 
       // Create unique output path for each test
       final timestamp = DateTime.now().microsecondsSinceEpoch.toString();
-      outputPath = p.join(fixture.basePath, 'output_$timestamp');
+      outputPath = path.join(fixture.basePath, 'output_$timestamp');
 
       // Ensure clean output directory for each test
       final outputDir = Directory(outputPath);
@@ -106,7 +102,7 @@ void main() {
       expect(outputContents, isNotEmpty, reason: 'Output should contain files');
 
       // Should have ALL_PHOTOS directory
-      final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       expect(
         await allPhotosDir.exists(),
         isTrue,
@@ -118,9 +114,9 @@ void main() {
           .whereType<Directory>()
           .where(
             (final dir) =>
-                p.basename(dir.path).contains('🏖️') ||
-                p.basename(dir.path).contains('👨‍👩‍👧‍👦') ||
-                p.basename(dir.path).contains('🎄'),
+                path.basename(dir.path).contains('🏖️') ||
+                path.basename(dir.path).contains('👨‍👩‍👧‍👦') ||
+                path.basename(dir.path).contains('🎄'),
           )
           .toList();
 
@@ -208,7 +204,7 @@ void main() {
           .where(
             (final entity) =>
                 entity is Directory &&
-                p.basename(entity.path).contains('ALL_PHOTOS'),
+                path.basename(entity.path).contains('ALL_PHOTOS'),
           )
           .cast<Directory>()
           .first;
@@ -219,7 +215,7 @@ void main() {
           .where((final entity) => entity is Directory)
           .cast<Directory>()
           .where(
-            (final dir) => RegExp(r'^\d{4}$').hasMatch(p.basename(dir.path)),
+            (final dir) => RegExp(r'^\d{4}$').hasMatch(path.basename(dir.path)),
           )
           .toList();
 
@@ -232,7 +228,7 @@ void main() {
       // Check that we have current and recent years
       final currentYear = DateTime.now().year;
       final yearNames = yearDirs
-          .map((final dir) => int.parse(p.basename(dir.path)))
+          .map((final dir) => int.parse(path.basename(dir.path)))
           .toSet();
 
       expect(
@@ -265,7 +261,7 @@ void main() {
       expect(result.isSuccess, isTrue);
 
       // Should create albums-info.json file
-      final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
+      final albumsInfoFile = File(path.join(outputPath, 'albums-info.json'));
       expect(
         await albumsInfoFile.exists(),
         isTrue,
@@ -304,7 +300,7 @@ void main() {
 
       expect(result.isSuccess, isTrue);
 
-      final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       final outputFiles = await allPhotosDir
           .list()
           .where(
@@ -371,11 +367,9 @@ void main() {
         final specialDirs = outputContents
             .whereType<Directory>()
             .where(
-              (final dir) => [
-                'Archive',
-                'Trash',
-                'Screenshots',
-              ].any((final special) => p.basename(dir.path).contains(special)),
+              (final dir) => ['Archive', 'Trash', 'Screenshots'].any(
+                (final special) => path.basename(dir.path).contains(special),
+              ),
             )
             .toList();
 
@@ -448,7 +442,7 @@ void main() {
           .where(
             (final entity) =>
                 entity is Directory &&
-                p.basename(entity.path).startsWith('Photos from'),
+                path.basename(entity.path).startsWith('Photos from'),
           )
           .cast<Directory>()
           .toList();
@@ -468,9 +462,9 @@ void main() {
           // Create a duplicate by copying one photo to create identical content
           final originalPhoto = photos.first;
           final duplicatePhoto = File(
-            p.join(
+            path.join(
               firstYearDir.path,
-              'duplicate_${p.basename(originalPhoto.path)}',
+              'duplicate_${path.basename(originalPhoto.path)}',
             ),
           );
           await originalPhoto.copy(duplicatePhoto.path);
@@ -503,7 +497,7 @@ void main() {
       );
       expect(result.isSuccess, isTrue);
 
-      final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       final outputFiles = await allPhotosDir
           .list()
           .where(
@@ -562,7 +556,7 @@ void main() {
         includeRawSamples: true,
       );
 
-      final largeOutputPath = p.join(fixture.basePath, 'large_output');
+      final largeOutputPath = path.join(fixture.basePath, 'large_output');
       final stopwatch = Stopwatch()..start();
 
       final largeGooglePhotosPath = PathResolverService.resolveGooglePhotosPath(
@@ -603,7 +597,7 @@ void main() {
         outputFiles.length,
         greaterThan(50),
         reason:
-            'Large dataset output size too small. Expected > 50 JPGs. Actual: ${outputFiles.length}\nFiles sample: ${outputFiles.take(10).map((final f) => p.basename(f.path)).toList()}',
+            'Large dataset output size too small. Expected > 50 JPGs. Actual: ${outputFiles.length}\nFiles sample: ${outputFiles.take(10).map((final f) => path.basename(f.path)).toList()}',
       );
 
       // Performance should be reasonable; provide detailed diagnostics on failure
@@ -663,7 +657,7 @@ void main() {
       );
 
       // Verify output structure exists
-      final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       expect(
         await allPhotosDir.exists(),
         isTrue,
@@ -672,7 +666,7 @@ void main() {
 
       // Get list of output files (only counting actual moved files in ALL_PHOTOS)
       // In shortcut/symlink mode, album directories contain symlinks, not actual files
-      final allPhotosDirectory = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDirectory = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       final outputFiles = await allPhotosDirectory
           .list()
           .where(
@@ -715,8 +709,8 @@ void main() {
       // only in albums (not duplicated in year folders)
       final albumOnlyFiles = remainingInputFiles.where((final file) {
         // Check if this file is in an album folder (not a year folder)
-        final relativePath = p.relative(file.path, from: inputDir.path);
-        final pathParts = relativePath.split(p.separator);
+        final relativePath = path.relative(file.path, from: inputDir.path);
+        final pathParts = relativePath.split(path.separator);
 
         // Album folders don't start with "Photos from"
         return pathParts.isNotEmpty &&
@@ -809,8 +803,8 @@ void main() {
         // remain in place to prevent data loss. This is expected behavior in move mode.
         final albumOnlyFiles = inputFilesAfter.where((final filePath) {
           // Check if this file is in an album folder (not a year folder)
-          final relativePath = p.relative(filePath, from: inputDir.path);
-          final pathParts = relativePath.split(p.separator);
+          final relativePath = path.relative(filePath, from: inputDir.path);
+          final pathParts = relativePath.split(path.separator);
 
           // Album folders don't start with "Photos from"
           return pathParts.isNotEmpty &&
@@ -826,7 +820,9 @@ void main() {
               'Expected ${albumOnlyFiles.length} album-only files, found ${inputFilesAfter.length} total remaining files.',
         ); // Verify output files were created (only count actual moved files in ALL_PHOTOS)
         // In shortcut/symlink mode, album directories contain symlinks, not actual files
-        final allPhotosDirectory = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDirectory = Directory(
+          path.join(outputPath, 'ALL_PHOTOS'),
+        );
         final outputFiles = await allPhotosDirectory
             .list()
             .where(
@@ -898,8 +894,8 @@ void main() {
 
       // Album-only files (files that exist only in album folders) remain to prevent data loss
       final albumOnlyFiles = remainingInputFiles.where((final file) {
-        final relativePath = p.relative(file.path, from: inputDir.path);
-        final pathParts = relativePath.split(p.separator);
+        final relativePath = path.relative(file.path, from: inputDir.path);
+        final pathParts = relativePath.split(path.separator);
         // Album folders don't start with "Photos from"
         return pathParts.isNotEmpty &&
             !pathParts.first.startsWith('Photos from');
@@ -984,8 +980,8 @@ void main() {
 
         // Album-only files remain to prevent data loss
         final albumOnlyFiles = remainingInputFiles.where((final file) {
-          final relativePath = p.relative(file.path, from: inputDir.path);
-          final pathParts = relativePath.split(p.separator);
+          final relativePath = path.relative(file.path, from: inputDir.path);
+          final pathParts = relativePath.split(path.separator);
           // Album folders don't start with "Photos from"
           return pathParts.isNotEmpty &&
               !pathParts.first.startsWith('Photos from');
@@ -1057,8 +1053,8 @@ void main() {
 
       // Album-only files remain to prevent data loss
       final albumOnlyFiles = remainingInputFiles.where((final file) {
-        final relativePath = p.relative(file.path, from: inputDir.path);
-        final pathParts = relativePath.split(p.separator);
+        final relativePath = path.relative(file.path, from: inputDir.path);
+        final pathParts = relativePath.split(path.separator);
         // Album folders don't start with "Photos from"
         return pathParts.isNotEmpty &&
             !pathParts.first.startsWith('Photos from');
@@ -1073,12 +1069,12 @@ void main() {
             'Expected ${albumOnlyFiles.length} album-only files, '
             'found ${remainingInputFiles.length} total remaining',
       ); // Verify year-based organization in output
-      final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       // Debug: Check if ALL_PHOTOS directory exists and what's in output
       print('[DEBUG] Year-based test - Output path: $outputPath');
       final outputDirContents = await Directory(outputPath).list().toList();
       print(
-        '[DEBUG] Year-based test - Output contents: ${outputDirContents.map((final e) => p.basename(e.path)).toList()}',
+        '[DEBUG] Year-based test - Output contents: ${outputDirContents.map((final e) => path.basename(e.path)).toList()}',
       );
       print(
         '[DEBUG] Year-based test - ALL_PHOTOS exists: ${await allPhotosDir.exists()}',
@@ -1087,7 +1083,7 @@ void main() {
       if (await allPhotosDir.exists()) {
         final allPhotosContents = await allPhotosDir.list().toList();
         print(
-          '[DEBUG] Year-based test - ALL_PHOTOS contents: ${allPhotosContents.map((final e) => p.basename(e.path)).toList()}',
+          '[DEBUG] Year-based test - ALL_PHOTOS contents: ${allPhotosContents.map((final e) => path.basename(e.path)).toList()}',
         );
       }
 
@@ -1102,7 +1098,7 @@ void main() {
           .where((final entity) => entity is Directory)
           .cast<Directory>()
           .where(
-            (final dir) => RegExp(r'^\d{4}$').hasMatch(p.basename(dir.path)),
+            (final dir) => RegExp(r'^\d{4}$').hasMatch(path.basename(dir.path)),
           )
           .toList();
 
@@ -1181,8 +1177,8 @@ void main() {
 
           // Album-only files remain to prevent data loss
           final albumOnlyFiles = remainingAfterMove.where((final file) {
-            final relativePath = p.relative(file.path, from: inputDir.path);
-            final pathParts = relativePath.split(p.separator);
+            final relativePath = path.relative(file.path, from: inputDir.path);
+            final pathParts = relativePath.split(path.separator);
             // Album folders don't start with "Photos from"
             return pathParts.isNotEmpty &&
                 !pathParts.first.startsWith('Photos from');

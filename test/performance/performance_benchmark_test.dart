@@ -6,13 +6,8 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/media_entity_collection.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -47,7 +42,7 @@ void main() {
 
       // Create unique output path for each test
       final timestamp = DateTime.now().microsecondsSinceEpoch.toString();
-      outputPath = p.join(fixture.basePath, 'output_$timestamp');
+      outputPath = path.join(fixture.basePath, 'output_$timestamp');
 
       // Ensure clean output directory for each test
       final outputDir = Directory(outputPath);
@@ -186,7 +181,7 @@ void main() {
 
         // Test duplicate removal performance
         stopwatch = Stopwatch()..start();
-        final duplicatesRemoved = await collection.removeDuplicates();
+        final duplicatesRemoved = await collection.mergeMediaEntities();
         stopwatch.stop();
         print(
           'Duplicate removal: ${stopwatch.elapsed} (removed: $duplicatesRemoved)',

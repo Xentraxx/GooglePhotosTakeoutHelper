@@ -6,16 +6,8 @@
 
 Transform your chaotic Google Photos Takeout into organized photo libraries with proper dates, albums, and metadata.
 
-## Important Note
-I will only sporadically look at issues and pull requests and will only fix critical bugs.
-The last release here should be stable enough for the average user, but it has some known issues.
-Lucky for you, @jaimetur is also helping very actively and is driving the project further (Thank you!).
-Please strongly consider using the prerelease version https://github.com/Xentraxx/GooglePhotosTakeoutHelper/releases/tag/v5.0.5 by jaimetur.
-It has many feature additions and bug fixes implemented and I only want to wait for more feedback before merging it into master.
-Please note that the README.md of this project already reflects the features and flags of v5.0.5 for the convenience of users which don't know how to switch the branch to see the correct README.
-Please give the prerelease a thumbs up if everything has worked well for you and report any issues here.
-
 **Acknowledgment**: This project is based on the original work by [TheLastGimbus](https://github.com/TheLastGimbus/GooglePhotosTakeoutHelper). We are grateful for their foundational contributions to the Google Photos Takeout ecosystem.
+Also thank you to @jaimetur for your significant contributions to this fork!
 
 ## What This Tool Does
 
@@ -396,6 +388,16 @@ gpth --input "~/Takeout" --output "~/Photos" --divide-partner-shared
 - Multiple date-based folder structures
 - Preserve or reorganize album structure
 - Move files efficiently from input to organized output structure
+- Group Special Folders (`Trash`, `Archive`, `Locked Folder`) into `Special Folder` directory
+- Group Untitled Albums into `Untitled Albums` directory
+
+### 🔄 Auto-Resume Capability
+- The tool detects if a previous execution was interrupted, and if so, when running again over the same output folder, it tries to resume from the step where it was interrupted.
+- For this function to work, the input and ouput folders should be the same as the previous execution.
+
+> [!IMPORTANT]  
+> - This feature only works if you maitain your input and output folder from previous execution and if the files in your input folder are not in Zip format.
+> - If you used the flag `--keep-input` in your first execution, then for the resume to take effect you need to use as input folder the folder where your input was cloned (tipically with the same name as your input folder and a suffix like `_tmp`).
 
 ## Changelog
 - Find the whole changelog file [here](CHANGELOG.md)

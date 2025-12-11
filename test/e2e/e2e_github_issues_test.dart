@@ -22,12 +22,8 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -61,7 +57,7 @@ void main() {
 
       // Create unique output path for each test
       final timestamp = DateTime.now().microsecondsSinceEpoch.toString();
-      outputPath = p.join(fixture.basePath, 'output_$timestamp');
+      outputPath = path.join(fixture.basePath, 'output_$timestamp');
 
       // Ensure clean output directory for each test
       final outputDir = Directory(outputPath);
@@ -115,9 +111,9 @@ void main() {
             .whereType<Directory>()
             .where(
               (final dir) =>
-                  p.basename(dir.path).contains('🏖️') ||
-                  p.basename(dir.path).contains('🎄') ||
-                  p.basename(dir.path).contains('👨‍👩‍👧‍👦'),
+                  path.basename(dir.path).contains('🏖️') ||
+                  path.basename(dir.path).contains('🎄') ||
+                  path.basename(dir.path).contains('👨‍👩‍👧‍👦'),
             )
             .toList();
 
@@ -191,7 +187,7 @@ void main() {
           final albumDirs = outputContents
               .whereType<Directory>()
               .where(
-                (final dir) => !p.basename(dir.path).contains('ALL_PHOTOS'),
+                (final dir) => !path.basename(dir.path).contains('ALL_PHOTOS'),
               )
               .toList();
 
@@ -221,13 +217,13 @@ void main() {
                 albumSymlinks.length,
                 greaterThan(0),
                 reason:
-                    'Album ${p.basename(albumDir.path)} should contain symlinks in reverse-shortcut mode',
+                    'Album ${path.basename(albumDir.path)} should contain symlinks in reverse-shortcut mode',
               );
             }
           }
 
           // Verify ALL_PHOTOS has symlinks pointing to album files (reverse-shortcut mode)
-          final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+          final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
           if (await allPhotosDir.exists()) {
             final allEntities = await allPhotosDir.list().toList();
             final symlinks = <FileSystemEntity>[];
@@ -287,7 +283,7 @@ void main() {
           expect(result.isSuccess, isTrue);
 
           // Verify both ALL_PHOTOS and album folders contain files
-          final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+          final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
           expect(await allPhotosDir.exists(), isTrue);
 
           final allPhotosFiles = await allPhotosDir
@@ -346,7 +342,7 @@ void main() {
         expect(result.isSuccess, isTrue);
 
         // Verify albums-info.json is created
-        final albumsInfoFile = File(p.join(outputPath, 'albums-info.json'));
+        final albumsInfoFile = File(path.join(outputPath, 'albums-info.json'));
         expect(
           await albumsInfoFile.exists(),
           isTrue,
@@ -391,13 +387,13 @@ void main() {
 
         expect(result.isSuccess, isTrue);
 
-        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
         final yearDirs = await allPhotosDir
             .list()
             .where(
               (final entity) =>
                   entity is Directory &&
-                  RegExp(r'^\d{4}$').hasMatch(p.basename(entity.path)),
+                  RegExp(r'^\d{4}$').hasMatch(path.basename(entity.path)),
             )
             .toList();
 
@@ -429,13 +425,13 @@ void main() {
         expect(result.isSuccess, isTrue);
 
         // Look for year/month structure
-        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
         final yearDirs = await allPhotosDir
             .list()
             .where(
               (final entity) =>
                   entity is Directory &&
-                  RegExp(r'^\d{4}$').hasMatch(p.basename(entity.path)),
+                  RegExp(r'^\d{4}$').hasMatch(path.basename(entity.path)),
             )
             .cast<Directory>()
             .toList();
@@ -453,7 +449,7 @@ void main() {
               .where(
                 (final entity) =>
                     entity is Directory &&
-                    RegExp(r'^\d{2}$').hasMatch(p.basename(entity.path)),
+                    RegExp(r'^\d{2}$').hasMatch(path.basename(entity.path)),
               )
               .toList();
           if (monthDirs.isNotEmpty) {
@@ -490,13 +486,13 @@ void main() {
           expect(result.isSuccess, isTrue);
 
           // Look for year/month/day structure
-          final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+          final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
           final yearDirs = await allPhotosDir
               .list()
               .where(
                 (final entity) =>
                     entity is Directory &&
-                    RegExp(r'^\d{4}$').hasMatch(p.basename(entity.path)),
+                    RegExp(r'^\d{4}$').hasMatch(path.basename(entity.path)),
               )
               .cast<Directory>()
               .toList();
@@ -508,7 +504,7 @@ void main() {
                 .where(
                   (final entity) =>
                       entity is Directory &&
-                      RegExp(r'^\d{2}$').hasMatch(p.basename(entity.path)),
+                      RegExp(r'^\d{2}$').hasMatch(path.basename(entity.path)),
                 )
                 .cast<Directory>()
                 .toList();
@@ -520,7 +516,7 @@ void main() {
                   .where(
                     (final entity) =>
                         entity is Directory &&
-                        RegExp(r'^\d{2}$').hasMatch(p.basename(entity.path)),
+                        RegExp(r'^\d{2}$').hasMatch(path.basename(entity.path)),
                   )
                   .toList();
               expect(
@@ -1247,7 +1243,7 @@ void main() {
         print('[DEBUG] Files: $files, Directories: $dirs');
 
         // Check ALL_PHOTOS specifically
-        final allPhotosDir = Directory(p.join(outputPath, 'ALL_PHOTOS'));
+        final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
         if (await allPhotosDir.exists()) {
           final allPhotosFiles = await allPhotosDir.list().toList();
           print('[DEBUG] ALL_PHOTOS has ${allPhotosFiles.length} items');
@@ -1256,20 +1252,22 @@ void main() {
         // Check album directories
         final albumDirs = outputContents
             .whereType<Directory>()
-            .where((final dir) => !p.basename(dir.path).contains('ALL_PHOTOS'))
+            .where(
+              (final dir) => !path.basename(dir.path).contains('ALL_PHOTOS'),
+            )
             .toList();
         print('[DEBUG] Album directories: ${albumDirs.length}');
         for (final albumDir in albumDirs.take(3)) {
           final albumFiles = await albumDir.list().toList();
           print(
-            '[DEBUG] ${p.basename(albumDir.path)}: ${albumFiles.length} items',
+            '[DEBUG] ${path.basename(albumDir.path)}: ${albumFiles.length} items',
           );
 
           // Check first few files in this album
           final albumFilesList = albumFiles.whereType<File>().take(3).toList();
           for (final file in albumFilesList) {
             final stat = await file.stat();
-            final basename = p.basename(file.path);
+            final basename = path.basename(file.path);
             print('[DEBUG]   - $basename (${stat.type})');
           }
         }

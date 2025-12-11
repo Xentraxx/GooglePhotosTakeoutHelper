@@ -7,12 +7,8 @@ library;
 
 import 'dart:typed_data';
 
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/media_entity_collection.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/value_objects/date_accuracy.dart';
-import 'package:gpth/domain/value_objects/date_time_extraction_method.dart';
-import 'package:gpth/domain/value_objects/media_files_collection.dart';
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -20,10 +16,10 @@ import '../setup/test_setup.dart';
 void main() {
   group('Modern Media Entity and Collection Tests', () {
     late TestFixture fixture;
+
     setUp(() async {
       fixture = TestFixture();
       await fixture.setUp();
-      // Initialize ServiceContainer for tests that use services
       await ServiceContainer.instance.initialize();
     });
 
@@ -38,10 +34,22 @@ void main() {
           'test.jpg',
           Uint8List.fromList([1, 2, 3]),
         );
-        final entity = MediaEntity.single(file: file);
+        final entity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
+        final expectedAlbum = path.basename(
+          path.dirname(file.path),
+        ); // p.ej. "Vacation" o "fixture_..."
 
-        expect(entity.files.firstFile, file);
-        expect(entity.files.length, 1);
+        expect(entity.primaryFile.path, file.path);
+        expect(
+          entity.hasAlbumAssociations,
+          isTrue,
+        ); // the parent folder of any file will always be consideer as Album, except for those cannonical year folder ("Photos from yyyy", "yyyy", "yyyy/mm", "yyyy-mm")
+        expect(
+          entity.albumNames,
+          contains(expectedAlbum),
+        ); // The album name is the name of the parent folder (in this case always start with 'fixture_')
         expect(entity.dateTaken, isNull);
         expect(entity.dateAccuracy, isNull);
       });
@@ -53,7 +61,7 @@ void main() {
         );
         final date = DateTime(2023, 1, 15);
         final entity = MediaEntity.single(
-          file: file,
+          file: FileEntity(sourcePath: file.path),
           dateTaken: date,
           dateAccuracy: DateAccuracy.good,
           dateTimeExtractionMethod: DateTimeExtractionMethod.exif,
@@ -64,46 +72,35 @@ void main() {
         expect(entity.dateTimeExtractionMethod, DateTimeExtractionMethod.exif);
       });
 
-      test('creates MediaEntity from legacy map structure', () {
-        final file1 = fixture.createFile(
-          'test.jpg',
-          Uint8List.fromList([1, 2, 3]),
-        );
-        final file2 = fixture.createFile(
-          'test_album.jpg',
-          Uint8List.fromList([4, 5, 6]),
-        );
-
-        final entity = MediaEntity.fromMap(
-          files: {null: file1, 'Album Name': file2},
-          dateTaken: DateTime(2023, 1, 15),
-          dateTakenAccuracy: 2, // corresponds to DateAccuracy.good
+      test('MediaEntity gains album associations after merge', () async {
+        // same content in year folder and in Albums/... →
+        // after detection, a single entity with that album
+        final bytes = Uint8List.fromList([4, 5, 6]);
+        final yearFile = fixture.createFile('2023/test.jpg', bytes);
+        final albumFile = fixture.createFile(
+          'Albums/Album Name/test.jpg',
+          bytes,
         );
 
-        expect(entity.files.length, 2);
-        expect(entity.files.firstFile, file1);
-        expect(entity.files.getFileForAlbum('Album Name'), file2);
+        final merged = await ServiceContainer.instance.albumRelationshipService
+            .detectAndMergeAlbums([
+              MediaEntity.single(
+                file: FileEntity(sourcePath: yearFile.path),
+                dateTaken: DateTime(2023, 1, 15),
+                dateAccuracy: DateAccuracy.good,
+                dateTimeExtractionMethod: DateTimeExtractionMethod.exif,
+              ),
+              MediaEntity.single(
+                file: FileEntity(sourcePath: albumFile.path),
+                dateTaken: DateTime(2023, 1, 15),
+              ),
+            ]);
+
+        expect(merged.length, 1);
+        final entity = merged.first;
+        expect(entity.hasAlbumAssociations, isTrue);
+        expect(entity.albumNames, contains('Album Name'));
         expect(entity.dateAccuracy, DateAccuracy.good);
-      });
-
-      test('MediaEntity has album associations', () {
-        final file1 = fixture.createFile(
-          'test.jpg',
-          Uint8List.fromList([1, 2, 3]),
-        );
-        final file2 = fixture.createFile(
-          'test_album.jpg',
-          Uint8List.fromList([4, 5, 6]),
-        );
-
-        final entityWithAlbum = MediaEntity.fromMap(
-          files: {null: file1, 'Album Name': file2},
-        );
-
-        final entityWithoutAlbum = MediaEntity.single(file: file1);
-
-        expect(entityWithAlbum.hasAlbumAssociations, isTrue);
-        expect(entityWithoutAlbum.hasAlbumAssociations, isFalse);
       });
     });
 
@@ -113,7 +110,7 @@ void main() {
 
         expect(collection.isEmpty, isTrue);
         expect(collection.length, 0);
-        expect(collection.media, isEmpty);
+        expect(collection.entities, isEmpty);
       });
 
       test('creates collection with initial entities', () {
@@ -126,15 +123,19 @@ void main() {
           Uint8List.fromList([4, 5, 6]),
         );
 
-        final entity1 = MediaEntity.single(file: file1);
-        final entity2 = MediaEntity.single(file: file2);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file1.path),
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file2.path),
+        );
 
         final collection = MediaEntityCollection([entity1, entity2]);
 
         expect(collection.length, 2);
         expect(collection.isNotEmpty, isTrue);
-        expect(collection.media.contains(entity1), isTrue);
-        expect(collection.media.contains(entity2), isTrue);
+        expect(collection.entities.contains(entity1), isTrue);
+        expect(collection.entities.contains(entity2), isTrue);
       });
 
       test('adds entities to collection', () {
@@ -143,12 +144,14 @@ void main() {
           'test.jpg',
           Uint8List.fromList([1, 2, 3]),
         );
-        final entity = MediaEntity.single(file: file);
+        final entity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
 
         collection.add(entity);
 
         expect(collection.length, 1);
-        expect(collection.media.first, entity);
+        expect(collection.entities.first, entity);
       });
 
       test('removes entities from collection', () {
@@ -156,7 +159,9 @@ void main() {
           'test.jpg',
           Uint8List.fromList([1, 2, 3]),
         );
-        final entity = MediaEntity.single(file: file);
+        final entity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
         final collection = MediaEntityCollection([entity]);
 
         final removed = collection.remove(entity);
@@ -168,6 +173,12 @@ void main() {
 
     group('MediaEntityCollection - Duplicate Detection', () {
       test('removes duplicate entities successfully', () async {
+        // Explicit config for this test (pass required paths; other options use defaults)
+        final cfg = ProcessingConfig(
+          inputPath: fixture.basePath,
+          outputPath: fixture.basePath,
+        );
+
         final file1 = fixture.createFile(
           'test1.jpg',
           Uint8List.fromList([1, 2, 3, 4, 5]),
@@ -175,25 +186,36 @@ void main() {
         final file2 = fixture.createFile(
           'test2.jpg',
           Uint8List.fromList([1, 2, 3, 4, 5]),
-        ); // Same content
+        ); // same content
         final file3 = fixture.createFile(
           'test3.jpg',
           Uint8List.fromList([6, 7, 8, 9, 10]),
-        ); // Different content
+        ); // different content
 
-        final entity1 = MediaEntity.single(file: file1);
-        final entity2 = MediaEntity.single(file: file2);
-        final entity3 = MediaEntity.single(file: file3);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file1.path),
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file2.path),
+        );
+        final entity3 = MediaEntity.single(
+          file: FileEntity(sourcePath: file3.path),
+        );
 
         final collection = MediaEntityCollection([entity1, entity2, entity3]);
 
-        final removedCount = await collection.removeDuplicates();
+        final removedCount = await collection.mergeMediaEntities(config: cfg);
 
-        expect(collection.length, 2); // One duplicate should be removed
+        expect(collection.length, 2);
         expect(removedCount, 1);
       });
 
       test('handles collection with no duplicates', () async {
+        // Explicit config for this test (pass required paths; other options use defaults)
+        final cfg = ProcessingConfig(
+          inputPath: fixture.basePath,
+          outputPath: fixture.basePath,
+        );
         final file1 = fixture.createFile(
           'test1.jpg',
           Uint8List.fromList([1, 2, 3]),
@@ -203,12 +225,16 @@ void main() {
           Uint8List.fromList([4, 5, 6]),
         );
 
-        final entity1 = MediaEntity.single(file: file1);
-        final entity2 = MediaEntity.single(file: file2);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file1.path),
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file2.path),
+        );
 
         final collection = MediaEntityCollection([entity1, entity2]);
 
-        final removedCount = await collection.removeDuplicates();
+        final removedCount = await collection.mergeMediaEntities(config: cfg);
 
         expect(collection.length, 2);
         expect(removedCount, 0);
@@ -216,7 +242,13 @@ void main() {
     });
 
     group('MediaEntityCollection - Album Detection', () {
-      test('finds albums in collection', () async {
+      test('finds albums in collection (no-op when none present)', () async {
+        // Explicit config for this test (pass required paths; other options use defaults)
+        final cfg = ProcessingConfig(
+          inputPath: fixture.basePath,
+          outputPath: fixture.basePath,
+        );
+
         final file1 = fixture.createFile(
           'test1.jpg',
           Uint8List.fromList([1, 2, 3]),
@@ -226,38 +258,51 @@ void main() {
           Uint8List.fromList([4, 5, 6]),
         );
 
-        final entity1 = MediaEntity.single(file: file1);
-        final entity2 = MediaEntity.single(file: file2);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file1.path),
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file2.path),
+        );
 
         final collection = MediaEntityCollection([entity1, entity2]);
 
-        await collection.findAlbums();
+        await collection.findAlbums(config: cfg);
 
-        // Just verify the method completes successfully
         expect(collection.length, 2);
       });
 
-      test('processes entities with album associations', () async {
-        final file1 = fixture.createFile(
-          'test.jpg',
-          Uint8List.fromList([1, 2, 3]),
-        );
-        final file2 = fixture.createFile(
-          'test_album.jpg',
-          Uint8List.fromList([4, 5, 6]),
-        );
+      test(
+        'processes entities with album associations after detection',
+        () async {
+          // Explicit config for this test (pass required paths; other options use defaults)
+          final cfg = ProcessingConfig(
+            inputPath: fixture.basePath,
+            outputPath: fixture.basePath,
+          );
 
-        final entity = MediaEntity.fromMap(
-          files: {null: file1, 'Vacation 2023': file2},
-        );
+          final bytesA = Uint8List.fromList([7, 7, 7]);
+          final year = fixture.createFile('2023/test.jpg', bytesA);
+          final album = fixture.createFile(
+            'Albums/Vacation 2023/test.jpg',
+            bytesA,
+          );
 
-        final collection = MediaEntityCollection([entity]);
+          final collection = MediaEntityCollection([
+            MediaEntity.single(file: FileEntity(sourcePath: year.path)),
+            MediaEntity.single(file: FileEntity(sourcePath: album.path)),
+          ]);
 
-        await collection.findAlbums();
+          await collection.findAlbums(config: cfg);
 
-        expect(collection.length, 1);
-        expect(entity.hasAlbumAssociations, isTrue);
-      });
+          expect(collection.length, 2);
+          final entity1 = collection.entities.first;
+          final entity2 = collection.entities.last;
+          expect(entity1.hasAlbumAssociations, isFalse);
+          expect(entity2.hasAlbumAssociations, isTrue);
+          expect(entity2.albumNames, contains('Vacation 2023'));
+        },
+      );
     });
 
     group('MediaFilesCollection - File Management', () {
@@ -266,10 +311,11 @@ void main() {
           'test.jpg',
           Uint8List.fromList([1, 2, 3]),
         );
+        // MediaFilesCollection API expects File (not FileEntity)
         final collection = MediaFilesCollection.single(file);
 
         expect(collection.length, 1);
-        expect(collection.firstFile, file);
+        expect(collection.firstFile.path, file.path);
         expect(collection.hasYearBasedFiles, isTrue);
         expect(collection.hasAlbumFiles, isFalse);
       });
@@ -284,6 +330,7 @@ void main() {
           Uint8List.fromList([4, 5, 6]),
         );
 
+        // Map<String?, File>
         final collection = MediaFilesCollection.fromMap({
           null: file1,
           'Album Name': file2,
@@ -309,8 +356,8 @@ void main() {
         final updated = collection.withFile('Album Name', file2);
 
         expect(updated.length, 2);
-        expect(updated.getFileForAlbum('Album Name'), file2);
-        expect(collection.length, 1); // Original unchanged
+        expect(updated.getFileForAlbum('Album Name')!.path, file2.path);
+        expect(collection.length, 1); // original immutable
       });
 
       test('removes album from collection', () {
@@ -332,7 +379,7 @@ void main() {
 
         expect(updated.length, 1);
         expect(updated.hasAlbumFiles, isFalse);
-        expect(collection.length, 2); // Original unchanged
+        expect(collection.length, 2); // original immutable
       });
     });
   });

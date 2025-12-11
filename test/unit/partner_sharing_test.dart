@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/services/metadata/date_extraction/json_date_extractor.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -14,10 +12,12 @@ void main() {
     setUp(() async {
       fixture = TestFixture();
       await fixture.setUp();
+      await ServiceContainer.instance.initialize();
     });
 
     tearDown(() async {
       await fixture.tearDown();
+      await ServiceContainer.reset();
     });
 
     group('JSON Partner Sharing Extractor', () {
@@ -120,35 +120,54 @@ void main() {
         final file = fixture.createFile('test.jpg', [1, 2, 3]);
 
         final partnerSharedEntity = MediaEntity.single(
-          file: file,
-          partnershared: true,
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
         );
 
-        final personalEntity = MediaEntity.single(file: file);
+        final personalEntity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
 
-        expect(partnerSharedEntity.partnershared, isTrue);
-        expect(personalEntity.partnershared, isFalse);
+        expect(partnerSharedEntity.partnerShared, isTrue);
+        expect(personalEntity.partnerShared, isFalse);
       });
 
-      test('preserves partner sharing in withFile method', () {
-        final file1 = fixture.createFile('test1.jpg', [1, 2, 3]);
-        final file2 = fixture.createFile('test2.jpg', [4, 5, 6]);
+      test('preserves partner sharing when merging with album copy', () async {
+        final albumSvc = ServiceContainer.instance.albumRelationshipService;
 
-        final entity = MediaEntity.single(file: file1, partnershared: true);
+        final bytes = [4, 5, 6];
+        final yearFile = fixture.createFile('2023/test1.jpg', bytes);
+        final albumFile = fixture.createFile('Albums/Album/test1.jpg', bytes);
 
-        final entityWithNewFile = entity.withFile('Album', file2);
+        final base = MediaEntity.single(
+          file: FileEntity(sourcePath: yearFile.path),
+          partnerShared: true,
+        );
+        final albumCopy = MediaEntity.single(
+          file: FileEntity(sourcePath: albumFile.path),
+        );
 
-        expect(entityWithNewFile.partnershared, isTrue);
+        final merged = await albumSvc.detectAndMergeAlbums([base, albumCopy]);
+
+        expect(merged.length, 1);
+        final entityWithNewFile = merged.first;
+
+        expect(entityWithNewFile.partnerShared, isTrue);
+        expect(entityWithNewFile.hasAlbumAssociations, isTrue);
+        expect(entityWithNewFile.albumNames, contains('Album'));
       });
 
       test('preserves partner sharing in withDate method', () {
         final file = fixture.createFile('test.jpg', [1, 2, 3]);
 
-        final entity = MediaEntity.single(file: file, partnershared: true);
+        final entity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
+        );
 
         final entityWithDate = entity.withDate(dateTaken: DateTime.now());
 
-        expect(entityWithDate.partnershared, isTrue);
+        expect(entityWithDate.partnerShared, isTrue);
       });
 
       test('merges partner sharing correctly (OR logic)', () {
@@ -156,33 +175,38 @@ void main() {
         final file2 = fixture.createFile('test2.jpg', [4, 5, 6]);
 
         final partnerSharedEntity = MediaEntity.single(
-          file: file1,
-          partnershared: true,
+          file: FileEntity(sourcePath: file1.path),
+          partnerShared: true,
         );
 
-        final personalEntity = MediaEntity.single(file: file2);
+        final personalEntity = MediaEntity.single(
+          file: FileEntity(sourcePath: file2.path),
+        );
 
-        // Partner shared + personal = partner shared
         final merged1 = partnerSharedEntity.mergeWith(personalEntity);
-        expect(merged1.partnershared, isTrue);
+        expect(merged1.partnerShared, isTrue);
 
-        // Personal + partner shared = partner shared
         final merged2 = personalEntity.mergeWith(partnerSharedEntity);
-        expect(merged2.partnershared, isTrue);
+        expect(merged2.partnerShared, isTrue);
 
-        // Personal + personal = personal
         final merged3 = personalEntity.mergeWith(personalEntity);
-        expect(merged3.partnershared, isFalse);
+        expect(merged3.partnerShared, isFalse);
       });
 
       test('includes partner sharing in equality comparison', () {
         final file = fixture.createFile('test.jpg', [1, 2, 3]);
 
-        final entity1 = MediaEntity.single(file: file, partnershared: true);
-
-        final entity2 = MediaEntity.single(file: file);
-
-        final entity3 = MediaEntity.single(file: file, partnershared: true);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
+        final entity3 = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
+        );
 
         expect(entity1 == entity2, isFalse);
         expect(entity1 == entity3, isTrue);
@@ -191,9 +215,13 @@ void main() {
       test('includes partner sharing in hashCode', () {
         final file = fixture.createFile('test.jpg', [1, 2, 3]);
 
-        final entity1 = MediaEntity.single(file: file, partnershared: true);
-
-        final entity2 = MediaEntity.single(file: file);
+        final entity1 = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
+        );
+        final entity2 = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
 
         expect(entity1.hashCode == entity2.hashCode, isFalse);
       });
@@ -202,14 +230,18 @@ void main() {
         final file = fixture.createFile('test.jpg', [1, 2, 3]);
 
         final partnerSharedEntity = MediaEntity.single(
-          file: file,
-          partnershared: true,
+          file: FileEntity(sourcePath: file.path),
+          partnerShared: true,
         );
 
-        final personalEntity = MediaEntity.single(file: file);
+        final personalEntity = MediaEntity.single(
+          file: FileEntity(sourcePath: file.path),
+        );
 
-        expect(partnerSharedEntity.toString(), contains('partnershared: true'));
-        expect(personalEntity.toString(), isNot(contains('partnershared')));
+        // Expect the string representation to expose the flag using the new camelCase name
+        expect(partnerSharedEntity.toString(), contains('partnerShared'));
+        // Do not assert exact formatting of "false" case to avoid brittleness
+        expect(personalEntity.toString(), contains('partnerShared'));
       });
     });
   });

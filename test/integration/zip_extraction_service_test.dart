@@ -5,17 +5,15 @@ library;
 
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:archive/archive.dart';
-import 'package:gpth/domain/services/file_operations/archive_extraction_service.dart';
-import 'package:gpth/presentation/interactive_presenter.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
 
 /// Mock presenter for testing without UI interactions
-class MockInteractivePresenter implements InteractivePresenter {
+class MockInteractivePresenter implements InteractivePresenterService {
   final List<String> messages = [];
 
   @override

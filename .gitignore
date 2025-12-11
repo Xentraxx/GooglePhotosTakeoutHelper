@@ -1,6 +1,15 @@
 .idea/
 .vscode/
 
+# Ignore Logs folder
+Logs/
+
+# Ignore links
+.lnk
+
+# Ignore syncfile db
+sync.ffs_db
+
 # Files and directories created by pub.
 .dart_tool/
 .packages
@@ -15,3 +24,7 @@ pubspec.lock
 /test/generated
 /test/debug*
 .DS_Store
+
+#Github_ignore folder
+.github_ignore
+progress.json

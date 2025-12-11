@@ -1,5 +1,4 @@
-import 'package:gpth/domain/models/processing_result_model.dart';
-import 'package:gpth/domain/value_objects/date_time_extraction_method.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -98,19 +97,22 @@ void main() {
         expect(summary, contains('5 duplicates were found and skipped'));
         expect(
           summary,
-          contains('50 files got their coordinates set in EXIF data'),
+          contains('50/100 files got their coordinates set in EXIF data'),
         );
         expect(
           summary,
-          contains('80 files got their DateTime set in EXIF data'),
+          contains('80/100 files got their DateTime set in EXIF data'),
         );
-        expect(summary, contains('3 files got their extensions fixed'));
+        expect(summary, contains('3/100 files got their extensions fixed'));
+        expect(
+          summary,
+          contains('25/100 files had their CreationDate updated'),
+        );
         expect(summary, contains('10 extras were skipped'));
-        expect(summary, contains('25 files had their CreationDate updated'));
         expect(summary, contains('DateTime extraction method statistics:'));
         expect(summary, contains('json: 70 files'));
         expect(summary, contains('exif: 20 files'));
-        expect(summary, contains('5 minutes to complete'));
+        expect(summary, contains('the script took 0h 05m 00s to complete'));
       });
 
       test('should generate minimal summary when no operations performed', () {
@@ -131,7 +133,7 @@ void main() {
         final summary = result.summary;
 
         expect(summary, contains('DONE! FREEEEEDOOOOM!!!'));
-        expect(summary, contains('2 minutes to complete'));
+        expect(summary, contains('the script took 0h 02m 00s to complete'));
         expect(summary, isNot(contains('duplicates were found')));
         expect(summary, isNot(contains('coordinates set in EXIF')));
         expect(summary, isNot(contains('extensions fixed')));
@@ -281,13 +283,13 @@ void main() {
           extractionMethodStats: {},
         );
 
-        expect(result.extractionMethodStats, isEmpty);
-
         final summary = result.summary;
-        expect(
-          summary,
-          isNot(contains('DateTime extraction method statistics:')),
-        );
+        expect(summary, contains('json: 0 files'));
+        expect(summary, contains('exif: 0 files'));
+        expect(summary, contains('guess: 0 files'));
+        expect(summary, contains('jsonTryHard: 0 files'));
+        expect(summary, contains('folderYear: 0 files'));
+        expect(summary, contains('none: 0 files'));
       });
     });
 
@@ -308,7 +310,7 @@ void main() {
         );
 
         final summary = result.summary;
-        expect(summary, contains('0 minutes to complete'));
+        expect(summary, contains('script took 0h 00m 00s to complete'));
       });
 
       test('should handle very large numbers', () {
@@ -328,7 +330,7 @@ void main() {
 
         final summary = result.summary;
         expect(summary, contains('999999 files'));
-        expect(summary, contains('600 minutes to complete'));
+        expect(summary, contains('script took 10h 00m 00s to complete'));
       });
 
       test('should handle negative values gracefully', () {

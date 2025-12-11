@@ -3,8 +3,7 @@
 /// Tests the logging functionality with different levels and configurations.
 library;
 
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/logging_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {

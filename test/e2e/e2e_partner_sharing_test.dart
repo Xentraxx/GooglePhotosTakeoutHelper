@@ -11,11 +11,8 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -36,8 +33,8 @@ void main() {
       await fixture.setUp();
       pipeline = const ProcessingPipeline();
 
-      inputDir = Directory(p.join(fixture.basePath, 'input'));
-      outputDir = Directory(p.join(fixture.basePath, 'output'));
+      inputDir = Directory(path.join(fixture.basePath, 'input'));
+      outputDir = Directory(path.join(fixture.basePath, 'output'));
       await inputDir.create();
       await outputDir.create();
     });
@@ -53,15 +50,15 @@ void main() {
 
     test('end-to-end partner sharing separation', () async {
       // Create proper Takeout folder structure
-      final takeoutDir = Directory(p.join(inputDir.path, 'Takeout'));
+      final takeoutDir = Directory(path.join(inputDir.path, 'Takeout'));
       final googlePhotosDir = Directory(
-        p.join(takeoutDir.path, 'Google Photos'),
+        path.join(takeoutDir.path, 'Google Photos'),
       );
       await googlePhotosDir.create(recursive: true);
 
       // Create a partner shared photo with JSON metadata
       final partnerPhoto = File(
-        p.join(googlePhotosDir.path, 'partner_photo.jpg'),
+        path.join(googlePhotosDir.path, 'partner_photo.jpg'),
       );
       // Use proper JPEG data from test setup
       await partnerPhoto.writeAsBytes(
@@ -69,7 +66,7 @@ void main() {
       );
 
       final partnerJson = File(
-        p.join(googlePhotosDir.path, 'partner_photo.jpg.json'),
+        path.join(googlePhotosDir.path, 'partner_photo.jpg.json'),
       );
       await partnerJson.writeAsString(
         jsonEncode({
@@ -85,14 +82,14 @@ void main() {
 
       // Create a personal photo with JSON metadata
       final personalPhoto = File(
-        p.join(googlePhotosDir.path, 'personal_photo.jpg'),
+        path.join(googlePhotosDir.path, 'personal_photo.jpg'),
       );
       await personalPhoto.writeAsBytes(
         base64.decode(greenImgNoMetaDataBase64.replaceAll('\n', '')),
       );
 
       final personalJson = File(
-        p.join(googlePhotosDir.path, 'personal_photo.jpg.json'),
+        path.join(googlePhotosDir.path, 'personal_photo.jpg.json'),
       );
       await personalJson.writeAsString(
         jsonEncode({
@@ -137,7 +134,7 @@ void main() {
 
       // Verify partner shared photo went to PARTNER_SHARED folder
       final partnerSharedDir = Directory(
-        p.join(outputDir.path, 'PARTNER_SHARED'),
+        path.join(outputDir.path, 'PARTNER_SHARED'),
       );
       expect(
         partnerSharedDir.existsSync(),
@@ -146,7 +143,7 @@ void main() {
       );
 
       final partnerSharedPhoto = File(
-        p.join(partnerSharedDir.path, 'partner_photo.jpg'),
+        path.join(partnerSharedDir.path, 'partner_photo.jpg'),
       );
       expect(
         partnerSharedPhoto.existsSync(),
@@ -155,7 +152,7 @@ void main() {
       );
 
       // Verify personal photo went to ALL_PHOTOS folder
-      final allPhotosDir = Directory(p.join(outputDir.path, 'ALL_PHOTOS'));
+      final allPhotosDir = Directory(path.join(outputDir.path, 'ALL_PHOTOS'));
       expect(
         allPhotosDir.existsSync(),
         isTrue,
@@ -163,7 +160,7 @@ void main() {
       );
 
       final personalPhotoMoved = File(
-        p.join(allPhotosDir.path, 'personal_photo.jpg'),
+        path.join(allPhotosDir.path, 'personal_photo.jpg'),
       );
       expect(
         personalPhotoMoved.existsSync(),
@@ -186,22 +183,22 @@ void main() {
 
     test('end-to-end partner sharing with date division', () async {
       // Create proper Takeout folder structure
-      final takeoutDir = Directory(p.join(inputDir.path, 'Takeout'));
+      final takeoutDir = Directory(path.join(inputDir.path, 'Takeout'));
       final googlePhotosDir = Directory(
-        p.join(takeoutDir.path, 'Google Photos'),
+        path.join(takeoutDir.path, 'Google Photos'),
       );
       await googlePhotosDir.create(recursive: true);
 
       // Create a partner shared photo
       final partnerPhoto = File(
-        p.join(googlePhotosDir.path, 'partner_2023.jpg'),
+        path.join(googlePhotosDir.path, 'partner_2023.jpg'),
       );
       await partnerPhoto.writeAsBytes(
         base64.decode(greenImgBase64.replaceAll('\n', '')),
       );
 
       final partnerJson = File(
-        p.join(googlePhotosDir.path, 'partner_2023.jpg.json'),
+        path.join(googlePhotosDir.path, 'partner_2023.jpg.json'),
       );
       await partnerJson.writeAsString(
         jsonEncode({
@@ -235,7 +232,7 @@ void main() {
       expect(result.isSuccess, isTrue);
 
       // Verify partner shared photo went to PARTNER_SHARED/2023/
-      final partnerSharedPhotoPath = p.join(
+      final partnerSharedPhotoPath = path.join(
         outputDir.path,
         'PARTNER_SHARED',
         '2023',
@@ -251,22 +248,22 @@ void main() {
 
     test('partner sharing disabled preserves original behavior', () async {
       // Create proper Takeout folder structure
-      final takeoutDir = Directory(p.join(inputDir.path, 'Takeout'));
+      final takeoutDir = Directory(path.join(inputDir.path, 'Takeout'));
       final googlePhotosDir = Directory(
-        p.join(takeoutDir.path, 'Google Photos'),
+        path.join(takeoutDir.path, 'Google Photos'),
       );
       await googlePhotosDir.create(recursive: true);
 
       // Create a partner shared photo
       final partnerPhoto = File(
-        p.join(googlePhotosDir.path, 'partner_photo.jpg'),
+        path.join(googlePhotosDir.path, 'partner_photo.jpg'),
       );
       await partnerPhoto.writeAsBytes(
         base64.decode(greenImgBase64.replaceAll('\n', '')),
       );
 
       final partnerJson = File(
-        p.join(googlePhotosDir.path, 'partner_photo.jpg.json'),
+        path.join(googlePhotosDir.path, 'partner_photo.jpg.json'),
       );
       await partnerJson.writeAsString(
         jsonEncode({
@@ -301,7 +298,7 @@ void main() {
 
       // Verify partner shared photo went to ALL_PHOTOS (not PARTNER_SHARED)
       final allPhotosPhoto = File(
-        p.join(outputDir.path, 'ALL_PHOTOS', 'partner_photo.jpg'),
+        path.join(outputDir.path, 'ALL_PHOTOS', 'partner_photo.jpg'),
       );
       expect(
         allPhotosPhoto.existsSync(),
@@ -312,7 +309,7 @@ void main() {
 
       // Verify PARTNER_SHARED folder was not created
       final partnerSharedDir = Directory(
-        p.join(outputDir.path, 'PARTNER_SHARED'),
+        path.join(outputDir.path, 'PARTNER_SHARED'),
       );
       expect(
         partnerSharedDir.existsSync(),

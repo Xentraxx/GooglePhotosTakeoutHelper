@@ -2,14 +2,7 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/file_operations/moving/file_operation_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/moving_context_model.dart';
-import 'package:gpth/domain/services/file_operations/moving/path_generator_service.dart';
-import 'package:gpth/domain/services/file_operations/moving/strategies/nothing_moving_strategy.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -21,6 +14,7 @@ void main() {
     late PathGeneratorService pathService;
     late Directory outputDir;
     late MovingContext context;
+
     setUp(() async {
       fixture = TestFixture();
       await fixture.setUp();
@@ -44,32 +38,45 @@ void main() {
       await ServiceContainer.reset();
     });
 
-    test('MediaEntity.single has year-based files', () {
-      final sourceFile = fixture.createFile('test.jpg', [1, 2, 3]);
+    test('MediaEntity.single basic properties (no album)', () {
+      final sourceFile = fixture.createFile('2023/test.jpg', [1, 2, 3]);
+
+      // IMPORTANT: MediaEntity.single now expects a FileEntity, not a File
       final entity = MediaEntity.single(
-        file: sourceFile,
+        file: FileEntity(sourcePath: sourceFile.path),
         dateTaken: DateTime(2023, 6, 15),
       );
 
-      print('Entity files map: ${entity.files.files}');
-      print('hasYearBasedFiles: ${entity.files.hasYearBasedFiles}');
-      print('Files containsKey(null): ${entity.files.files.containsKey(null)}');
+      print('Primary file (effective path): ${entity.primaryFile.path}');
+      print('hasAlbumAssociations: ${entity.hasAlbumAssociations}');
+      print('albumNames: ${entity.albumNames}');
 
-      expect(entity.files.hasYearBasedFiles, isTrue);
+      // Compare paths (FileEntity vs File)
+      expect(entity.primaryFile.path, equals(sourceFile.path));
+      expect(entity.hasAlbumAssociations, isFalse);
+      expect(entity.albumNames, isEmpty);
     });
 
-    test('NothingMovingStrategy can process a single file', () async {
+    test('NothingMovingStrategy can process a single year-based file', () async {
       final strategy = NothingMovingStrategy(fileService, pathService);
 
-      final sourceFile = fixture.createFile('test.jpg', [1, 2, 3]);
+      // Place the file under a year folder so it is "year-based"
+      final sourceFile = fixture.createFile('2023/test.jpg', [1, 2, 3]);
+
+      // Use FileEntity wrapper
       final entity = MediaEntity.single(
-        file: sourceFile,
+        file: FileEntity(sourcePath: sourceFile.path),
         dateTaken: DateTime(2023, 6, 15),
       );
-      final results = <dynamic>[];
+
+      final results = <MoveMediaEntityResult>[];
       try {
         print('About to process entity with strategy...');
-        print('Entity hasYearBasedFiles: ${entity.files.hasYearBasedFiles}');
+        print(
+          'Entity primaryFile (effective path): ${entity.primaryFile.path}',
+        );
+        print('Entity hasAlbumAssociations: ${entity.hasAlbumAssociations}');
+
         await for (final result in strategy.processMediaEntity(
           entity,
           context,
@@ -80,11 +87,14 @@ void main() {
           }
           results.add(result);
         }
+
         print('Processing completed with ${results.length} results');
         expect(results.length, equals(1));
-        if (results.isNotEmpty) {
-          expect(results[0].success, isTrue);
-        }
+        expect(results.first.success, isTrue);
+
+        // Verify it moved to ALL_PHOTOS/2023 (behavior of NothingMovingStrategy)
+        final allPhotosDir = Directory('${outputDir.path}/ALL_PHOTOS/2023');
+        expect(allPhotosDir.existsSync(), isTrue);
       } catch (e, stackTrace) {
         print('Exception details: $e');
         print('Stack trace: $stackTrace');

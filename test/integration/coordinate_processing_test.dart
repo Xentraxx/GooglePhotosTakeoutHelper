@@ -30,11 +30,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:coordinate_converter/coordinate_converter.dart';
-import 'package:gpth/domain/entities/media_entity.dart';
-import 'package:gpth/domain/models/media_entity_collection.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/metadata/date_extraction/json_date_extractor.dart';
-import 'package:gpth/infrastructure/exiftool_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -45,12 +41,12 @@ void main() {
 
     setUp(() async {
       fixture = TestFixture();
-      await fixture
-          .setUp(); // Initialize service container with mock services for testing
+      await fixture.setUp(); // Initialize sandbox
+
       try {
         await ServiceContainer.instance.initialize();
 
-        // Override with ExifTool if available, otherwise use mock
+        // Prefer real ExifTool if present; otherwise fall back to mock
         final exifTool = await ExifToolService.find();
         if (exifTool != null) {
           ServiceContainer.instance.exifTool = exifTool;
@@ -59,13 +55,14 @@ void main() {
           ServiceContainer.instance.exifTool = MockExifToolService();
           ServiceContainer.instance.globalConfig.exifToolInstalled = false;
         }
-      } catch (e) {
-        // Initialize with basic services if full initialization fails
+      } catch (_) {
+        // Minimal init on failure
         await ServiceContainer.instance.initialize();
         ServiceContainer.instance.exifTool = MockExifToolService();
         ServiceContainer.instance.globalConfig.exifToolInstalled = false;
       }
     });
+
     tearDown(() async {
       await fixture.tearDown();
       await ServiceContainer.reset();
@@ -146,6 +143,7 @@ void main() {
             expect(coordinates.latDirection, expectedDirs['lat']);
             expect(coordinates.longDirection, expectedDirs['lng']);
 
+            // ignore: avoid_print
             print('✓ ${testCase['name']}: ${coordinates.toString()}');
 
             await jsonFile.delete();
@@ -219,9 +217,11 @@ void main() {
               isNotNull,
               reason: edgeCase['reason'] as String,
             );
+            // ignore: avoid_print
             print('✓ ${edgeCase['name']}: Valid coordinates extracted');
           } else {
             expect(coordinates, isNull, reason: edgeCase['reason'] as String);
+            // ignore: avoid_print
             print(
               '✓ ${edgeCase['name']}: Correctly rejected invalid coordinates',
             );
@@ -233,92 +233,106 @@ void main() {
     });
 
     group('End-to-End Coordinate Workflow', () {
-      test(
-        'processes complete collection with mixed coordinate data',
-        () async {
-          final collection = MediaEntityCollection();
+      // test
+      test('processes complete collection with mixed coordinate data', () async {
+        final collection = MediaEntityCollection();
 
-          // Create test files with various coordinate scenarios
-          final testFiles = [
-            {
-              'name': 'paris_with_coords.jpg',
-              'hasCoords': true,
-              'coords': {'lat': 48.8566, 'lng': 2.3522},
-            },
-            {'name': 'no_coords.jpg', 'hasCoords': false, 'coords': null},
-            {
-              'name': 'los_angeles_coords.jpg',
-              'hasCoords': true,
-              'coords': {'lat': 34.0522, 'lng': -118.2437},
-            },
-            {
-              'name': 'singapore_coords.jpg',
-              'hasCoords': true,
-              'coords': {'lat': 1.3521, 'lng': 103.8198},
-            },
-          ];
+        // Explicit config for this test (pass required paths; other options use defaults)
+        final cfg = ProcessingConfig(
+          inputPath: fixture.basePath,
+          outputPath: fixture.basePath,
+        );
 
-          for (final testFile in testFiles) {
-            final file = fixture.createImageWithoutExif(
-              testFile['name'] as String,
-            );
-            final jsonFile = File('${file.path}.json');
+        // Create test files with various coordinate scenarios
+        final testFiles = [
+          {
+            'name': 'paris_with_coords.jpg',
+            'hasCoords': true,
+            'coords': {'lat': 48.8566, 'lng': 2.3522},
+          },
+          {'name': 'no_coords.jpg', 'hasCoords': false, 'coords': null},
+          {
+            'name': 'los_angeles_coords.jpg',
+            'hasCoords': true,
+            'coords': {'lat': 34.0522, 'lng': -118.2437},
+          },
+          {
+            'name': 'singapore_coords.jpg',
+            'hasCoords': true,
+            'coords': {'lat': 1.3521, 'lng': 103.8198},
+          },
+        ];
 
-            final jsonData = <String, dynamic>{
-              'title': testFile['name'],
-              'photoTakenTime': {
-                'timestamp': '1609459200',
-                'formatted': '01.01.2021, 00:00:00 UTC',
-              },
+        for (final testFile in testFiles) {
+          final file = fixture.createImageWithoutExif(
+            testFile['name'] as String,
+          );
+          final jsonFile = File('${file.path}.json');
+
+          final jsonData = <String, dynamic>{
+            'title': testFile['name'],
+            'photoTakenTime': {
+              'timestamp': '1609459200',
+              'formatted': '01.01.2021, 00:00:00 UTC',
+            },
+          };
+
+          if (testFile['hasCoords'] as bool) {
+            final coords = testFile['coords'] as Map<String, double>;
+            jsonData['geoData'] = {
+              'latitude': coords['lat'],
+              'longitude': coords['lng'],
+              'altitude': 50.0,
+              'latitudeSpan': 0.0,
+              'longitudeSpan': 0.0,
             };
-
-            if (testFile['hasCoords'] as bool) {
-              final coords = testFile['coords'] as Map<String, double>;
-              jsonData['geoData'] = {
-                'latitude': coords['lat'],
-                'longitude': coords['lng'],
-                'altitude': 50.0,
-                'latitudeSpan': 0.0,
-                'longitudeSpan': 0.0,
-              };
-            }
-
-            await jsonFile.writeAsString(jsonEncode(jsonData));
-
-            final mediaEntity = MediaEntity.single(
-              file: file,
-              dateTaken: DateTime.fromMillisecondsSinceEpoch(1609459200 * 1000),
-            );
-            collection.add(mediaEntity);
           }
 
-          // Process EXIF data writing
-          final results = await collection.writeExifData();
+          await jsonFile.writeAsString(jsonEncode(jsonData));
 
-          expect(results, isA<Map<String, int>>());
-          expect(results.containsKey('coordinatesWritten'), isTrue);
-          expect(results.containsKey('dateTimesWritten'), isTrue);
+          // IMPORTANT: MediaEntity.single expects a FileEntity
+          final mediaEntity = MediaEntity.single(
+            file: FileEntity(sourcePath: file.path),
+            dateTaken: DateTime.fromMillisecondsSinceEpoch(1609459200 * 1000),
+          );
+          collection.add(mediaEntity);
+        }
 
-          print('End-to-End Workflow Results:');
-          print('Total files processed: ${collection.length}');
-          print('Coordinates written: ${results['coordinatesWritten']}');
-          print('DateTimes written: ${results['dateTimesWritten']}');
-          print('Expected coordinates: 3 (files with valid coords)');
+        // Pass config explicitly (no reliance on globalConfig)
+        final results = await collection.writeExifData(config: cfg);
 
-          // Clean up
-          for (final testFile in testFiles) {
-            final jsonFile = File(
-              '${fixture.basePath}/${testFile['name']}.json',
-            );
-            if (await jsonFile.exists()) await jsonFile.delete();
-          }
-        },
-      );
+        expect(results, isA<Map<String, int>>());
+        expect(results.containsKey('coordinatesWritten'), isTrue);
+        expect(results.containsKey('dateTimesWritten'), isTrue);
+
+        // ignore: avoid_print
+        print('End-to-End Workflow Results:');
+        // ignore: avoid_print
+        print('Total files processed: ${collection.length}');
+        // ignore: avoid_print
+        print('Coordinates written: ${results['coordinatesWritten']}');
+        // ignore: avoid_print
+        print('DateTimes written: ${results['dateTimesWritten']}');
+        // ignore: avoid_print
+        print('Expected coordinates: 3 (files with valid coords)');
+
+        // Clean up
+        for (final testFile in testFiles) {
+          final jsonFile = File('${fixture.basePath}/${testFile['name']}.json');
+          if (await jsonFile.exists()) await jsonFile.delete();
+        }
+      });
 
       test('handles coordinate writing errors gracefully', () async {
         final collection = MediaEntityCollection();
 
-        // Test with unsupported file types
+        // Explicit config for this test (pass required paths; other options use defaults)
+        final cfg = ProcessingConfig(
+          inputPath: fixture.basePath,
+          outputPath: fixture.basePath,
+        );
+
+        // Unsupported file type scenario
         final textFile = fixture.createFile('test.txt', [65, 66, 67]); // "ABC"
         final jsonFile = File('${textFile.path}.json');
         await jsonFile.writeAsString(
@@ -334,13 +348,19 @@ void main() {
           }),
         );
 
-        final mediaEntity = MediaEntity.single(file: textFile);
+        // IMPORTANT: wrap with FileEntity
+        final mediaEntity = MediaEntity.single(
+          file: FileEntity(sourcePath: textFile.path),
+        );
         collection.add(mediaEntity);
 
-        final results = await collection.writeExifData();
+        // Updated API: no inputPath/outputPath named parameters
+        final results = await collection.writeExifData(config: cfg);
 
         expect(results, isA<Map<String, int>>());
+        // ignore: avoid_print
         print('Error handling test completed');
+        // ignore: avoid_print
         print('Results for unsupported file: $results');
 
         await jsonFile.delete();
@@ -351,7 +371,6 @@ void main() {
       test(
         'maintains coordinate precision through conversion pipeline',
         () async {
-          // Test high-precision coordinates
           final precisionTests = [
             {
               'name': 'high_precision',
@@ -388,16 +407,19 @@ void main() {
               final originalLng = test['lng'] as double;
               final extractedDD = coordinates.toDD();
 
-              // Check precision is maintained within reasonable bounds
               expect(extractedDD.latitude, closeTo(originalLat, 0.000001));
               expect(extractedDD.longitude, closeTo(originalLng, 0.000001));
 
+              // ignore: avoid_print
               print('✓ ${test['name']}: Precision maintained');
+              // ignore: avoid_print
               print('  Original: ($originalLat, $originalLng)');
+              // ignore: avoid_print
               print(
                 '  Extracted: (${extractedDD.latitude}, ${extractedDD.longitude})',
               );
             } else {
+              // ignore: avoid_print
               print(
                 '⚠ ${test['name']}: Coordinates not extracted (may be invalid)',
               );
@@ -416,11 +438,12 @@ class MockExifToolService extends ExifToolService {
   MockExifToolService() : super('mock_exiftool_path');
 
   @override
-  Future<void> writeExifData(
+  Future<void> writeExifDataSingle(
     final File file,
     final Map<String, dynamic> data,
   ) async {
     // Simulate successful write
+    // ignore: avoid_print
     print('[MOCK] Writing EXIF data to ${file.path}: $data');
   }
 

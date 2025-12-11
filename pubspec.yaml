@@ -1,6 +1,6 @@
 name: gpth
 description: 'Tool to help you with exporting stuff from Google Photos'
-version: 4.3.0
+version: 5.0.6
 homepage: 'https://github.com/Xentraxx/GooglePhotosTakeoutHelper'
 publish_to: 'none'
 
@@ -13,12 +13,14 @@ dependencies:
   mime: ^2.0.0
   collection: ^1.18.0
   convert: ^3.1.1
-  crypto: ^3.0.3
+  crypto: ^3.0.7
   console_bars: ^1.2.0
   intl: ^0.20.2
   file_picker_desktop: ^1.2.0
-  exif_reader: ^3.16.1
-  image: ^4.5.4
+  exif_reader: ^4.0.2
+  image:
+    git: 
+      url: https://github.com/Xentraxx/image.git
   emoji_regex: ^0.0.5
   archive: ^4.0.6
   proper_filesize: ^1.0.2
@@ -31,4 +33,4 @@ dependencies:
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.15
-  http: ^1.2.2
+  http: ^1.6.0

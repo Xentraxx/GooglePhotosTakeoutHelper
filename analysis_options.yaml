@@ -126,6 +126,8 @@ linter:
     - use_to_and_as_if_applicable
     - valid_regexps
 analyzer:
+  errors:
+    prefer_relative_imports: 'ignore'
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"

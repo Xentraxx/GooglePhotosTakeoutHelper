@@ -3,7 +3,7 @@
 /// Tests the MIME type mapping and extension functionality.
 library;
 
-import 'package:gpth/domain/services/media/mime_type_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {

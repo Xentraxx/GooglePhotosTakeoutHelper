@@ -12,12 +12,8 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:gpth/domain/main_pipeline.dart';
-import 'package:gpth/domain/models/processing_config_model.dart';
-import 'package:gpth/domain/services/core/service_container.dart';
-import 'package:gpth/domain/services/user_interaction/path_resolver_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
 import '../setup/test_setup.dart';
@@ -51,7 +47,7 @@ void main() {
 
       // Create unique output path for each test
       final timestamp = DateTime.now().microsecondsSinceEpoch.toString();
-      outputPath = p.join(fixture.basePath, 'output_$timestamp');
+      outputPath = path.join(fixture.basePath, 'output_$timestamp');
 
       // Ensure clean output directory for each test
       final outputDir = Directory(outputPath);
@@ -143,7 +139,7 @@ void main() {
     group('Fix Mode Comprehensive Testing', () {
       test('fix mode should process existing photos in-place', () async {
         // Create a separate directory with photos that need date fixing
-        final fixDir = Directory(p.join(fixture.basePath, 'photos_to_fix'));
+        final fixDir = Directory(path.join(fixture.basePath, 'photos_to_fix'));
         await fixDir.create(recursive: true);
 
         // Create photos with various date issues
@@ -295,7 +291,7 @@ void main() {
         expect(result.isSuccess, isTrue);
 
         // Verify album JSON was created
-        final albumJsonFile = File(p.join(outputPath, 'albums-info.json'));
+        final albumJsonFile = File(path.join(outputPath, 'albums-info.json'));
         expect(
           await albumJsonFile.exists(),
           isTrue,

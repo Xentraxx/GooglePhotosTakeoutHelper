@@ -38,9 +38,10 @@ library;
 // Tests for folder classification: year folders, album folders, and edge cases.
 
 import 'dart:io';
-import 'package:gpth/domain/services/processing/takeout_folder_classifier_service.dart';
-import 'package:path/path.dart' as p;
+import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
+
 import '../setup/test_setup.dart';
 
 void main() {
@@ -339,7 +340,9 @@ void main() {
       /// Validates graceful handling of non-existent directories to
       /// prevent crashes during filesystem scanning.
       test('handles non-existent directories gracefully', () {
-        final nonExistent = Directory(p.join(fixture.basePath, 'nonexistent'));
+        final nonExistent = Directory(
+          path.join(fixture.basePath, 'nonexistent'),
+        );
 
         expect(() => isYearFolder(nonExistent), returnsNormally);
         expect(isYearFolder(nonExistent), isFalse);

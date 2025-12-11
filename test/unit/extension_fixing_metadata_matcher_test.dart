@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:gpth/domain/services/metadata/date_extraction/json_date_extractor.dart';
-import 'package:gpth/domain/services/metadata/json_metadata_matcher_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
+
 import '../setup/test_setup.dart';
 
 void main() {

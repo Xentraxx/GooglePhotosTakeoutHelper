@@ -90,30 +90,51 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 ## Project Structure
 
 ```
+bin/                                                       
+└── gpth.dart                           # Application entry point    
+
 lib/
-├── domain/                # Core business logic and entities
-│   ├── entities/         # Core domain entities (MediaEntity, etc.)
-│   ├── models/           # Data models and DTOs
-│   ├── services/         # Business logic services
-│   ├── steps/            # Processing pipeline steps
-│   └── value_objects/    # Value objects and enums
-├── infrastructure/       # External service integrations
-│   ├── exiftool_service.dart
-│   ├── platform_service.dart
-│   └── windows_symlink_service.dart
-├── presentation/         # User interface and interaction
-│   └── interactive_presenter.dart
-└── shared/              # Shared utilities and constants
-    ├── constants/
-    ├── extensions/
-    └── exports.dart
-bin/
-└── gpth.dart            # Application entry point
-test/                    # Comprehensive test suite
-├── unit/               # Unit tests for individual components
-├── integration/        # Integration tests for service interactions
-├── e2e/               # End-to-end workflow tests
-└── setup/             # Test fixtures and utilities
+├── common/                             # Core business logic and entities
+│   ├── constants/                      # Core domain entities (MediaEntity, etc.)
+│   ├── models/                         # Data models and DTOs
+│   ├── services/                       # Business logic services
+│     └── core_services/                 
+│     └── formating_services/            
+│     └── global_config_services/        
+│     └── logging_services/              
+│     └── processing_metrics_services/   
+│     └── file_operations_services/      
+│     └── infrastructure_services/       
+│     └── interactive_mode_services/     
+│     └── json_metadata_services/        
+│     └── media_services/                
+│   └── value_objects/                  # Value objects and common entities
+
+├── steps/                              # Processing pipeline steps
+│   ├── step_01/                        # Step_01: Fix extensions
+│     └── services                      # Services used only by this step
+│   ├── step_02/                        # Step_02: Discover media
+│     └── services                      # Services used only by this step
+│   ├── step_03/                        # Step_03: Merge media entities
+│     └── services                      # Services used only by this step
+│   ├── step_04/                        # Step_04: Extract dates
+│     └── services                      # Services used only by this step
+│     └── date_extractors               # All date extractors supported by the tool
+│   ├── step_05/                        # Step_05: Find albums
+│     └── services                      # Services used only by this step
+│   ├── step_06/                        # Step_06: Move files
+│     └── services                      # Services used only by this step
+│     └── moving_strategies             # All album moving strategies supported by the tool
+│   ├── step_07/                        # Step_07: Write EXIF
+│     └── services                      # Services used only by this step
+│   ├── step_08/                        # Step_08: Update creation time
+│     └── services                      # Services used only by this step
+
+test/                                   # Comprehensive test suite
+├── unit/                               # Unit tests for individual components
+├── integration/                        # Integration tests for service interactions
+├── e2e/                                # End-to-end workflow tests
+└── setup/                              # Test fixtures and utilities
 ```
 
 ## Development Workflow

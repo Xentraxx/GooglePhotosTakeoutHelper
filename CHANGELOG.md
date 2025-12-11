@@ -1,8 +1,174 @@
-## 4.3.0-Xentraxx
+## 5.0.6
 
 ### ✨ **New Features**
+  - Added Auto-Resume support to avoid repeat successful steps when tool is interrupted and executed again on the same output folder. (#87).
 
-  - New flag `--fileDates` to provide a JSON dictionary with the date per file to void reading it from EXIF when any file does not associated sidecar. (PhotoMigrator creates this file and can now be used by GPTH Tool).
+### 🚀 **Improvements**
+  - Untitled Albums now are detected and moved to `Untitled Albums` forder. (only if albums strategy is `shortcut`, `reversed-shortcut` or `duplicate-copy`, the rest of albums strategies don't creates albums folders). (#86).
+  - Upgraded exif_reader package to the newest version.
+
+### 🐛 **Bug Fixes**
+  - Minor Bug Fixing.
+  - Fixed #90 (duplicated output in interactive mode)
+  - Fixed major error which led to native exif write methods not being used when exiftool was not installed.
+  - Fixed issue with App1 marker in image library when jpg has no exif block. Using own fork of image library until pull request to the source repo is accepted. Fixes issue #95
+
+## 5.0.5
+
+### ✨ **New Features**
+  - Added support for Special Folders management such as `Archive`, `Trash`, `Locked folder`. Now those folders are excluded from all album strategies and are moved directly to the output folder.
+
+### 🚀 **Improvements**
+  - Moved logic of each Step to step's service module. Now each step has a service associated to it which includes all the logic and interation with other services used by this step.
+  - Added percentages to all progress bars.
+  - Added Total time to Telemetry Summary in Step 3.
+  - Fixed _extractBadPathsFromExifError method to detect from exiftool output bad files with relative paths.
+  - Performance Improvements in `step_03_merge_media_entities_service.dart`.
+    - Now grouping method can be easily changed. Internal `_fullHashGroup` is now used instead of 'groupIdenticalFast' to avoid calculate buckets again.
+
+### 🐛 **Bug Fixes**
+  - Fixed duplicated files/symlinks in Albums when a file belong to more than 1 album (affected strategies: shortcut, reverse-shortcut & duplicate-copy).
+  - Fixed error decoding Exiftool output with UTF-8/latin chars.
+  - Fix exiftool reader fails on path with mojibake.
+
+
+## 5.0.4
+
+### ✨ **New Features**
+  - New album moving strategy `ignore` to completely ignore all Albums content. The difference with `nothing` strategy is that `nothing` don't create Albums folders but process and move all Albums content into `ALL_PHOTOS` folder.
+
+### 🚀 **Improvements**
+  - Moving Strategies re-defined.
+  - Included Timeouts on ExifTool operations.
+  - Log saving enabled by default. Use flag `--no-save-log` to disable it.
+  - Changed log name from `gpth-{version}_{timestamp}.log` to `gpth_{version}_{timestamp}.log`
+  - Added progress bar to Step 3 (Merge Media Entities).
+  - Changed default value for flag `--update-creation-time. Now is enabled by default.
+  - Smart split in writeBatchSafe: we parse stderr, separate only the conflicting files, retry the rest in a single batch, and write the conflicting ones per-file (without blocking progress). If paths can’t be extracted, we fall back to your original recursive split.
+  - Added Progress bar on Step 1 & Step 2.
+
+### 🐛 **Bug Fixes**
+  - Added `reverse-shortcut` strategy to interactive mode.
+  - Fixed some moving strategies that was missing some files in the input folder.
+  - Fixed exiftool_service.dart to avoid IFD0 pointer references.
+  - Fixed exiftool_service.dart to avoid use of -common_args when -@ ARGFILE is used.
+  - Fixed PNG management writting XMP instead of EXIF for those files.
+  - (ExifToolService): I added -F to the common arguments (_commonWriteArgs). It’s an immediate patch that often turns “Truncated InteropIFD” into a success.
+  - (Step 7): If we detect a “problematic” JPEG, we force XMP (CreateDate/DateTimeOriginal/ModifyDate + signed GPS), both when initially building the tags (via _forceJpegXmp) and again on retry when a batch fails and stderr contains Truncated InteropIFD (in-place conversion of those entries with _retagEntryToXmpIfJpeg).
+
+
+## 5.0.3
+
+### 🚀 **Improvements**
+  - Replace all `print()` functions by `logPrint()` method from LoggerMixin class. In this way all messages are registered both on screen and also on the logger (and saved to disk if flag `--save-log` is enabled).
+  - All console messages have now a Step prefix to identify from which step or service they come from.
+
+
+## 5.0.2
+
+### ✨ **New Features**
+  - New flag `--save-log` to enable/disable messages log saving into output folder.
+  - Step 8 (Update creation time) is now multi-platform. Also update creation date for physical files and symlinks on linux/macos.
+
+### 🚀 **Improvements**
+  - New code re-design to include a new `MediaEntity` model with the following attributes:
+    - `albumsMap`: List of AlbumsInfo obects,  where each object represent the album where each file of the media entity have been found. This List which can contain many usefull info related to the Album.
+    - `dateTaken`: a single dataTaken for all the files within the entity
+    - `dateAccuracy`: a single dateAccuracy for all the files within the entity (based on which extraction method have been used to extract the date)
+    - `dateTimeExtractionMethod`: a single dateTimeExtractionMethod for all the files within the entity (method used to extract the dataTaken assigned to the entity)
+    - `partnerShared`: true if the entity is partnerShared
+    - `primaryFile`: contains the best ranked file within all the entity files (canonical first, then secondaries ranked by lenght of basename, then lenght of pathname)
+    - `secondaryFiles`: contains all the secondary files in the entity
+    - `duplicatesFiles`: contains files which has at least one more file within the entity in the same folder (duplicates within folder)
+  - Created internal/external methods for Class `MediaEntity` for an easy utilization.
+  - All modules have been adapted to the new `MediaEntity` structure.
+  - All Tests have been adapted to the new `MediaEntity` structure.
+  - Removed `files` attribute from `MediaEntity` Class.
+  - Merged `media_entity_moving_strategy.dart` module with `media_entity_moving_service.dart` module and now it is stored under `lib/steps/step_06_moving_files/services` folder.
+  - New behaviour during `Find Duplicates` step:
+    - Now, all identical content files are collected within the same MediaEntity.
+      - In a typical Takeout, you might have the same file within `Photos from yyyy` folder and within one or more Album folder
+      - So, both of them are collected within the same entity and will not be considered as duplicated because one of them could have associated json and the others not
+      - So, we should extract dates for all the files within the same media entity.
+    - If one media entity contains two or more files within the same folder, then this is a duplicated file (based on content), even if they have different names, and the tool will remove the worst ranked duplicated file.
+  - Moved `Write EXIF` step to Step 7 (after Move Files step) in order to write EXIF data only to those physical files in output folder (skipping shortcuts). 
+    - This changed was needed because until Step 6 (based on the selected album strategy), don't create the output physical files, we don't know which files need EXIF write. 
+    - With this change we reduce a lot the number of EXIF files to write because we can skip writing EXIF for shortcut files created by shorcut or reverse-shortcut strategy, but also we can skip all secondaryFiles if selected strategy is None or Json. 
+    - The only strategy that has no benefit from this change is duplicate-copy, because in this strategy all files in output folder are physical files and all of them need to have EXIF written.
+  - Renamed `Step 3: Remove Duplicates` to `Step 3: Merge Media Entities` because this represents much better the main purpose of this step. 
+  - **Performance Optimization in `Step 3: Merge Media Entities`.**
+  - `Step 3: Merge Media Entities` now only consider within-folder duplicates. And take care of the primaryFile/secondaryFiles based on a ranking for the rest of the pipeline.
+  - `Step 7: Write EXIF` now take into account all the files in the MediaEntity file except duplicatesFiles and files with `isShortcut=true` attribute. 
+  - `Step 6: Move Files` now manage hardlinks/juntions as fallback of native shorcuts using API to `WindowsSymlinkService` when no admin rights are granted.
+  - `Step 8: Update Creation Time`now take into account all the files in the MediaEntity file except duplicatesFiles.
+  - `Step 8: Update Creation Time`now update creation time also for shortcuts.
+  - Improvements on Statistics results.
+    - Added more statistics to `Step 3: Remove Duplicate` 
+    - Added more statistics to `Step 6: Move Files` 
+    - Added more statistics to `Step 8: Update Creation Time`.
+    - Total execution time is now shown as hh:mm:ss instead of only minutes.
+  - Added new flag `enableTelemetryInMergeMediaEntitiesStep`in `GlobalConfigService` Class to enable/disable Telemetry in Step 3: Merge Media Entities.
+
+
+### 🐛 **Bug Fixes**
+  - Fixed #65: Now all supported media files are moved from input folder to output folder. So after running GPTH input folder should only contain .json files and unsupported media types.
+  - Fixed #76: Now interactive mode ask for album strategy.
+  - Changed zip_extraction_service.dart to support extract UTF-8/latin1 chars on folder/files names.
+
+
+## 5.0.1
+
+### 🚀 **Improvements**
+  - Performance Optimization in Step 3 (Remove Duplicates)
+
+
+## 5.0.0
+
+### ✨ **New Features**
+  - Support for 7zip and unzip extractors (if found in your system). This is because the native extractor does not extract properly filenames or dirnames with UTF-8/latin1 chars.
+  - Support new `Extra` files from Google Takeout with following suffixes: `-motion`, `-animation`, `-collage`.
+  - New flag `--keep-input` to Work on a temporary sibling copy of --input (suffix _tmp), keeping the original untouched.
+  - New flag `--keep-duplicates` to keep duplicates files in `_Duplicates` subfolder within output folder.
+  - Created GitHub Action `build-and-create-release.yml` to Automatically build all binaries, create new release (stable or pre-release), update it wiht the release-notes and upload the binaries to the new release.
+
+### 🚀 **Improvements**
+  - Created a single package gpth-lib with all the exported modules for an easier way to manage imports and refactoring.
+  - Added new flag `fallbackToExifToolOnNativeMiss`in `GlobalConfigService` Class to specify if we want to fallback to ExifTool on Native EXIF reader fail. (Normally if Native fails is because EXIF is corrupt, so fallback to ExifTool does not help).
+  - Added new flag `enableExifToolBatch`in `GlobalConfigService` Class to specify if we want to enable/disable call ExifTool with batches of files instead of one call per file (this speed-up a lot the EXIF writting time with ExifTool).
+  - Added new flag `maxExifImageBatchSize`in `GlobalConfigService` Class to specify the maximum number of Images for each batch passed in any call to ExifTool.
+  - Added new flag `maxExifVideoBatchSize`in `GlobalConfigService` Class to specify the maximum number of Videos for each batch passed in any call to ExifTool.
+  - Added new flag `forceProcessUnsupportedFormats`in `GlobalConfigService` Class to specify if we want to forze process unsupported format such as `.AVI`, `.MPG`or `.BMP` files with ExifTool.
+  - Added new flag `silenceUnsupportedWarnings`in `GlobalConfigService` Class to specify if we want to recive or silence warnings due to unsupported format on ExifTool calls.
+  - `MediaEntity` Class changed
+    - Removed `files` attribute
+    - Added `primaryFile` and `secondaryFiles` attributes for a better logic.
+    - Added `albumsMap` attribute to store All Albums where the media entity was found as a `AlbumInfo` List which can contain many usefull info related to the Album.
+    - Adapted all methods to work with this new structure
+  - All modules have been adapted to the new `MediaEntity` structure.
+  - All Tests have been adapted to the new `MediaEntity` structure.
+  - Code Structure refactored for a better understanding and easier way to find each module.
+  - Code Refactored to isolate the execution logic of each step into the .execute() function of the step's class. In this way the media_entity_collection module is much clearer and easy to understand and maintain.
+  - Homogenized logs for all steps.
+  - Improvements on Statistics results.
+
+### 🐛 **Bug Fixes**
+  - Fixed #65: Now all supported media files are moved from input folder to output folder. So after running GPTH input folder should only contain .json files and unsupported media types.
+  - Fixed #76: Now interactive mode ask for album strategy.
+
+## 4.3.1
+
+### 🚀 **Improvements**
+  - Improve Performance in Remove Duplicates Step
+  - Change README.md to add Star History & Contributors History
+
+### 🐛 **Bug Fixes**
+  - Added ask for Albums strategy during interactive mode
+
+
+## 4.3.0
+
+### ✨ **New Features**
+  - New flag `--json-dates` to provide a JSON dictionary with the date per file to void reading it from EXIF when any file does not associated sidecar. (PhotoMigrator creates this file and can now be used by GPTH Tool).
   - Improved log/print messages in all Steps.
   - Added Move Files Summary to the log messages.
   - Now Album's folders are moved into `Albums` folder and No-Album's files are moved into `ALL_PHOTOS` folder using the selected date organization.
@@ -50,18 +216,17 @@
         - More robust and fault-tolerant album detection.  
 
 ### 🐛 **Bug Fixes**
-
   - Handle per file exception in WriteExif Step. Now the flow continues if any file fails to write EXIF.
   - Fixed interactive mode when asking to limit the file size.
-  - Show dictMiss files in log to see those files that have not been found in dates dictionary when it was passed as argument using --fileDates
+  - Show dictMiss files in log to see those files that have not been found in dates dictionary when it was passed as argument using --json-dates
   - Fix missing JSON match when the length of the original JSON filename is higher than 51. Now try first with the full filename even if its length is longer than 51 chars, if not match, then try the different truncations variants.
   - Fix Progress bar on Step 7: Move files. Now counts the number of real operations instead of number of move instances.
   - Fixed some other silent exceptions.
 
+
 ## 4.1.1-Xentraxx
 
 ### 🐛 **Bug Fixes**
-
   - **changed exif tags to be utilized** - Before we used the following lists of tags in this exact order to find a date to set: 
     - Exiftool reading: 'DateTimeOriginal', 'MediaCreateDate', 'CreationDate', 'TrackCreateDate', 'CreateDate', 'DateTimeDigitized', 'GPSDateStamp' and 'DateTime'.
     - Native dart exif reading: 'Image DateTime', 'EXIF DateTimeOriginal', 'EXIF DateTimeDigitized'.
@@ -74,14 +239,12 @@
   - **Fixed unzipping through command line by automatically detecting if input directory contains zip files**
 
 ### 🚀 **Improvements**
-
   - **Improved non-zero exit code quitting behaviour** - Now with nice descriptive error messages because I was tired of looking up what is responsible for a certain exit code.
   - **Standardized concurrency & logging** - All parallel operations now obtain limits exclusively through `ConcurrencyManager` / `GlobalPools` (hashing, EXIF extraction/writing, duplicate detection, grouping, moving, file I/O). Added consistent one-time or operation-start log lines like `Starting N threads (<operation> concurrency)`; removed deprecated `maxConcurrency` parameters and legacy random placeholder logic from `ProcessingLimits`. Lightweight operations (e.g. disk space checks) intentionally left sequential to avoid overhead.
 
 ## 4.1.0-Xentraxx - Bug Fixes and Performance Improvements
 
 ### ✨ **New Features**
-
 - **Partner Sharing Support** - Added `--divide-partner-shared` flag to separate partner shared media from personal uploads into dedicated `PARTNER_SHARED` folder (Issue #56)
   - Automatically detects partner shared photos from JSON metadata (`googlePhotosOrigin.fromPartnerSharing`)
   - Creates separate folder structure while maintaining date division and album organization
@@ -92,7 +255,6 @@
 - **Displaying version of Exiftool when found** - Instead of just displaying that Exif tool was found, we display the version now as well.
 
 ### 🚀 **Performance Improvements**
-
 - **EXIF processing optimization** - Native `exif_reader` library integration for 15-40% performance improvement in EXIF data extraction
   - Uses fast native library for supported formats (JPEG, TIFF, HEIC, PNG, WebP, AVIF, JXL, CR3, RAF, ARW, DNG, CRW, NEF, NRW)
   - Automatic fallback to ExifTool for unsupported formats or when native extraction fails
@@ -116,7 +278,6 @@
 - **Adaptive concurrency scaling** - Dynamic performance-based concurrency adjustment that scales up to ×24 for high-performance scenarios
 
 ### 🐛 **Bug Fixes**
-
 - **Fixed memory exhaustion during ZIP extraction** - Implemented streaming extraction to handle large ZIP files without running out of memory
 - **Fixed atomic file operations** - Changed to atomic file rename operations to resolve situations where only the json was renamed in file extension correction (Issue #60)
 - **Fixed album relationship processing** - Improved album relationship service to handle edge cases properly (Issue #61)

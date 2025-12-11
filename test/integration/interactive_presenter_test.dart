@@ -1,33 +1,39 @@
-import 'package:gpth/presentation/interactive_presenter.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('InteractivePresenter', () {
-    late InteractivePresenter presenter;
+    late InteractivePresenterService presenter;
 
     setUp(() {
       // Disable sleep and input validation for faster tests
-      presenter = InteractivePresenter(
+      presenter = InteractivePresenterService(
         enableSleep: false,
         enableInputValidation: false,
       );
     });
 
     test('should create InteractivePresenter instance', () {
-      expect(presenter, isA<InteractivePresenter>());
+      expect(presenter, isA<InteractivePresenterService>());
     });
 
     test('should have album options defined', () {
-      expect(InteractivePresenter.albumOptions, isNotEmpty);
-      expect(InteractivePresenter.albumOptions, contains('shortcut'));
-      expect(InteractivePresenter.albumOptions, contains('duplicate-copy'));
-      expect(InteractivePresenter.albumOptions, contains('json'));
-      expect(InteractivePresenter.albumOptions, contains('nothing'));
-      expect(InteractivePresenter.albumOptions, contains('reverse-shortcut'));
+      expect(InteractivePresenterService.albumOptions, isNotEmpty);
+      expect(InteractivePresenterService.albumOptions, contains('shortcut'));
+      expect(
+        InteractivePresenterService.albumOptions,
+        contains('duplicate-copy'),
+      );
+      expect(InteractivePresenterService.albumOptions, contains('json'));
+      expect(InteractivePresenterService.albumOptions, contains('nothing'));
+      expect(
+        InteractivePresenterService.albumOptions,
+        contains('reverse-shortcut'),
+      );
     });
 
     test('should have proper album option descriptions', () {
-      const options = InteractivePresenter.albumOptions;
+      const options = InteractivePresenterService.albumOptions;
 
       for (final entry in options.entries) {
         expect(entry.key, isNotEmpty);
@@ -40,7 +46,7 @@ void main() {
     });
 
     test('should validate album option keys are unique', () {
-      final keys = InteractivePresenter.albumOptions.keys.toList();
+      final keys = InteractivePresenterService.albumOptions.keys.toList();
       final uniqueKeys = keys.toSet();
 
       expect(keys.length, equals(uniqueKeys.length));
@@ -49,27 +55,28 @@ void main() {
     group('Album options content validation', () {
       test('shortcut option should mention symlinks', () {
         final shortcutDescription =
-            InteractivePresenter.albumOptions['shortcut']!;
+            InteractivePresenterService.albumOptions['shortcut']!;
         expect(shortcutDescription.toLowerCase(), contains('symlinks'));
         expect(shortcutDescription.toLowerCase(), contains('recommend'));
       });
 
       test('duplicate-copy option should mention copying', () {
         final duplicateDescription =
-            InteractivePresenter.albumOptions['duplicate-copy']!;
+            InteractivePresenterService.albumOptions['duplicate-copy']!;
         expect(duplicateDescription.toLowerCase(), contains('copied'));
         expect(duplicateDescription.toLowerCase(), contains('space'));
       });
 
       test('json option should mention JSON files', () {
-        final jsonDescription = InteractivePresenter.albumOptions['json']!;
+        final jsonDescription =
+            InteractivePresenterService.albumOptions['json']!;
         expect(jsonDescription.toLowerCase(), contains('json'));
         expect(jsonDescription.toLowerCase(), contains('programmer'));
       });
 
       test('nothing option should mention ignoring albums', () {
         final nothingDescription =
-            InteractivePresenter.albumOptions['nothing']!;
+            InteractivePresenterService.albumOptions['nothing']!;
         expect(nothingDescription.toLowerCase(), contains('ignore'));
         expect(nothingDescription.toLowerCase(), contains('warning'));
       });
@@ -77,25 +84,27 @@ void main() {
 
     group('Configuration validation', () {
       test('should create with sleep enabled by default', () {
-        final defaultPresenter = InteractivePresenter();
-        expect(defaultPresenter, isA<InteractivePresenter>());
+        final defaultPresenter = InteractivePresenterService();
+        expect(defaultPresenter, isA<InteractivePresenterService>());
       });
 
       test('should create with input validation enabled by default', () {
-        final defaultPresenter = InteractivePresenter();
-        expect(defaultPresenter, isA<InteractivePresenter>());
+        final defaultPresenter = InteractivePresenterService();
+        expect(defaultPresenter, isA<InteractivePresenterService>());
       });
 
       test('should allow disabling sleep', () {
-        final noSleepPresenter = InteractivePresenter(enableSleep: false);
-        expect(noSleepPresenter, isA<InteractivePresenter>());
+        final noSleepPresenter = InteractivePresenterService(
+          enableSleep: false,
+        );
+        expect(noSleepPresenter, isA<InteractivePresenterService>());
       });
 
       test('should allow disabling input validation', () {
-        final noValidationPresenter = InteractivePresenter(
+        final noValidationPresenter = InteractivePresenterService(
           enableInputValidation: false,
         );
-        expect(noValidationPresenter, isA<InteractivePresenter>());
+        expect(noValidationPresenter, isA<InteractivePresenterService>());
       });
     });
 
@@ -120,7 +129,7 @@ void main() {
 
     group('Presenter behavior consistency', () {
       test('album options should have consistent naming convention', () {
-        final keys = InteractivePresenter.albumOptions.keys;
+        final keys = InteractivePresenterService.albumOptions.keys;
 
         for (final key in keys) {
           // Keys should be lowercase with hyphens, no spaces
@@ -130,7 +139,7 @@ void main() {
       });
 
       test('album descriptions should end with newlines for formatting', () {
-        final descriptions = InteractivePresenter.albumOptions.values;
+        final descriptions = InteractivePresenterService.albumOptions.values;
 
         for (final description in descriptions) {
           expect(description, endsWith('\n'));
@@ -143,7 +152,8 @@ void main() {
         // Test that the static album options can be accessed concurrently
         final futures = List.generate(
           10,
-          (final index) => Future(() => InteractivePresenter.albumOptions),
+          (final index) =>
+              Future(() => InteractivePresenterService.albumOptions),
         );
 
         expect(() => Future.wait(futures), returnsNormally);
@@ -154,7 +164,7 @@ void main() {
       test('should be able to use logging mixin methods', () {
         // InteractivePresenter uses LoggerMixin, so it should have logging methods
         // This is more of a compile-time check that the mixin is properly applied
-        expect(presenter, isA<InteractivePresenter>());
+        expect(presenter, isA<InteractivePresenterService>());
       });
     });
   });

@@ -6,8 +6,7 @@
 library;
 
 import 'dart:io';
-
-import 'package:gpth/infrastructure/exiftool_service.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 void main() {

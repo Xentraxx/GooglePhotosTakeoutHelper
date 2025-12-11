@@ -1,10 +1,8 @@
-import 'package:gpth/domain/services/core/global_config_service.dart';
-import 'package:gpth/domain/services/user_interaction/user_interaction_service.dart';
-import 'package:gpth/presentation/interactive_presenter.dart';
+import 'package:gpth/gpth_lib_exports.dart';
 import 'package:test/test.dart';
 
 /// Mock presenter for testing that captures interactions
-class MockInteractivePresenter extends InteractivePresenter {
+class MockInteractivePresenter extends InteractivePresenterService {
   MockInteractivePresenter()
     : super(enableSleep: false, enableInputValidation: false);
   final List<String> _prompts = [];

@@ -5,7 +5,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 
 /// Base64 encoded 1x1 green JPEG image with EXIF data
 /// DateTime Original: 2022:12:16 16:06:47
@@ -47,7 +47,7 @@ class TestFixture {
     // Add a more unique identifier to avoid conflicts in concurrent test scenarios
     final String uniqueId =
         '${DateTime.now().microsecondsSinceEpoch % 1000000}';
-    basePath = p.join(
+    basePath = path.join(
       current,
       'test',
       'generated',
@@ -252,7 +252,7 @@ class TestFixture {
 
   /// Create a test image file with EXIF data
   File createImageWithExif(final String name) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     // Use writeAsBytesSync with flush: true to ensure data is written immediately
     file.writeAsBytesSync(
@@ -269,7 +269,7 @@ class TestFixture {
 
   /// Create a test image file without EXIF data
   File createImageWithoutExif(final String name) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     // Use writeAsBytesSync with flush: true to ensure data is written immediately
     file.writeAsBytesSync(
@@ -283,7 +283,7 @@ class TestFixture {
 
   /// Create a test file with custom content
   File createFile(final String name, final List<int> content) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     // Use writeAsBytesSync with flush: true to ensure data is written immediately
     file.writeAsBytesSync(content, flush: true);
@@ -297,7 +297,7 @@ class TestFixture {
 
   /// Create a test directory
   Directory createDirectory(final String name) {
-    final dir = Directory(p.join(basePath, name));
+    final dir = Directory(path.join(basePath, name));
     dir.createSync(recursive: true);
     _createdEntities.add(dir);
     return dir;
@@ -305,7 +305,7 @@ class TestFixture {
 
   /// Create a JSON file with test metadata
   File createJsonFile(final String name, final int timestamp) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     file.writeAsStringSync(
       jsonEncode({
@@ -349,7 +349,7 @@ class TestFixture {
 
   /// Create a JSON file with specified timestamp
   File createJsonWithDate(final String name, final String timestamp) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     file.writeAsStringSync(
       jsonEncode({
@@ -374,7 +374,7 @@ class TestFixture {
 
   /// Create a JSON file without timestamp
   File createJsonWithoutDate(final String name) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
     file.writeAsStringSync(
       jsonEncode({
@@ -402,7 +402,7 @@ class TestFixture {
       _createdEntities.add(dir);
     }
 
-    final file = File(p.join(dirPath, name));
+    final file = File(path.join(dirPath, name));
     file.createSync(recursive: true);
     // Use writeAsBytesSync with flush: true to ensure data is written immediately
     file.writeAsBytesSync(
@@ -431,7 +431,7 @@ class TestFixture {
     final double exifRatio = 0.7,
     final bool includeRawSamples = false,
   }) async {
-    final datasetPath = p.join(basePath, 'realistic_dataset');
+    final datasetPath = path.join(basePath, 'realistic_dataset');
 
     await generateRealisticDataset(
       basePath: datasetPath,
@@ -447,7 +447,7 @@ class TestFixture {
     final datasetDir = Directory(datasetPath);
     _createdEntities.add(datasetDir);
 
-    return p.join(datasetPath, 'Takeout');
+    return path.join(datasetPath, 'Takeout');
   }
 
   /// Create a large test file for performance testing
@@ -456,7 +456,7 @@ class TestFixture {
     final int sizeInMB = 1,
     final List<int>? content,
   }) {
-    final file = File(p.join(basePath, name));
+    final file = File(path.join(basePath, name));
     file.createSync(recursive: true);
 
     // Use provided content or create a buffer of the specified size
@@ -512,11 +512,13 @@ Future<void> generateRealisticDataset({
   await baseDir.create(recursive: true);
   createdEntities.add(baseDir);
 
-  final takeoutDir = Directory(p.join(basePath, 'Takeout'));
+  final takeoutDir = Directory(path.join(basePath, 'Takeout'));
   await takeoutDir.create(recursive: true);
   createdEntities.add(takeoutDir);
 
-  final googlePhotosDir = Directory(p.join(takeoutDir.path, 'Google Photos'));
+  final googlePhotosDir = Directory(
+    path.join(takeoutDir.path, 'Google Photos'),
+  );
   await googlePhotosDir.create(recursive: true);
   createdEntities.add(googlePhotosDir);
 
@@ -573,7 +575,7 @@ Future<void> generateRealisticDataset({
   for (int i = 0; i < yearSpan; i++) {
     final year = currentYear - yearSpan + i + 1;
     final yearDir = Directory(
-      p.join(googlePhotosDir.path, 'Photos from $year'),
+      path.join(googlePhotosDir.path, 'Photos from $year'),
     );
     await yearDir.create(recursive: true);
     createdEntities.add(yearDir);
@@ -591,7 +593,7 @@ Future<void> generateRealisticDataset({
 
       final patternIndex = j % filenamePatterns.length;
       final filename = filenamePatterns[patternIndex](photoDate, j);
-      final photoPath = p.join(yearDir.path, filename);
+      final photoPath = path.join(yearDir.path, filename);
 
       // Determine if this photo should have EXIF data
       final hasExif =
@@ -679,7 +681,7 @@ Future<void> generateRealisticDataset({
   // Optionally include cached RAW samples (downloaded once into test/raw_samples)
   if (includeRawSamples) {
     final cacheDir = Directory(
-      p.join(Directory.current.path, 'test', 'raw_samples'),
+      path.join(Directory.current.path, 'test', 'raw_samples'),
     );
     if (!await cacheDir.exists()) {
       await cacheDir.create(recursive: true);
@@ -688,7 +690,7 @@ Future<void> generateRealisticDataset({
     for (final url in rawSampleUrls) {
       final uri = Uri.parse(url);
       final fileName = uri.pathSegments.last;
-      final cachedFile = File(p.join(cacheDir.path, fileName));
+      final cachedFile = File(path.join(cacheDir.path, fileName));
       if (!await cachedFile.exists()) {
         try {
           print('Downloading RAW sample $fileName for cache...');
@@ -721,7 +723,7 @@ Future<void> generateRealisticDataset({
     // Copy cached samples into first year folder with generated JSON sidecars
     final int firstYear = currentYear - yearSpan + 1;
     final firstYearDir = Directory(
-      p.join(googlePhotosDir.path, 'Photos from $firstYear'),
+      path.join(googlePhotosDir.path, 'Photos from $firstYear'),
     );
     if (await firstYearDir.exists()) {
       int rawIndex = 0;
@@ -736,7 +738,9 @@ Future<void> generateRealisticDataset({
             nameUpper.endsWith('.DNG'))) {
           continue;
         }
-        final target = File(p.join(firstYearDir.path, p.basename(entity.path)));
+        final target = File(
+          path.join(firstYearDir.path, path.basename(entity.path)),
+        );
         if (!await target.exists()) {
           await entity.copy(target.path);
           createdEntities.add(target);
@@ -744,7 +748,7 @@ Future<void> generateRealisticDataset({
           final jsonMeta = File('${target.path}.json');
           jsonMeta.writeAsStringSync(
             jsonEncode({
-              'title': p.basename(entity.path),
+              'title': path.basename(entity.path),
               'description': 'RAW sample test file (cached)',
               'imageViews': '1',
               'creationTime': {
@@ -786,7 +790,7 @@ Future<void> generateRealisticDataset({
   final selectedAlbums = albumNames.take(albumCount).toList();
   for (int i = 0; i < selectedAlbums.length; i++) {
     final albumName = selectedAlbums[i];
-    final albumDir = Directory(p.join(googlePhotosDir.path, albumName));
+    final albumDir = Directory(path.join(googlePhotosDir.path, albumName));
     await albumDir.create(recursive: true);
     createdEntities.add(albumDir);
 
@@ -808,9 +812,9 @@ Future<void> generateRealisticDataset({
       for (int yearOffset = 0; yearOffset < yearSpan; yearOffset++) {
         final year = currentYear - yearSpan + yearOffset + 1;
         final yearDir = Directory(
-          p.join(googlePhotosDir.path, 'Photos from $year'),
+          path.join(googlePhotosDir.path, 'Photos from $year'),
         );
-        final potentialPath = p.join(yearDir.path, photoName);
+        final potentialPath = path.join(yearDir.path, photoName);
         if (File(potentialPath).existsSync()) {
           originalPhoto = File(potentialPath);
           break;
@@ -818,7 +822,7 @@ Future<void> generateRealisticDataset({
       }
       if (originalPhoto != null) {
         // Copy photo to album (creating identical files as in real Google Photos Takeout)
-        final albumPhotoPath = p.join(albumDir.path, photoName);
+        final albumPhotoPath = path.join(albumDir.path, photoName);
         originalPhoto.copySync(albumPhotoPath);
 
         // Copy JSON file too
@@ -839,7 +843,7 @@ Future<void> generateRealisticDataset({
   for (int i = 0; i < albumOnlyPhotos; i++) {
     final albumIndex = i % currentAlbums.length;
     final albumName = currentAlbums[albumIndex];
-    final albumDir = Directory(p.join(googlePhotosDir.path, albumName));
+    final albumDir = Directory(path.join(googlePhotosDir.path, albumName));
 
     final albumOnlyDate = DateTime(
       currentYear,
@@ -852,7 +856,7 @@ Future<void> generateRealisticDataset({
 
     final filename =
         'album_only_${albumName.replaceAll(RegExp(r'[^\w\s-]'), '')}_${albumOnlyDate.year}${albumOnlyDate.month.toString().padLeft(2, '0')}${albumOnlyDate.day.toString().padLeft(2, '0')}_$i.jpg';
-    final photoPath = p.join(
+    final photoPath = path.join(
       albumDir.path,
       filename,
     ); // Create album-only photo with EXIF data and unique content
@@ -913,7 +917,7 @@ Future<void> generateRealisticDataset({
   final specialFolders = ['Archive', 'Trash', 'Screenshots', 'Camera'];
 
   for (final folderName in specialFolders) {
-    final specialDir = Directory(p.join(googlePhotosDir.path, folderName));
+    final specialDir = Directory(path.join(googlePhotosDir.path, folderName));
     await specialDir.create(recursive: true);
     createdEntities.add(specialDir);
 
@@ -923,7 +927,7 @@ Future<void> generateRealisticDataset({
         final screenshotDate = DateTime.now().subtract(Duration(days: i * 30));
         final filename =
             'Screenshot_${screenshotDate.year}-${screenshotDate.month.toString().padLeft(2, '0')}-${screenshotDate.day.toString().padLeft(2, '0')}-${screenshotDate.hour.toString().padLeft(2, '0')}-${screenshotDate.minute.toString().padLeft(2, '0')}-${screenshotDate.second.toString().padLeft(2, '0')}_com.example.app.jpg';
-        final photoPath = p.join(specialDir.path, filename);
+        final photoPath = path.join(specialDir.path, filename);
         final photoFile = File(photoPath);
         photoFile.writeAsBytesSync(
           base64.decode(greenImgNoMetaDataBase64.replaceAll('\n', '')),
@@ -981,7 +985,7 @@ Future<void> cleanupAllFixtures() async {
   final testDir = Directory('test');
   if (!await testDir.exists()) return;
 
-  final generatedDir = Directory(p.join(testDir.path, 'generated'));
+  final generatedDir = Directory(path.join(testDir.path, 'generated'));
   if (!await generatedDir.exists()) return;
 
   print('Cleaning up leftover fixture directories...');
@@ -990,7 +994,7 @@ Future<void> cleanupAllFixtures() async {
     final contents = await generatedDir.list().toList();
     final fixtureDirectories = contents
         .whereType<Directory>()
-        .where((final dir) => p.basename(dir.path).startsWith('fixture_'))
+        .where((final dir) => path.basename(dir.path).startsWith('fixture_'))
         .toList();
 
     if (fixtureDirectories.isEmpty) {
@@ -1002,7 +1006,7 @@ Future<void> cleanupAllFixtures() async {
 
     for (final fixtureDir in fixtureDirectories) {
       try {
-        print('Cleaning up: ${p.basename(fixtureDir.path)}');
+        print('Cleaning up: ${path.basename(fixtureDir.path)}');
         await fixtureDir.delete(recursive: true);
       } catch (e) {
         print('Warning: Failed to delete ${fixtureDir.path}: $e');
