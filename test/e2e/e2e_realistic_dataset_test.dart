@@ -78,6 +78,7 @@ void main() {
       final config = ProcessingConfig(
         inputPath: googlePhotosPath,
         outputPath: outputPath,
+        disableResumeCheck: true,
         albumBehavior: AlbumBehavior.shortcut,
         dateDivision: DateDivisionLevel.none, // Move files from input to output
         skipExtras: false,

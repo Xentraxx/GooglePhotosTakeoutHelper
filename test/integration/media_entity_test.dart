@@ -131,6 +131,7 @@ void main() {
         final cfg = ProcessingConfig(
           inputPath: fixture.basePath,
           outputPath: fixture.basePath,
+          disableResumeCheck: true,
         );
         final file1 = fixture.createFile('test1.jpg', [1, 2, 3]);
         final file2 = fixture.createFile('test2.jpg', [1, 2, 3]); // duplicate
@@ -165,6 +166,7 @@ void main() {
         final cfg = ProcessingConfig(
           inputPath: fixture.basePath,
           outputPath: fixture.basePath,
+          disableResumeCheck: true,
         );
         final collection = MediaEntityCollection();
 
@@ -236,6 +238,7 @@ void main() {
         final cfg = ProcessingConfig(
           inputPath: fixture.basePath,
           outputPath: fixture.basePath,
+          disableResumeCheck: true,
         );
         final c = [1, 2, 3];
         final f1 = fixture.createFile('2023/photo1.jpg', c);
@@ -276,6 +279,7 @@ void main() {
           final cfg = ProcessingConfig(
             inputPath: fixture.basePath,
             outputPath: fixture.basePath,
+            disableResumeCheck: true,
           );
           final collection = MediaEntityCollection();
           final createdFiles = <File>[];

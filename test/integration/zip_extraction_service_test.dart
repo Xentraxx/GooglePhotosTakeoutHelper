@@ -47,6 +47,15 @@ void main() {
     late MockInteractivePresenter mockPresenter;
     late TestFixture fixture;
 
+    setUpAll(() async {
+      // Initialize ServiceContainer for integration tests
+      await ServiceContainer.instance.initialize();
+    });
+
+    tearDownAll(() async {
+      await ServiceContainer.instance.dispose();
+      await ServiceContainer.reset();
+    });
     setUp(() async {
       mockPresenter = MockInteractivePresenter();
       service = ZipExtractionService(presenter: mockPresenter);

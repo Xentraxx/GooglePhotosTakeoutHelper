@@ -35,6 +35,7 @@ void main() {
       final config = ProcessingConfig(
         inputPath: tempInputDir.path,
         outputPath: tempOutputDir.path,
+        disableResumeCheck: true,
         writeExif: false,
         skipExtras: true,
         guessFromName: false,

@@ -755,8 +755,9 @@ class WriteExifProcessingService with LoggerMixin {
         progressBar.update(completedEntities);
       }
 
-      if (exifToolAvailable && enableExifToolBatch)
+      if (exifToolAvailable && enableExifToolBatch) {
         await maybeFlushThresholds();
+      }
     }
 
     // Final flush telemetry + second bar (identical UX)

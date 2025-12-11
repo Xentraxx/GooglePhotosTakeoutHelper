@@ -215,6 +215,7 @@ void main() {
         final cfg = ProcessingConfig(
           inputPath: fixture.basePath,
           outputPath: fixture.basePath,
+          disableResumeCheck: true,
         );
         final file1 = fixture.createFile(
           'test1.jpg',

@@ -1113,7 +1113,7 @@ Future<bool> _needsCleanOutputDirectory(
   final ProcessingConfig config,
 ) async {
   final File progressFile = File(path.join(outputDir.path, 'progress.json'));
-  if (await progressFile.exists()) return false;
+  if (await progressFile.exists() && !config.disableResumeCheck) return false;
   return !(await outputDir
       .list()
       .where(

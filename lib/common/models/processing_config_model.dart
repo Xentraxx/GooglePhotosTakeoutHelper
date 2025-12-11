@@ -55,6 +55,7 @@ class ProcessingConfig {
         false, // If the input have been extracted from ZIP it will be set to true
     final String?
     userInputRoot, // Original root folder selected/provided by the user
+    this.disableResumeCheck = false,
   }) : userInputRoot = userInputRoot ?? inputPath;
 
   /// Creates a builder for configuring ProcessingConfig
@@ -82,6 +83,7 @@ class ProcessingConfig {
   final bool keepDuplicates;
   final bool inputExtractedFromZip;
   final String userInputRoot;
+  final bool disableResumeCheck;
 
   /// Validates the configuration and throws descriptive errors if invalid
   void validate() {

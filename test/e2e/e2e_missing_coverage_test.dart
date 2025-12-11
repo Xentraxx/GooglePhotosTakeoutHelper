@@ -79,6 +79,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           skipExtras: true, // TEST THE TRUE CASE
@@ -134,6 +135,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           skipExtras: false, // Explicit false for clarity
@@ -178,6 +180,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.year,
           guessFromName: false, // TEST THE FALSE CASE
@@ -230,6 +233,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             extensionFixing: ExtensionFixingMode.solo, // TEST SOLO MODE
@@ -285,6 +289,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             extensionFixing:
@@ -325,6 +330,7 @@ void main() {
 
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
+            disableResumeCheck: true,
             outputPath: outputPath,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
@@ -371,6 +377,7 @@ void main() {
 
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
+            disableResumeCheck: true,
             outputPath: outputPath,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
@@ -425,6 +432,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           limitFileSize: true, // TEST TRUE CASE
@@ -487,6 +495,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             updateCreationTime: true, // TEST TRUE CASE
@@ -531,6 +540,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: true, // Enable EXIF writing
@@ -689,6 +699,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: false, // Don't modify files to preserve content
@@ -738,6 +749,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.duplicateCopy,
           dateDivision: DateDivisionLevel.none,
           writeExif: false,
@@ -809,6 +821,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: true,
@@ -933,6 +946,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: true,
@@ -1006,6 +1020,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: false, // Test pure filename extraction
@@ -1061,6 +1076,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           writeExif: false, // Disabled EXIF writing
@@ -1108,6 +1124,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           verbose: true, // Enable verbose mode
@@ -1141,6 +1158,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             updateCreationTime: true, // Enable creation time update
@@ -1177,6 +1195,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             limitFileSize: true, // Enable file size limiting
@@ -1210,6 +1229,7 @@ void main() {
         final config = ProcessingConfig(
           inputPath: googlePhotosPath,
           outputPath: outputPath,
+          disableResumeCheck: true,
           albumBehavior: AlbumBehavior.nothing,
           dateDivision: DateDivisionLevel.none,
           extensionFixing: ExtensionFixingMode.solo, // Solo mode
@@ -1246,6 +1266,7 @@ void main() {
           final config = ProcessingConfig(
             inputPath: googlePhotosPath,
             outputPath: outputPath,
+            disableResumeCheck: true,
             albumBehavior: AlbumBehavior.nothing,
             dateDivision: DateDivisionLevel.none,
             extensionFixing: ExtensionFixingMode.conservative,

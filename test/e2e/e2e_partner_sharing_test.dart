@@ -115,6 +115,7 @@ void main() {
         albumBehavior: AlbumBehavior.nothing, // Simple mode for testing
         dateDivision: DateDivisionLevel.none,
         dividePartnerShared: true,
+        disableResumeCheck: true,
         verbose: false,
       );
 
@@ -214,6 +215,7 @@ void main() {
 
       // Create configuration with date division enabled
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: takeoutDir.path, // Use takeout folder as input
         outputPath: outputDir.path,
         albumBehavior: AlbumBehavior.nothing,
@@ -279,6 +281,7 @@ void main() {
 
       // Create configuration with partner sharing disabled
       final config = ProcessingConfig(
+        disableResumeCheck: true,
         inputPath: takeoutDir.path, // Use takeout folder as input
         outputPath: outputDir.path,
         albumBehavior: AlbumBehavior.nothing,
