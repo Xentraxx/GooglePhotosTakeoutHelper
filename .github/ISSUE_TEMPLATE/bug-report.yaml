@@ -58,7 +58,7 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks. Los will greatly help us to diagnose the issue.
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks. Logs will greatly help us to diagnose the issue.
       render: shell
     validations:
       required: true
