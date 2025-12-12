@@ -1,5 +1,11 @@
 ## 5.0.6
 
+### 🐛 **Bug Fixes**
+  - Fixed german unknown folder name from "unbekannt" to "Unbenannt" to correctly identify unknown folders (please create a bug report if those folders are exported in your language and provide us with the correct translation)
+  - fixed unit tests
+
+## 5.0.6
+
 ### ✨ **New Features**
   - Added Auto-Resume support to avoid repeat successful steps when tool is interrupted and executed again on the same output folder. (#87).
 
