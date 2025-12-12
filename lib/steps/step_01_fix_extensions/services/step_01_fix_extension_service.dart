@@ -242,7 +242,7 @@ class FixExtensionService with LoggerMixin {
       }
     }
 
-    // If we reached this point, emit the original warning once (kept as in your code)
+    // If we reached this point, emit the original warning once.
     logWarning(
       '[Step 1/8] Unable to find matching JSON for file: ${file.path}',
     );

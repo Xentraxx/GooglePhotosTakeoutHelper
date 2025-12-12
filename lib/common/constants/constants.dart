@@ -48,7 +48,7 @@ const List<String> untitledAlbums = <String>[
   'senza titolo', // IT
   'inconnu', // FR
   'sans titre', // FR
-  'unbekannt', // DE
+  'Unbenannt', // DE
   'ohne titel', // DE
   'onbekend', // NL
   'zonder titel', // NL
