@@ -93,7 +93,7 @@ jobs:
       - name: Upload exe as artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: ${{ steps.version.outputs.version }}-${{ steps.build_exe.outputs.outname }}
+          name: ${{ steps.build_exe.outputs.outname }}
           path: ./${{ steps.build_exe.outputs.outname }}
           if-no-files-found: error
       # if linux, upload to aur

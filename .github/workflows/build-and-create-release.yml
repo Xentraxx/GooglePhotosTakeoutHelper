@@ -202,7 +202,7 @@ jobs:
           elif [[ "${{ matrix.os }}" == "windows-arm64" ]]; then
             osname=windows-arm64
           fi
-          outname=gpth-$version-$osname
+          outname=gpth-$version-release-$osname
           if [[ "$osname" == windows-* ]]; then
             outname="$outname.exe"
           else
