@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or problem with the project. All fields are required.
+description: Report a bug or problem with the project.
 title: "[Bug] <short description of the problem>"
 labels: [bug]
 assignees: [Xentraxx]

@@ -1,0 +1,28 @@
+name: Feature request
+description: Something missing? Create a feature request to improve the project.
+title: "[feature] <short description of what you want>"
+labels: [enhancement]
+assignees: [Xentraxx]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Please provide as much detail as possible. Also note that I may not be able to implement all feature requests.**
+
+  - type: input
+    id: gpht-version
+    attributes:
+      label: What version of GPTH were you using, where the feature was missing from?
+      placeholder: e.g. v5.0.6
+    validations:
+      required: true
+
+  - type: textarea
+    id: enhancement
+    attributes:
+      label: What is the feature you desire?
+      description: Please describe the feature you want.
+      placeholder: I want this feature... because currently...
+    validations:
+      required: true
