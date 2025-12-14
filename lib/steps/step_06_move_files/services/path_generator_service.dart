@@ -37,11 +37,7 @@ class PathGeneratorService {
     // If partner shared separation is enabled and this is partner shared media
     if (context.dividePartnerShared && isPartnerShared) {
       return Directory(
-        path.join(
-          context.outputDirectory.path,
-          'PARTNER_SHARED',
-          dateFolder,
-        ),
+        path.join(context.outputDirectory.path, 'PARTNER_SHARED', dateFolder),
       );
     } else {
       return Directory(
