@@ -206,7 +206,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "687e0e2e7ab9235e37d371d000d4b19fd6b7ce8a"
+      resolved-ref: "467c2465f160ab7bf22d28c50afcaa78b59cfa8b"
       url: "https://github.com/Xentraxx/image.git"
     source: git
     version: "4.5.5"
@@ -526,10 +526,10 @@ packages:
     dependency: transitive
     description:
       name: watcher
-      sha256: "592ab6e2892f67760543fb712ff0177f4ec76c031f02f5b4ff8d3fc5eb9fb61a"
+      sha256: f52385d4f73589977c80797e60fe51014f7f2b957b5e9a62c3f6ada439889249
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.4"
+    version: "1.2.0"
   web:
     dependency: transitive
     description:
