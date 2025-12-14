@@ -3,6 +3,7 @@
 ### 🐛 **Bug Fixes**
   - Fixed german unknown folder name from "unbekannt" to "Unbenannt" to correctly identify unknown folders (please create a bug report if those folders are exported in your language and provide us with the correct translation)
   - fixed unit tests
+  - fixed partner sharing logic
 
 ## 5.0.6
 
