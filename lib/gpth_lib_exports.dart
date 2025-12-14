@@ -79,6 +79,7 @@ export 'steps/step_04_extract_dates/date_extractors/filename_date_extractor.dart
 export 'steps/step_04_extract_dates/date_extractors/folder_year_extractor.dart';
 export 'steps/step_04_extract_dates/date_extractors/json_date_extractor.dart';
 export 'steps/step_04_extract_dates/services/step_04_extract_dates_service.dart';
+export 'steps/step_04_extract_dates/services/truncated_filename_fixer_service.dart';
 export 'steps/step_04_extract_dates/step_04_extract_dates.dart';
 // Step 05
 export 'steps/step_05_find_albums/services/step_05_find_albums_service.dart';

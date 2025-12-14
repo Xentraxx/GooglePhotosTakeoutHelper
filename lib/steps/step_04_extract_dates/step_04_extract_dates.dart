@@ -173,13 +173,31 @@ class ExtractDatesStep extends ProcessingStep with LoggerMixin {
       final service = const ExtractDateService()
         ..logger = LoggingService.fromConfig(context.config);
       final ExtractDateSummary summary = await service.extractDates(context);
+
+      // Fix truncated filenames after date extraction
+      // This uses the same JSON matching logic and updates FileEntity.sourcePath
+      final truncatedFixerService = const TruncatedFilenameFixerService()
+        ..logger = LoggingService.fromConfig(context.config);
+      final truncatedSummary = await truncatedFixerService
+          .fixTruncatedFilenames(context);
+
       stopWatch.stop();
+
+      // Combine results from both operations
+      final combinedData = <String, dynamic>{
+        ...summary.toMap(),
+        'truncatedFilenamesFixed': truncatedSummary.fixedCount,
+      };
+
+      final String message = truncatedSummary.fixedCount > 0
+          ? '${summary.message}, fixed ${truncatedSummary.fixedCount} truncated filename(s)'
+          : summary.message;
 
       final stepResult = StepResult.success(
         stepName: name,
         duration: stopWatch.elapsed,
-        data: summary.toMap(),
-        message: summary.message,
+        data: combinedData,
+        message: message,
       );
 
       // Persist progress.json only on success (do NOT save on failure)
