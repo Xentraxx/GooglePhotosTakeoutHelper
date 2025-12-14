@@ -468,6 +468,7 @@ class MoveMediaEntityService with LoggerMixin {
       outputDirectory: context.outputDirectory,
       dateDivision: context.config.dateDivision,
       albumBehavior: context.config.albumBehavior,
+      dividePartnerShared: context.config.dividePartnerShared,
     );
 
     int entitiesProcessed = 0;

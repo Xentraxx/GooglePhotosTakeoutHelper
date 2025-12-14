@@ -40,7 +40,6 @@ class PathGeneratorService {
         path.join(
           context.outputDirectory.path,
           'PARTNER_SHARED',
-          folderName,
           dateFolder,
         ),
       );
