@@ -159,6 +159,14 @@ Future<void> main(final List<String> arguments) async {
       );
       if (needsClean) {
         if (config.isInteractiveMode) {
+          logWarning(
+            '⚠️  DANGER: Output directory cleanup requested. This will DELETE files/folders inside: ${preCleanOut.path}',
+            forcePrint: true,
+          );
+          logWarning(
+            'Only the input folder (if it lives inside output), "progress.json", and entries containing "PhotoMigrator" are preserved. Everything else will be removed recursively.',
+            forcePrint: true,
+          );
           if (await ServiceContainer.instance.interactiveService
               .askForCleanOutput()) {
             await _cleanOutputDirectory(preCleanOut, config);
@@ -1070,6 +1078,14 @@ Future<ProcessingResult> _executeProcessing(
     if (await outputDir.exists() &&
         await _needsCleanOutputDirectory(outputDir, runtimeConfig)) {
       if (runtimeConfig.isInteractiveMode) {
+        logWarning(
+          '⚠️  DANGER: Output directory cleanup requested. This will DELETE files/folders inside: ${outputDir.path}',
+          forcePrint: true,
+        );
+        logWarning(
+          'Only the input folder (if it lives inside output), "progress.json", and entries containing "PhotoMigrator" are preserved. Everything else will be removed recursively.',
+          forcePrint: true,
+        );
         if (await ServiceContainer.instance.interactiveService
             .askForCleanOutput()) {
           await _cleanOutputDirectory(outputDir, runtimeConfig);

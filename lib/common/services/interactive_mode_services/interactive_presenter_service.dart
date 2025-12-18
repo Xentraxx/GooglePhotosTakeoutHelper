@@ -515,6 +515,10 @@ class InteractivePresenterService with LoggerMixin {
     print(
       'This directory will contain the extracted Google Photos data and serve as the input directory for GPTH.',
     );
+    print('⚠️  SAFETY WARNING: The extraction folder MUST be empty.');
+    print(
+      'GPTH will refuse to use a non-empty folder to prevent accidental deletion of unrelated files.',
+    );
     print(
       '(You can delete this directory after processing if you want to save space)',
     );

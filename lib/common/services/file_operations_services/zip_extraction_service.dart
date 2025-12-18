@@ -36,10 +36,24 @@ class ZipExtractionService with LoggerMixin {
   ///
   /// Streamed extraction is used (archive v4 decodeStream). Memory fallback is guarded.
   Future<void> extractAll(final List<File> zips, final Directory dir) async {
-    // Clean up and create destination directory
+    // SAFETY: Never delete an existing, non-empty extraction directory.
+    // Users sometimes mistakenly pick a real photo library folder (e.g. "Pictures") as the
+    // extraction target. Recursive deletion here would wipe unrelated data.
     if (await dir.exists()) {
-      await dir.delete(recursive: true);
+      // If directory exists and contains anything, refuse to proceed.
+      // (We intentionally do not offer an interactive confirmation here because this service
+      // is used by both interactive and non-interactive flows.)
+      final bool isEmpty = await dir.list(followLinks: false).isEmpty;
+      if (!isEmpty) {
+        throw FileSystemException(
+          'Refusing to extract ZIPs into a non-empty directory for safety. '
+          'Choose a NEW EMPTY folder for extraction (e.g. "GPTH_Extract").',
+          dir.path,
+        );
+      }
     }
+
+    // Create destination directory (no destructive cleanup).
     await dir.create(recursive: true);
 
     await _presenter.showUnzipStartMessage();
