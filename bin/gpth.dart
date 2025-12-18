@@ -164,7 +164,14 @@ Future<void> main(final List<String> arguments) async {
             await _cleanOutputDirectory(preCleanOut, config);
           }
         } else {
-          await _cleanOutputDirectory(preCleanOut, config);
+          // SAFETY: Never auto-clean in non-interactive mode.
+          // Cleaning can delete unrelated user files if --output points to a non-empty folder.
+          _exitWithMessage(
+            13,
+            'Output directory is not empty. Refusing to auto-clean in non-interactive mode. '
+            'Please choose an empty output directory or clean it manually. '
+            'If you want to preserve an existing run, keep progress.json in the output directory.',
+          );
         }
       }
     }
@@ -1068,10 +1075,13 @@ Future<ProcessingResult> _executeProcessing(
           await _cleanOutputDirectory(outputDir, runtimeConfig);
         }
       } else {
-        logWarning(
-          'Output directory is not empty. Cleaning it automatically (non-interactive mode).',
+        // SAFETY: Never auto-clean in non-interactive mode.
+        _exitWithMessage(
+          13,
+          'Output directory is not empty. Refusing to auto-clean in non-interactive mode. '
+          'Please choose an empty output directory or clean it manually. '
+          'If you want to resume an existing run, keep progress.json in the output directory.',
         );
-        await _cleanOutputDirectory(outputDir, runtimeConfig);
       }
     }
   }
