@@ -1,3 +1,12 @@
+## 5.0.7
+
+### 🐛 **Bug Fixes**
+  - ZIP extraction no longer deletes an existing extraction directory. GPTH now refuses to extract into a non-empty folder to prevent accidental deletion of unrelated files.
+  - Interactive mode: Added an explicit **DANGER** warning before confirming output directory cleanup (deletes recursively inside the chosen output folder).
+
+### ✨ **New Features**
+  - Restore truncated media filenames from JSON sidecars (uses the JSON `title` field) after date extraction, renaming both the media file and its JSON metadata so later steps use the original name.
+
 ## 5.0.6
 
 ### 🐛 **Bug Fixes**
