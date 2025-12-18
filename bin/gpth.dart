@@ -116,6 +116,13 @@ List<String> _applyAndStripTestMultipliers(final List<String> args) {
 ///
 /// @param arguments Command line arguments from the user
 Future<void> main(final List<String> arguments) async {
+  // Capture invocation details for the log header (written when file logging is enabled).
+  LoggingService.setInvocation(
+    args: arguments,
+    executable: Platform.resolvedExecutable,
+    cwd: Directory.current.path,
+  );
+
   // Initialize logger early with default settings
   _logger = LoggingService();
   LoggerMixin.sharedDefaultLogger =

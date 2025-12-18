@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:gpth/gpth_lib_exports.dart';
 
@@ -50,6 +51,40 @@ class LoggingService {
 
   /// Session header guard (avoid duplicating the header across instances)
   static bool _sessionHeaderWritten = false;
+
+  /// Invocation details captured by the entrypoint.
+  ///
+  /// We can't reliably recover the original shell command string in Dart, but we can
+  /// record the executable + argv array (and a best-effort reconstructed command).
+  static String? _invocationExecutable;
+  static String? _invocationCwd;
+  static List<String>? _invocationArgs;
+
+  /// Capture the current process invocation so it can be written into the log header.
+  ///
+  /// Call this as early as possible from the entrypoint (before the log file is created).
+  static void setInvocation({
+    required final List<String> args,
+    final String? executable,
+    final String? cwd,
+  }) {
+    _invocationArgs = List<String>.from(args);
+    _invocationExecutable = executable;
+    _invocationCwd = cwd;
+  }
+
+  static String _reconstructCommand(final String exe, final List<String> args) {
+    String quote(final String s) {
+      // Best-effort quoting for readability in logs.
+      if (s.isEmpty) return '""';
+      final needsQuotes = RegExp(r'[\s"\\]').hasMatch(s);
+      if (!needsQuotes) return s;
+      return '"${s.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"';
+    }
+
+    final parts = <String>[quote(exe), ...args.map(quote)];
+    return parts.join(' ');
+  }
 
   /// Collected warning messages during processing
   final List<String> _warnings = [];
@@ -310,6 +345,34 @@ class LoggingService {
         _globalSink!.writeln(
           '${_formatAlignedLabel('info')} GPTH Version: $version',
         );
+
+        // Invocation info (captured by entrypoint).
+        final exe = _invocationExecutable;
+        final cwd = _invocationCwd;
+        final argv = _invocationArgs;
+        if (exe != null || cwd != null || argv != null) {
+          _globalSink!.writeln('${_formatAlignedLabel('info')} Invocation:');
+          if (exe != null) {
+            _globalSink!.writeln(
+              '${_formatAlignedLabel('info')}   Executable: $exe',
+            );
+          }
+          if (cwd != null) {
+            _globalSink!.writeln('${_formatAlignedLabel('info')}   CWD: $cwd');
+          }
+          if (argv != null) {
+            // JSON array preserves exact argv tokens.
+            _globalSink!.writeln(
+              '${_formatAlignedLabel('info')}   Args (argv): ${jsonEncode(argv)}',
+            );
+            if (exe != null) {
+              _globalSink!.writeln(
+                '${_formatAlignedLabel('info')}   Command (approx): ${_reconstructCommand(exe, argv)}',
+              );
+            }
+          }
+        }
+
         _sessionHeaderWritten = true;
       }
     } catch (e) {

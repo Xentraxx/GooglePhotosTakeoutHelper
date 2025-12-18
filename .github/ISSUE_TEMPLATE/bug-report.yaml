@@ -24,7 +24,7 @@ body:
       label: What flag combination did you use?
       placeholder: e.g. --fix-extensions=standard --transform-pixel-mp
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     id: exiftool-installed
