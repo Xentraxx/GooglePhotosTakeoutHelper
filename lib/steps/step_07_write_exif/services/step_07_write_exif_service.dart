@@ -57,6 +57,39 @@ class WriteExifProcessingService with LoggerMixin {
       exifTool as ExifToolService?,
     );
 
+    // DateTime policy:
+    // - EXIF classic date tags are "naive" clock timestamps.
+    // - JSON `photoTakenTime.timestamp` yields a UTC instant.
+    // Option A: when a DateTime is UTC (or produced by JSON extractors), write the UTC clock
+    // *and* set OffsetTime* = +00:00 so ExifTool composites/viewers do not apply local offsets.
+    bool shouldTreatAsUtc(
+      final DateTimeExtractionMethod? method,
+      final DateTime dt,
+    ) {
+      final m = method;
+      return dt.isUtc ||
+          m == DateTimeExtractionMethod.json ||
+          m == DateTimeExtractionMethod.jsonTryHard;
+    }
+
+    String formatExifClock(final DateTime dt) {
+      final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
+      return exifFormat.format(dt);
+    }
+
+    void addUtcOffsetTags(final Map<String, dynamic> tags) {
+      // EXIF 2.31 time zone offset tags
+      tags['OffsetTime'] = '"+00:00"';
+      tags['OffsetTimeOriginal'] = '"+00:00"';
+      tags['OffsetTimeDigitized'] = '"+00:00"';
+    }
+
+    String formatXmpDateTime(final DateTime dt, {required final bool isUtc}) {
+      final clock = formatExifClock(dt);
+      // XMP datetime supports timezone offsets; use +00:00 for UTC.
+      return isUtc ? '$clock+00:00' : clock;
+    }
+
     // Batch queues and helpers (moved here from the step; unchanged logic)
     final bool isWindows = Platform.isWindows;
     final int baseBatchSize = isWindows ? 100 : 200;
@@ -379,6 +412,7 @@ class WriteExifProcessingService with LoggerMixin {
       required final File file,
       required final bool markAsPrimary,
       required final DateTime? effectiveDate,
+      required final DateTimeExtractionMethod? dateTimeExtractionMethod,
       required final coordsFromPrimary,
     }) async {
       bool gpsWrittenThis = false;
@@ -429,25 +463,48 @@ class WriteExifProcessingService with LoggerMixin {
             if (isJpeg && !forceXmpJpeg) {
               // Try native combined (date+gps) or gps-only writes first.
               if (effectiveDate != null) {
+                final bool treatUtc = shouldTreatAsUtc(
+                  dateTimeExtractionMethod,
+                  effectiveDate,
+                );
+                final DateTime writeDate = treatUtc
+                    ? effectiveDate.toUtc()
+                    : effectiveDate;
                 final ok = await preserveMTime(
                   file,
                   () async => exifWriter.writeCombinedNativeJpeg(
                     file,
-                    effectiveDate,
+                    writeDate,
                     coords,
                   ),
                 );
                 if (ok) {
                   gpsWrittenThis = true;
                   dtWrittenThis = true;
-                } else {
-                  // Native failed — fall back to ExifTool only if available.
-                  if (exifToolAvailable) {
-                    final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
-                    final dt = exifFormat.format(effectiveDate);
+                  if (treatUtc && exifToolAvailable) {
+                    // Ensure ExifTool-visible DateTime* and explicit UTC offset.
+                    // (Some native EXIF injection paths are not consistently recognized by ExifTool/viewers.)
+                    final dt = formatExifClock(writeDate);
                     tagsToWrite['DateTimeOriginal'] = '"$dt"';
                     tagsToWrite['DateTimeDigitized'] = '"$dt"';
                     tagsToWrite['DateTime'] = '"$dt"';
+                    addUtcOffsetTags(tagsToWrite);
+                  }
+                } else {
+                  // Native failed — fall back to ExifTool only if available.
+                  if (exifToolAvailable) {
+                    final bool treatUtc = shouldTreatAsUtc(
+                      dateTimeExtractionMethod,
+                      effectiveDate,
+                    );
+                    final DateTime writeDate = treatUtc
+                        ? effectiveDate.toUtc()
+                        : effectiveDate;
+                    final dt = formatExifClock(writeDate);
+                    tagsToWrite['DateTimeOriginal'] = '"$dt"';
+                    tagsToWrite['DateTimeDigitized'] = '"$dt"';
+                    tagsToWrite['DateTime'] = '"$dt"';
+                    if (treatUtc) addUtcOffsetTags(tagsToWrite);
                     tagsToWrite['GPSLatitude'] = coords
                         .toDD()
                         .latitude
@@ -547,22 +604,37 @@ class WriteExifProcessingService with LoggerMixin {
         // Date/time handling (always try native JPEG write first for JPEGs)
         try {
           if (effectiveDate != null) {
+            final bool treatUtc = shouldTreatAsUtc(
+              dateTimeExtractionMethod,
+              effectiveDate,
+            );
+            final DateTime writeDate = treatUtc
+                ? effectiveDate.toUtc()
+                : effectiveDate;
             if (isJpeg && !forceXmpJpeg) {
               if (!dtWrittenThis) {
                 final ok = await preserveMTime(
                   file,
                   () async =>
-                      exifWriter.writeDateTimeNativeJpeg(file, effectiveDate),
+                      exifWriter.writeDateTimeNativeJpeg(file, writeDate),
                 );
                 if (ok) {
                   dtWrittenThis = true;
-                } else {
-                  if (exifToolAvailable) {
-                    final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
-                    final dt = exifFormat.format(effectiveDate);
+                  if (treatUtc && exifToolAvailable) {
+                    // Ensure ExifTool-visible DateTime* and explicit UTC offset.
+                    final dt = formatExifClock(writeDate);
                     tagsToWrite['DateTimeOriginal'] = '"$dt"';
                     tagsToWrite['DateTimeDigitized'] = '"$dt"';
                     tagsToWrite['DateTime'] = '"$dt"';
+                    addUtcOffsetTags(tagsToWrite);
+                  }
+                } else {
+                  if (exifToolAvailable) {
+                    final dt = formatExifClock(writeDate);
+                    tagsToWrite['DateTimeOriginal'] = '"$dt"';
+                    tagsToWrite['DateTimeDigitized'] = '"$dt"';
+                    tagsToWrite['DateTime'] = '"$dt"';
+                    if (treatUtc) addUtcOffsetTags(tagsToWrite);
                     WriteExifAuxiliaryService.markFallbackDateTried(file);
                   } else {
                     logWarning(
@@ -574,17 +646,16 @@ class WriteExifProcessingService with LoggerMixin {
             } else {
               if (exifToolAvailable) {
                 if (isPng || forceXmpJpeg) {
-                  final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
-                  final dt = exifFormat.format(effectiveDate);
+                  final dt = formatXmpDateTime(writeDate, isUtc: treatUtc);
                   tagsToWrite['XMP:CreateDate'] = '"$dt"';
                   tagsToWrite['XMP:DateTimeOriginal'] = '"$dt"';
                   tagsToWrite['XMP:ModifyDate'] = '"$dt"';
                 } else {
-                  final exifFormat = DateFormat('yyyy:MM:dd HH:mm:ss');
-                  final dt = exifFormat.format(effectiveDate);
+                  final dt = formatExifClock(writeDate);
                   tagsToWrite['DateTimeOriginal'] = '"$dt"';
                   tagsToWrite['DateTimeDigitized'] = '"$dt"';
                   tagsToWrite['DateTime'] = '"$dt"';
+                  if (treatUtc) addUtcOffsetTags(tagsToWrite);
                 }
               }
             }
@@ -738,6 +809,7 @@ class WriteExifProcessingService with LoggerMixin {
               file: outFile,
               markAsPrimary: identical(fe, entity.primaryFile),
               effectiveDate: entity.dateTaken,
+              dateTimeExtractionMethod: entity.dateTimeExtractionMethod,
               coordsFromPrimary: coordsFromPrimary,
             );
             if (r['gps'] == true) localGps++;

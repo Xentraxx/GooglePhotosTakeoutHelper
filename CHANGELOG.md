@@ -1,3 +1,7 @@
+## 5.0.9
+### 🐛 **Bug Fixes**
+  - Fixed a UTC conversion bug
+
 ## 5.0.8
 ### 🐛 **Bug Fixes**
   - Updated upstream library to image 4.7.2 which contains fixes to the native writeExif() method.

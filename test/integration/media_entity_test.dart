@@ -4,6 +4,7 @@
 library;
 
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:gpth/gpth_lib_exports.dart';
 import 'package:path/path.dart' as path;
@@ -428,6 +429,62 @@ void main() {
     });
 
     group('EXIF Data Writing and Coordinate Management', () {
+      test(
+        'writeExifData writes UTC DateTimeOriginal with +00:00 offset (no local shift)',
+        () async {
+          final exifTool = ServiceContainer.instance.exifTool;
+          if (exifTool == null) {
+            // In environments without ExifTool (some CI), skip silently.
+            return;
+          }
+
+          final testImage = fixture.createImageWithoutExif('utc_write.jpg');
+
+          // 1609459200 == 2021-01-01T00:00:00Z
+          final utc = DateTime.fromMillisecondsSinceEpoch(
+            1609459200 * 1000,
+            isUtc: true,
+          );
+
+          final collection = MediaEntityCollection([
+            MediaEntity.single(
+              file: FileEntity(
+                sourcePath: testImage.path,
+                targetPath: testImage.path,
+              ),
+              dateTaken: utc,
+              dateTimeExtractionMethod: DateTimeExtractionMethod.json,
+            ),
+          ]);
+
+          final cfg = ProcessingConfig(
+            inputPath: fixture.basePath,
+            outputPath: fixture.basePath,
+            disableResumeCheck: true,
+          );
+          await collection.writeExifData(config: cfg);
+
+          // Read back the exact tags without the service's -fast read path.
+          final out = await exifTool.executeExifToolCommand([
+            '-q',
+            '-q',
+            '-j',
+            '-s',
+            '-s',
+            '-s',
+            '-n',
+            '-DateTimeOriginal',
+            '-OffsetTimeOriginal',
+            testImage.path,
+          ]);
+
+          final decoded = jsonDecode(out) as List<dynamic>;
+          final tags = Map<String, dynamic>.from(decoded.first as Map);
+          expect(tags['DateTimeOriginal'], equals('2021:01:01 00:00:00'));
+          expect(tags['OffsetTimeOriginal'], equals('+00:00'));
+        },
+      );
+
       test('writeExifData processes coordinates from JSON metadata', () async {
         final testImage = fixture.createImageWithoutExif(
           'test_with_coords.jpg',
