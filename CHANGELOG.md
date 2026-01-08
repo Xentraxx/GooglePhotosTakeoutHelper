@@ -1,6 +1,7 @@
 ## 5.0.9
 ### 🐛 **Bug Fixes**
   - Fixed a UTC conversion bug
+  - Fixed that geodata was removed from exif
 
 ## 5.0.8
 ### 🐛 **Bug Fixes**

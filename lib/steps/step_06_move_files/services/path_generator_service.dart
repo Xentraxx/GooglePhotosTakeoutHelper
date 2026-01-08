@@ -34,16 +34,22 @@ class PathGeneratorService {
         ? _generateDateFolder(dateTaken, context.dateDivision)
         : '';
 
-    // If partner shared separation is enabled and this is partner shared media
+    // If partner shared separation is enabled and this is partner shared media,
+    // mirror the normal structure under PARTNER_SHARED.
     if (context.dividePartnerShared && isPartnerShared) {
       return Directory(
-        path.join(context.outputDirectory.path, 'PARTNER_SHARED', dateFolder),
-      );
-    } else {
-      return Directory(
-        path.join(context.outputDirectory.path, folderName, dateFolder),
+        path.join(
+          context.outputDirectory.path,
+          'PARTNER_SHARED',
+          folderName,
+          dateFolder,
+        ),
       );
     }
+
+    return Directory(
+      path.join(context.outputDirectory.path, folderName, dateFolder),
+    );
   }
 
   /// Generates the date-based folder structure

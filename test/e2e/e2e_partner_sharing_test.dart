@@ -133,14 +133,14 @@ void main() {
         reason: 'Pipeline should complete successfully',
       );
 
-      // Verify partner shared photo went to PARTNER_SHARED folder
+      // Verify partner shared photo went to PARTNER_SHARED/ALL_PHOTOS folder
       final partnerSharedDir = Directory(
-        path.join(outputDir.path, 'PARTNER_SHARED'),
+        path.join(outputDir.path, 'PARTNER_SHARED', 'ALL_PHOTOS'),
       );
       expect(
         partnerSharedDir.existsSync(),
         isTrue,
-        reason: 'PARTNER_SHARED folder should exist',
+        reason: 'PARTNER_SHARED/ALL_PHOTOS folder should exist',
       );
 
       final partnerSharedPhoto = File(
@@ -149,7 +149,7 @@ void main() {
       expect(
         partnerSharedPhoto.existsSync(),
         isTrue,
-        reason: 'Partner shared photo should be in PARTNER_SHARED folder',
+        reason: 'Partner shared photo should be in PARTNER_SHARED/ALL_PHOTOS folder',
       );
 
       // Verify personal photo went to ALL_PHOTOS folder
@@ -233,10 +233,11 @@ void main() {
 
       expect(result.isSuccess, isTrue);
 
-      // Verify partner shared photo went to PARTNER_SHARED/2023/
+      // Verify partner shared photo went to PARTNER_SHARED/ALL_PHOTOS/2023/
       final partnerSharedPhotoPath = path.join(
         outputDir.path,
         'PARTNER_SHARED',
+        'ALL_PHOTOS',
         '2023',
         'partner_2023.jpg',
       );
@@ -244,7 +245,8 @@ void main() {
       expect(
         partnerSharedPhoto.existsSync(),
         isTrue,
-        reason: 'Partner shared photo should be in PARTNER_SHARED/2023/ folder',
+        reason:
+            'Partner shared photo should be in PARTNER_SHARED/ALL_PHOTOS/2023/ folder',
       );
     });
 

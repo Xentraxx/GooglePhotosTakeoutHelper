@@ -393,6 +393,35 @@ void main() {
       final inputDir = Directory(googlePhotosPath);
       final outputDir = Directory(outputPath);
 
+      final gpsExtractor = ExifGpsExtractor(ServiceContainer.instance.exifTool);
+
+      // Collect which media files have geoData in their JSON metadata *before*
+      // the pipeline potentially moves/deletes files.
+      final jsonFilesBefore = await inputDir
+          .list(recursive: true)
+          .where((final entity) => entity is File && entity.path.endsWith('.json'))
+          .cast<File>()
+          .toList();
+
+      final filesWithGeoJson = <String>{};
+      for (final jsonFile in jsonFilesBefore) {
+        final content = await jsonFile.readAsString();
+        // The realistic dataset generator writes geoData as either an object or null.
+        if (content.contains('"geoData"') && !content.contains('"geoData":null')) {
+          final jsonBase = path.basename(jsonFile.path);
+          final imageBase = jsonBase.endsWith('.json')
+              ? jsonBase.substring(0, jsonBase.length - '.json'.length)
+              : jsonBase;
+          filesWithGeoJson.add(imageBase);
+        }
+      }
+
+      expect(
+        filesWithGeoJson,
+        isNotEmpty,
+        reason: 'Fixture should generate some JSON files with geoData',
+      );
+
       final config = ProcessingConfig(
         disableResumeCheck: true,
         inputPath: googlePhotosPath,
@@ -400,6 +429,7 @@ void main() {
         albumBehavior: AlbumBehavior.nothing,
         dateDivision: DateDivisionLevel.none,
         skipExtras: false,
+        writeExif: true,
       );
 
       final result = await pipeline.execute(
@@ -409,34 +439,51 @@ void main() {
       );
       expect(result.isSuccess, isTrue);
 
-      // Verify that photos with geo data in JSON are processed
-      final jsonFiles = await inputDir
+      // Validate actual processing: at least one output file that had geoData in
+      // JSON should now contain GPS tags in EXIF.
+      final allPhotosDir = Directory(path.join(outputPath, 'ALL_PHOTOS'));
+      expect(
+        await allPhotosDir.exists(),
+        isTrue,
+        reason: 'ALL_PHOTOS directory should exist',
+      );
+
+      final outputJpgs = await allPhotosDir
           .list(recursive: true)
-          .where(
-            (final entity) => entity is File && entity.path.endsWith('.json'),
-          )
+          .where((final entity) => entity is File && entity.path.endsWith('.jpg'))
           .cast<File>()
           .toList();
 
-      expect(
-        jsonFiles.length,
-        greaterThan(0),
-        reason: 'Should have JSON metadata files',
-      );
+      expect(outputJpgs, isNotEmpty, reason: 'Expected output JPGs in ALL_PHOTOS');
 
-      // Check that some JSON files contain geo data
-      var filesWithGeoData = 0;
-      for (final jsonFile in jsonFiles.take(10)) {
-        final content = await jsonFile.readAsString();
-        if (content.contains('geoData') || content.contains('latitude')) {
-          filesWithGeoData++;
+      // We can't reliably map geoData JSON -> output basename because the pipeline
+      // may merge multiple copies and pick a different primary filename.
+      // Instead, validate the end result: at least one output JPG has GPS tags.
+      var foundGpsExif = false;
+      Map<String, dynamic>? lastGps;
+      String? lastFile;
+      for (final outFile in outputJpgs) {
+        lastFile = outFile.path;
+        final gps = await gpsExtractor.extractGPSCoordinates(
+          outFile,
+          globalConfig: ServiceContainer.instance.globalConfig,
+        );
+        lastGps = gps;
+
+        if (gps != null) {
+          foundGpsExif = true;
+          break;
         }
       }
 
       expect(
-        filesWithGeoData,
-        greaterThan(0),
-        reason: 'Some files should have geo data in JSON',
+        foundGpsExif,
+        isTrue,
+        reason:
+            'Expected at least one output JPG to have GPSLatitude/GPSLongitude EXIF set. '
+            'Dataset geoData JSON files: ${filesWithGeoJson.length}. '
+            'Last checked file: $lastFile. '
+            'Last extracted GPS: $lastGps',
       );
     });
 
@@ -628,18 +675,38 @@ void main() {
       final inputDir = Directory(googlePhotosPath);
       final outputDir = Directory(outputPath);
 
-      // Get list of all files in input directory before processing
-      final inputFiles = await inputDir
+      // Get list of all JPGs in input directory before processing.
+      // The pipeline deduplicates identical content across folders (Step 3).
+      // With AlbumBehavior.shortcut, album entries become symlinks (Step 6).
+      // Therefore, we must not expect “every input copy” to become a physical
+      // output file in ALL_PHOTOS.
+      final inputFilesBefore = await inputDir
           .list(recursive: true)
           .where(
             (final entity) => entity is File && entity.path.endsWith('.jpg'),
           )
           .cast<File>()
-          .map((final file) => file.path)
+          .toList();
+
+      final inputFilePathsBefore = inputFilesBefore
+          .map((final f) => f.path)
           .toSet();
 
-      print('[DEBUG] Input files before processing: ${inputFiles.length}');
-      for (final path in inputFiles.take(5)) {
+      final hashService = MediaHashService();
+      final hashesBefore = await hashService.calculateMultipleHashes(
+        inputFilesBefore,
+      );
+      final uniqueHashesBefore = hashesBefore.values
+          .where((final h) => h.isNotEmpty)
+          .toSet();
+
+      print(
+        '[DEBUG] Input files before processing: ${inputFilePathsBefore.length}',
+      );
+      print(
+        '[DEBUG] Unique input JPG contents (by SHA-256): ${uniqueHashesBefore.length}',
+      );
+      for (final path in inputFilePathsBefore.take(5)) {
         print('[DEBUG] Input file: $path');
       }
 
@@ -678,7 +745,7 @@ void main() {
       // In shortcut/symlink mode, album directories contain symlinks, not actual files
       final allPhotosDirectory = Directory(path.join(outputPath, 'ALL_PHOTOS'));
       final outputFiles = await allPhotosDirectory
-          .list()
+          .list(recursive: true)
           .where(
             (final entity) => entity is File && entity.path.endsWith('.jpg'),
           )
@@ -741,15 +808,18 @@ void main() {
             'These files exist only in album folders and are preserved to prevent data loss. '
             'Found ${remainingInputFiles.length} total remaining files, '
             '${albumOnlyFiles.length} are album-only files.',
-      ); // Verify output file count: should be input files minus album-only files
-      // (album-only files remain in place to prevent data loss)
-      final expectedOutputCount = inputFiles.length - albumOnlyFiles.length;
+      );
+
+      // Verify output physical JPG count (deduplicated by content).
+      // This matches the pipeline behavior: one physical file per unique content,
+      // with album occurrences represented as symlinks.
+      final expectedOutputCount = uniqueHashesBefore.length;
       expect(
         outputFiles.length,
         equals(expectedOutputCount),
         reason:
-            'Expected $expectedOutputCount files in output directory '
-            '(${inputFiles.length} input files minus ${albumOnlyFiles.length} album-only files)',
+        'Expected $expectedOutputCount unique files in output directory (deduplicated by content). '
+        'Input JPGs: ${inputFilePathsBefore.length}, album-only remaining: ${albumOnlyFiles.length}',
       );
     });
     test(
@@ -761,18 +831,40 @@ void main() {
         final inputDir = Directory(googlePhotosPath);
         final outputDir = Directory(outputPath);
 
-        // Get list of all files in input directory before processing
+        // Get list of all files in input directory before processing.
+        // Note: the pipeline will deduplicate identical content across year folders
+        // and album folders (Step 3), and in shortcut mode (Step 6) album entries
+        // become symlinks pointing to the moved primary files.
+        // Therefore, we must not expect “every input copy” to become a physical
+        // output file.
         final inputFilesBefore = await inputDir
             .list(recursive: true)
             .where(
               (final entity) => entity is File && entity.path.endsWith('.jpg'),
             )
             .cast<File>()
-            .map((final file) => file.path)
+            .toList();
+
+        final inputFilePathsBefore = inputFilesBefore
+            .map((final f) => f.path)
+            .toSet();
+
+        // Compute expected number of physical output JPGs based on unique content.
+        // (Album duplicates share content and should not be copied as physical files
+        // when AlbumBehavior.shortcut is active.)
+        final hashService = MediaHashService();
+        final hashesBefore = await hashService.calculateMultipleHashes(
+          inputFilesBefore,
+        );
+        final uniqueHashesBefore = hashesBefore.values
+            .where((final h) => h.isNotEmpty)
             .toSet();
 
         print(
-          '[DEBUG] Input files before processing: ${inputFilesBefore.length}',
+          '[DEBUG] Input files before processing: ${inputFilePathsBefore.length}',
+        );
+        print(
+          '[DEBUG] Unique input JPG contents (by SHA-256): ${uniqueHashesBefore.length}',
         );
 
         final config = ProcessingConfig(
@@ -835,22 +927,22 @@ void main() {
           path.join(outputPath, 'ALL_PHOTOS'),
         );
         final outputFiles = await allPhotosDirectory
-            .list()
+            .list(recursive: true)
             .where(
               (final entity) => entity is File && entity.path.endsWith('.jpg'),
             )
             .cast<File>()
             .toList();
 
-        // Output should contain files that were moved from year folders
-        final expectedOutputFiles =
-            inputFilesBefore.length - albumOnlyFiles.length;
+        // Output should contain the unique physical JPGs (deduped by content).
+        // Album duplicates should be represented as symlinks in album folders.
+        final expectedOutputFiles = uniqueHashesBefore.length;
         expect(
           outputFiles.length,
           equals(expectedOutputFiles),
           reason:
-              'Output should contain moved files from year folders. '
-              'Expected $expectedOutputFiles files (${inputFilesBefore.length} total - ${albumOnlyFiles.length} album-only), '
+              'Output should contain the unique moved physical JPGs (deduplicated by content). '
+              'Expected $expectedOutputFiles unique files, '
               'found ${outputFiles.length}',
         );
 

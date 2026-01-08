@@ -3,8 +3,8 @@
 /// Comprehensive tests for the modern media management system.
 library;
 
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:gpth/gpth_lib_exports.dart';
 import 'package:path/path.dart' as path;
@@ -201,6 +201,7 @@ void main() {
           final cfg = ProcessingConfig(
             inputPath: fixture.basePath,
             outputPath: fixture.basePath,
+            disableResumeCheck: true,
           );
 
           // Year + Album (same content) → after findAlbums the number of entities needs to be the same, but after mergeMediaEntities there must be 1 entity with albumNames=['Vacation']

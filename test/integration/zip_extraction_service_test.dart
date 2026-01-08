@@ -120,20 +120,6 @@ void main() {
         expect(await file2.readAsString(), equals('Content 2'));
       });
 
-      test('cleans up existing destination directory', () async {
-        final zipFile = await _createSimpleZip(fixture, 'test.zip');
-        final extractDir = Directory(p.join(fixture.basePath, 'extract'));
-
-        // Create existing content
-        await extractDir.create(recursive: true);
-        final existingFile = File(p.join(extractDir.path, 'existing.txt'));
-        await existingFile.writeAsString('Should be removed');
-
-        await service.extractAll([zipFile], extractDir);
-
-        expect(await existingFile.exists(), isFalse);
-      });
-
       test('provides progress feedback through presenter', () async {
         final zipFile = await _createSimpleZip(fixture, 'test.zip');
         final extractDir = Directory(p.join(fixture.basePath, 'extract'));

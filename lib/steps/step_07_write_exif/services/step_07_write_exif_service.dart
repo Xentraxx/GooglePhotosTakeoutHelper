@@ -5,6 +5,8 @@ import 'package:console_bars/console_bars.dart';
 import 'package:coordinate_converter/coordinate_converter.dart';
 import 'package:gpth/gpth_lib_exports.dart';
 import 'package:image/image.dart';
+// ignore: implementation_imports
+import 'package:image/src/util/rational.dart';
 import 'package:intl/intl.dart';
 import 'package:mime/mime.dart' as mime;
 
@@ -1883,14 +1885,32 @@ class WriteExifAuxiliaryService with LoggerMixin {
   ExifData _ensureExifContainers(final ExifData? exif) {
     final ExifData data = exif ?? ExifData();
 
-    // Ensure required IFD directories exist by name.
-    // Valid keys in image are typically: 'ifd0' (image), 'exif', 'gps', 'ifd1' (thumbnail), 'interop'.
-    final dirs = data.directories;
-    if (!dirs.containsKey('ifd0')) data['ifd0'] = IfdDirectory();
-    if (!dirs.containsKey('exif')) data['exif'] = IfdDirectory();
-    if (!dirs.containsKey('gps')) data['gps'] = IfdDirectory();
+    // In `package:image`, EXIF sub-IFDs live under `ifd0.sub[...]`.
+    // Ensure `ifd0` exists and that its sub-IFDs are created.
+    data.imageIfd;
+    data.exifIfd;
+    data.gpsIfd;
 
     return data;
+  }
+
+  /// Build an EXIF rational triplet (deg/min/sec) for GPSLatitude/GPSLongitude.
+  ///
+  /// Important: `IfdDirectory.operator[]=` in `package:image` only knows about
+  /// `exifImageTags` and therefore does not correctly type GPS tags.
+  /// We must write GPS tags by inserting `IfdValue*` entries directly.
+  List<Rational> _toExifGpsRationals(
+    final int degrees,
+    final int minutes,
+    final double seconds,
+  ) {
+    const secScale = 10000;
+    final secNumerator = (seconds * secScale).round();
+    return <Rational>[
+      Rational(degrees.abs(), 1),
+      Rational(minutes, 1),
+      Rational(secNumerator, secScale),
+    ];
   }
 
   /// Native JPEG DateTime write (returns true if wrote; false if failed).
@@ -1952,14 +1972,27 @@ class WriteExifAuxiliaryService with LoggerMixin {
       // Ensure EXIF container and required directories exist
       final ExifData data = _ensureExifContainers(exif);
 
-      // Use typed GPS setters when disponibles; fallback to map-like via _putGps.
-      _putGps(data.gpsIfd, 'GPSLatitude', coords.toDD().latitude);
-      _putGps(data.gpsIfd, 'GPSLongitude', coords.toDD().longitude);
-      _putGps(data.gpsIfd, 'GPSLatitudeRef', coords.latDirection.abbreviation);
-      _putGps(
-        data.gpsIfd,
-        'GPSLongitudeRef',
-        coords.longDirection.abbreviation,
+      // GPS IFD tag IDs (Exif GPS spec):
+      //  0x0001 GPSLatitudeRef (ASCII)
+      //  0x0002 GPSLatitude (RATIONAL[3])
+      //  0x0003 GPSLongitudeRef (ASCII)
+      //  0x0004 GPSLongitude (RATIONAL[3])
+      final gps = data.gpsIfd;
+      gps.data[0x0001] = IfdValueAscii(coords.latDirection.abbreviation);
+      gps.data[0x0002] = IfdValueRational.list(
+        _toExifGpsRationals(
+          coords.latDegrees,
+          coords.latMinutes,
+          coords.latSeconds,
+        ),
+      );
+      gps.data[0x0003] = IfdValueAscii(coords.longDirection.abbreviation);
+      gps.data[0x0004] = IfdValueRational.list(
+        _toExifGpsRationals(
+          coords.longDegrees,
+          coords.longMinutes,
+          coords.longSeconds,
+        ),
       );
 
       final Uint8List? out = injectJpgExif(orig, data);
@@ -2008,13 +2041,22 @@ class WriteExifAuxiliaryService with LoggerMixin {
       data.exifIfd['DateTimeOriginal'] = dt;
       data.exifIfd['DateTimeDigitized'] = dt;
 
-      _putGps(data.gpsIfd, 'GPSLatitude', coords.toDD().latitude);
-      _putGps(data.gpsIfd, 'GPSLongitude', coords.toDD().longitude);
-      _putGps(data.gpsIfd, 'GPSLatitudeRef', coords.latDirection.abbreviation);
-      _putGps(
-        data.gpsIfd,
-        'GPSLongitudeRef',
-        coords.longDirection.abbreviation,
+      final gps = data.gpsIfd;
+      gps.data[0x0001] = IfdValueAscii(coords.latDirection.abbreviation);
+      gps.data[0x0002] = IfdValueRational.list(
+        _toExifGpsRationals(
+          coords.latDegrees,
+          coords.latMinutes,
+          coords.latSeconds,
+        ),
+      );
+      gps.data[0x0003] = IfdValueAscii(coords.longDirection.abbreviation);
+      gps.data[0x0004] = IfdValueRational.list(
+        _toExifGpsRationals(
+          coords.longDegrees,
+          coords.longMinutes,
+          coords.longSeconds,
+        ),
       );
 
       final Uint8List? out = injectJpgExif(orig, data);
@@ -2042,32 +2084,9 @@ class WriteExifAuxiliaryService with LoggerMixin {
     }
   }
 
-  /// Normalizes GPS container access for both typed and map-like models.
-  void _putGps(final Object? gpsIfd, final String key, final Object? value) {
-    try {
-      if (key == 'GPSLatitude') {
-        (gpsIfd as dynamic).gpsLatitude = value;
-        return;
-      }
-      if (key == 'GPSLongitude') {
-        (gpsIfd as dynamic).gpsLongitude = value;
-        return;
-      }
-      if (key == 'GPSLatitudeRef') {
-        (gpsIfd as dynamic).gpsLatitudeRef = value;
-        return;
-      }
-      if (key == 'GPSLongitudeRef') {
-        (gpsIfd as dynamic).gpsLongitudeRef = value;
-        return;
-      }
-    } catch (_) {
-      // ignore and try map-like access
-    }
-    if (gpsIfd is Map) {
-      gpsIfd[key] = value;
-    }
-  }
+  // NOTE: GPS tags must be written with correct EXIF types.
+  // We intentionally avoid dynamic setters here and use IfdDirectory's
+  // tag-name mapping + value-type conversions instead.
 }
 
 /// Simple data holder for StepResult mapping (kept explicit for clarity).
