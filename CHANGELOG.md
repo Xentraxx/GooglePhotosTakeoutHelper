@@ -2,6 +2,7 @@
 ### 🐛 **Bug Fixes**
   - Fixed a UTC conversion bug
   - Fixed that geodata was removed from exif
+  - fixed a bug where a path join used a unix path seperator instead of being platform agnostic.
 
 ## 5.0.8
 ### 🐛 **Bug Fixes**

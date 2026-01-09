@@ -1787,7 +1787,7 @@ class MovingStrategyUtils {
     if (currentBase == preferredBasename) return link;
 
     final String finalBasename = _resolveUniqueBasename(dir, preferredBasename);
-    final String desiredPath = '${dir.path}/$finalBasename';
+    final String desiredPath = path.join(dir.path, finalBasename);
     try {
       return await link.rename(desiredPath);
     } catch (_) {
@@ -1801,7 +1801,7 @@ class MovingStrategyUtils {
     final String ext = dot > 0 ? base.substring(dot) : '';
     String candidate = base;
     int idx = 1;
-    while (_existsAny('${dir.path}/$candidate')) {
+    while (_existsAny(path.join(dir.path, candidate))) {
       candidate = '$stem ($idx)$ext';
       idx++;
     }

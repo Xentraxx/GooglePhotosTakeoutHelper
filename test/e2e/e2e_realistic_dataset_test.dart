@@ -399,7 +399,9 @@ void main() {
       // the pipeline potentially moves/deletes files.
       final jsonFilesBefore = await inputDir
           .list(recursive: true)
-          .where((final entity) => entity is File && entity.path.endsWith('.json'))
+          .where(
+            (final entity) => entity is File && entity.path.endsWith('.json'),
+          )
           .cast<File>()
           .toList();
 
@@ -407,7 +409,8 @@ void main() {
       for (final jsonFile in jsonFilesBefore) {
         final content = await jsonFile.readAsString();
         // The realistic dataset generator writes geoData as either an object or null.
-        if (content.contains('"geoData"') && !content.contains('"geoData":null')) {
+        if (content.contains('"geoData"') &&
+            !content.contains('"geoData":null')) {
           final jsonBase = path.basename(jsonFile.path);
           final imageBase = jsonBase.endsWith('.json')
               ? jsonBase.substring(0, jsonBase.length - '.json'.length)
@@ -450,11 +453,17 @@ void main() {
 
       final outputJpgs = await allPhotosDir
           .list(recursive: true)
-          .where((final entity) => entity is File && entity.path.endsWith('.jpg'))
+          .where(
+            (final entity) => entity is File && entity.path.endsWith('.jpg'),
+          )
           .cast<File>()
           .toList();
 
-      expect(outputJpgs, isNotEmpty, reason: 'Expected output JPGs in ALL_PHOTOS');
+      expect(
+        outputJpgs,
+        isNotEmpty,
+        reason: 'Expected output JPGs in ALL_PHOTOS',
+      );
 
       // We can't reliably map geoData JSON -> output basename because the pipeline
       // may merge multiple copies and pick a different primary filename.
@@ -818,8 +827,8 @@ void main() {
         outputFiles.length,
         equals(expectedOutputCount),
         reason:
-        'Expected $expectedOutputCount unique files in output directory (deduplicated by content). '
-        'Input JPGs: ${inputFilePathsBefore.length}, album-only remaining: ${albumOnlyFiles.length}',
+            'Expected $expectedOutputCount unique files in output directory (deduplicated by content). '
+            'Input JPGs: ${inputFilePathsBefore.length}, album-only remaining: ${albumOnlyFiles.length}',
       );
     });
     test(

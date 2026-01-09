@@ -149,7 +149,8 @@ void main() {
       expect(
         partnerSharedPhoto.existsSync(),
         isTrue,
-        reason: 'Partner shared photo should be in PARTNER_SHARED/ALL_PHOTOS folder',
+        reason:
+            'Partner shared photo should be in PARTNER_SHARED/ALL_PHOTOS folder',
       );
 
       // Verify personal photo went to ALL_PHOTOS folder

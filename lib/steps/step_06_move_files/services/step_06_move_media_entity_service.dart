@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'package:console_bars/console_bars.dart';
 import 'package:gpth/gpth_lib_exports.dart';
+import 'package:path/path.dart' as path;
 
 /// Modern media moving service using immutable MediaEntity
 ///
@@ -693,7 +694,7 @@ class MoveMediaEntityOperation {
   final String? albumKey;
 
   File get targetFile =>
-      File('${targetDirectory.path}/${sourceFile.uri.pathSegments.last}');
+      File(path.join(targetDirectory.path, sourceFile.uri.pathSegments.last));
 
   bool get isAlbumFile => albumKey != null;
   bool get isMainFile => albumKey == null;
