@@ -19,7 +19,7 @@ class TakeoutFolderClassifierService {
   /// [dir] Directory to check
   /// Returns true if it's a year folder
   bool isYearFolder(final Directory dir) => RegExp(
-    r'^Photos from (20|19|18)\d{2}$',
+    r'^(Photos from|Fotos del|Fotos von) (20|19|18)\d{2}$',
   ).hasMatch(path.basename(dir.path));
 
   /// Determines if a directory is an album folder
